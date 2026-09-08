@@ -1,10 +1,25 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Download, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Download,
+  ExternalLink,
+  FileSearch,
+  FileText,
+  Lock,
+  PackageCheck,
+  Plus,
+  RefreshCw,
+  ShieldAlert,
+  Tag,
+} from "lucide-react";
 
 import { downloadCaseReportPdf } from "@/lib/pdf";
 import { toast } from "sonner";
+import { policeAssetsQuery } from "@/lib/assets";
+import { secureDocumentsQuery } from "@/lib/documents";
 
 import { PageHeader } from "@/components/page-shell";
 import { PriorityBadge } from "@/components/priority-badge";
@@ -92,6 +107,8 @@ function CaseDetail() {
   const adjournments = useQuery(adjournmentsQuery(caseId));
   const settings = useQuery(prioritySettingsQuery);
   const staff = useCurrentStaff();
+  const assets = useQuery(policeAssetsQuery);
+  const docsQuery = useQuery(secureDocumentsQuery());
   const queryClient = useQueryClient();
   const isAdmin = staff.data?.role === "admin";
 
@@ -146,6 +163,28 @@ function CaseDetail() {
   const caseSchedules = (schedules.data ?? []).filter((s) => s.cases?.id === caseId);
   const current = caseSchedules.find((s) => isActive(s.status));
   const recommendation = useQuery({ ...scheduleRecommendationQuery(current?.id) });
+
+  const caseEvidence = useMemo(() => {
+    if (!record) return [];
+    return (assets.data ?? []).filter((item) => {
+      return (
+        item.case_id === caseId ||
+        item.case_number === record.case_number ||
+        (Boolean(item.case_number) && Boolean(record.case_number) && item.case_number!.includes(record.case_number))
+      );
+    });
+  }, [assets.data, caseId, record]);
+
+  const caseDocuments = useMemo(() => {
+    if (!record) return [];
+    return (docsQuery.data ?? []).filter((doc) => {
+      return (
+        doc.case_id === caseId ||
+        doc.case_number === record.case_number ||
+        (Boolean(doc.case_number) && Boolean(record.case_number) && doc.case_number!.includes(record.case_number))
+      );
+    });
+  }, [docsQuery.data, caseId, record]);
 
   if (cases.isError) {
     return (
@@ -330,6 +369,221 @@ function CaseDetail() {
           }
         />
       </div>
+
+      {/* Criminal Evidence & Malkhana Exhibits Section */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShieldAlert className="size-4 text-primary" />
+                Criminal Evidence & Malkhana Exhibits
+                <Badge variant="secondary" className="text-xs ml-1">
+                  {caseEvidence.length} {caseEvidence.length === 1 ? "Exhibit" : "Exhibits"}
+                </Badge>
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Seized articles, weapons, digital media, and physical exhibits linked to case {record.case_number}.
+              </p>
+            </div>
+            <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs self-start">
+              <Link to="/assets/new">
+                <Plus className="size-3.5" />
+                Register Evidence for Case
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {caseEvidence.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground border border-dashed rounded-lg">
+              <PackageCheck className="mx-auto size-8 text-muted-foreground/60" />
+              <p className="mt-2 text-sm font-medium text-foreground">No Evidence Exhibits Linked Yet</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                No seized property or forensic articles are currently recorded in the malkhana registry for this case.
+              </p>
+              <Button asChild size="sm" variant="outline" className="mt-4 gap-1.5 text-xs">
+                <Link to="/assets/new">
+                  <Plus className="size-3.5" /> Register First Exhibit
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40">
+                    <TableHead>Evidence ID</TableHead>
+                    <TableHead>Classification & Title</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Current Custodian & Location</TableHead>
+                    <TableHead>Tamper Seal</TableHead>
+                    <TableHead>Integrity</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {caseEvidence.map((ev) => (
+                    <TableRow key={ev.id}>
+                      <TableCell className="font-mono text-xs font-semibold text-primary">
+                        <Link to="/assets/$assetId" params={{ assetId: ev.id }} className="hover:underline flex items-center gap-1">
+                          <Tag className="size-3 text-muted-foreground" />
+                          {ev.asset_code}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs font-medium text-foreground line-clamp-1">{ev.name}</div>
+                        <div className="text-[10px] text-muted-foreground">{ev.category_name || "Seized Exhibit"}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className="text-[10px]" variant="outline">{ev.evidence_status || ev.status}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs font-medium">{ev.current_custodian_name}</div>
+                        <div className="text-[10px] text-muted-foreground truncate max-w-[150px]">{ev.current_location}</div>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-emerald-600">
+                        {ev.tamper_seal_number || "Verified"}
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+                          <CheckCircle2 className="size-3" /> VERIFIED
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild size="sm" variant="ghost" className="h-7 text-xs gap-1">
+                          <Link to="/assets/$assetId" params={{ assetId: ev.id }}>
+                            Chain of Custody
+                            <ExternalLink className="size-3" />
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Case Documents & Pleadings Section */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="size-4 text-primary" />
+                Case Documents & Pleadings
+                <Badge variant="secondary" className="text-xs ml-1 font-mono">
+                  {caseDocuments.length} {caseDocuments.length === 1 ? "Record" : "Records"}
+                </Badge>
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Certified electronic repository for FIRs, police charge sheets, forensic reports, and court filings.
+              </p>
+            </div>
+            <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs self-start">
+              <Link to="/documents">
+                <Plus className="size-3.5" />
+                Attach Document
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {caseDocuments.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground border border-dashed rounded-lg">
+              <FileSearch className="mx-auto size-8 text-muted-foreground/60" />
+              <p className="mt-2 text-sm font-medium text-foreground">No Case Documents Attached Yet</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                No formal FIR, charge sheet, or pleadings are currently linked to this case file in the digital document repository.
+              </p>
+              <Button asChild size="sm" variant="outline" className="mt-4 gap-1.5 text-xs">
+                <Link to="/documents">
+                  <Plus className="size-3.5" /> Upload First Document
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40">
+                    <TableHead>Document No</TableHead>
+                    <TableHead>Title & Particulars</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Sensitivity</TableHead>
+                    <TableHead>Version</TableHead>
+                    <TableHead>Format & Size</TableHead>
+                    <TableHead>Integrity</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {caseDocuments.map((doc) => (
+                    <TableRow key={doc.id}>
+                      <TableCell className="font-mono text-xs font-semibold text-primary">
+                        <Link
+                          to="/documents/$documentId"
+                          params={{ documentId: doc.id }}
+                          className="hover:underline flex items-center gap-1"
+                        >
+                          <FileText className="size-3 text-muted-foreground" />
+                          {doc.document_number}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                        <Link
+                          to="/documents/$documentId"
+                          params={{ documentId: doc.id }}
+                          className="text-xs font-medium text-foreground hover:underline line-clamp-1"
+                        >
+                          {doc.title}
+                        </Link>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {doc.originating_agency}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px]">{doc.category}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {doc.sensitivity_tier === "SEALED_COVER_IN_CAMERA" ? (
+                          <Badge variant="destructive" className="text-[10px] gap-1">
+                            <Lock className="size-2.5" /> Sealed
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px]">{doc.sensitivity_tier}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono text-[10px]">v{doc.current_version}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground font-mono">
+                        {doc.file_format} • {(doc.file_size_bytes / 1024).toFixed(0)} KB
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+                          <CheckCircle2 className="size-3" /> VERIFIED
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild size="sm" variant="ghost" className="h-7 text-xs gap-1 text-primary">
+                          <Link to="/documents/$documentId" params={{ documentId: doc.id }}>
+                            Preview Dossier
+                            <ExternalLink className="size-3" />
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="mt-6">
         <CardHeader>

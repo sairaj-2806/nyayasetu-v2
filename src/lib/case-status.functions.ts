@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { checkRateLimit } from "@/lib/rate-limit.server";
 
 export type PublicCaseStatus = {
@@ -36,13 +37,19 @@ export const lookupCaseStatus = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }): Promise<PublicCaseStatus | null> => {
     try {
-      // Rate limit public lookups to 60 per minute
-      const rateCheck = checkRateLimit("public-case-lookup", {
+      // Rate limit public lookups to 60 per minute per client IP
+      const request = getRequest();
+      const clientIp =
+        request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        request?.headers?.get("x-real-ip") ||
+        "anonymous-case-lookup";
+
+      const rateCheck = checkRateLimit(`case-lookup:${clientIp}`, {
         maxRequests: 60,
         windowMs: 60_000,
       });
       if (!rateCheck.allowed) {
-        throw new Error("Too many lookup requests. Please wait a few seconds before trying again.");
+        throw new Error("Too many lookup requests from your location. Please wait a few seconds before trying again.");
       }
 
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

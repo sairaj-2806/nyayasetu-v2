@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { EXAMPLE_QUESTIONS, type AssistantAnswer, type AssistantRow } from "@/lib/assistant";
 import { askRegistryAssistant } from "@/lib/assistant.functions";
 import { ChatMarkdown } from "@/components/chat-markdown";
+import { useCurrentStaff } from "@/hooks/use-current-staff";
 
 type Turn =
   | { role: "user"; id: string; text: string }
@@ -33,6 +34,7 @@ type Turn =
  */
 export function AssistantPanel() {
   const navigate = useNavigate();
+  const { data: staff } = useCurrentStaff();
   const askFn = useServerFn(askRegistryAssistant);
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -61,7 +63,13 @@ export function AssistantPanel() {
     setTurns((prev) => [...prev, { role: "user", id: `u-${Date.now()}`, text: q }]);
     setBusy(true);
     try {
-      const answer = await askFn({ data: { question: q } });
+      const answer = await askFn({
+        data: {
+          question: q,
+          userRole: staff?.role,
+          userId: staff?.id,
+        },
+      });
       setTurns((prev) => [...prev, { role: "assistant", id: `a-${Date.now()}`, answer }]);
     } catch (error) {
       setTurns((prev) => [
@@ -87,6 +95,10 @@ export function AssistantPanel() {
       navigate({ to: t.route, params: { judgeId: t.judgeId } });
     else if (t.route === "/courtrooms/$courtroomId")
       navigate({ to: t.route, params: { courtroomId: t.courtroomId } });
+    else if (t.route === "/assets/$assetId")
+      navigate({ to: t.route, params: { assetId: t.assetId } });
+    else if (t.route === "/documents/$documentId")
+      navigate({ to: t.route, params: { documentId: t.documentId } });
     else navigate({ to: t.route });
   }
 
@@ -124,10 +136,10 @@ export function AssistantPanel() {
         <SheetHeader className="px-5 py-4 pr-12 border-b bg-card/60 shrink-0">
           <SheetTitle className="flex items-center gap-2 text-base font-semibold">
             <FileSearch className="size-4.5 text-primary" />
-            AI Registry Copilot
+            AI Judicial Copilot
           </SheetTitle>
           <SheetDescription className="text-xs text-muted-foreground leading-normal">
-            Ask any custom question about court cases, judge workloads, schedules, or legal procedures.
+            Ask questions about court cases, schedules, police assets, evidence custody, or secure DMS documents.
           </SheetDescription>
         </SheetHeader>
 
@@ -229,7 +241,7 @@ export function AssistantPanel() {
             ref={inputRef}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="Ask anything about cases, schedules, judges, or procedures…"
+            placeholder="Ask about cases, schedules, assets, evidence, documents, or custody…"
             aria-label="Ask the AI Copilot"
             className="flex-1 min-w-0 text-sm h-10 bg-background/80 focus-visible:ring-1"
           />

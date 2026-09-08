@@ -347,3 +347,6 @@ export async function applyCourtroomSimulation(params: {
 
   return { reassigned };
 }
+
+export * from "@/lib/police-asset-simulation";
+

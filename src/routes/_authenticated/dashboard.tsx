@@ -3,18 +3,30 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  ArrowRight,
+  Building2,
   CalendarCheck,
+  CheckCircle2,
   ClipboardCheck,
   Clock,
+  ExternalLink,
+  FileText,
   Gavel,
+  History,
   Layers,
   ListChecks,
-  Building2,
+  Lock,
   RefreshCw,
-  TrendingUp,
-  Zap,
+  Search,
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
+  Tag,
   Target,
+  TrendingUp,
   Trophy,
+  Wrench,
+  Zap,
 } from "lucide-react";
 import {
   Bar,
@@ -43,6 +55,9 @@ import { conflictDataQuery, scanSystemConflicts } from "@/lib/conflicts";
 import { buildBriefingInput, composeBriefingSentences } from "@/lib/briefing";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/lib/i18n";
+import { secureDocumentsQuery } from "@/lib/documents";
+import { policeAssetsQuery } from "@/lib/assets";
+import { computeDmsAndAssetMetrics } from "@/lib/dms-asset-dashboard";
 
 function formatJudgeShortName(fullName: string): string {
   const clean = (fullName || "")
@@ -383,6 +398,9 @@ function Page() {
     },
   });
 
+  const docsQuery = useQuery(secureDocumentsQuery());
+  const assetsQuery = useQuery(policeAssetsQuery);
+
   const metrics = useMemo(
     () => (data.data ? computeDashboardMetrics(data.data) : null),
     [data.data],
@@ -392,7 +410,14 @@ function Page() {
     [conflictData.data],
   );
 
-  const refreshing = data.isFetching || conflictData.isFetching;
+  const dmsMetrics = useMemo(() => {
+    const docs = docsQuery.data ?? [];
+    const assets = assetsQuery.data ?? [];
+    return computeDmsAndAssetMetrics(docs, assets);
+  }, [docsQuery.data, assetsQuery.data]);
+
+  const refreshing =
+    data.isFetching || conflictData.isFetching || docsQuery.isFetching || assetsQuery.isFetching;
 
   const briefing = useMemo(() => {
     if (!data.data || !metrics || conflictData.isLoading) return null;
@@ -430,6 +455,8 @@ function Page() {
             onClick={() => {
               void data.refetch();
               void conflictData.refetch();
+              void docsQuery.refetch();
+              void assetsQuery.refetch();
             }}
             disabled={refreshing}
           >
@@ -712,6 +739,313 @@ function Page() {
                     </ScrollArea>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* SECURE DMS, POLICE ASSETS & EVIDENCE SECTION */}
+          <div className="mt-9 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-sm bg-primary/10 text-primary">
+                    <Shield className="size-4" />
+                  </span>
+                  <h2 className="text-lg font-semibold text-foreground tracking-tight">
+                    Secure DMS, Police Assets & Evidence Management
+                  </h2>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Unified registry status: tamper-evident legal records, equipment lifecycle state machine, and chain of custody tracking.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5">
+                  <Link to="/documents">
+                    <FileText className="size-3.5" />
+                    Document Vault
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5">
+                  <Link to="/assets">
+                    <Shield className="size-3.5" />
+                    Police Assets
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5">
+                  <Link to="/search">
+                    <Search className="size-3.5" />
+                    Global Search
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* 3 Overview Cards Grid */}
+            <div className="grid gap-4 md:grid-cols-3">
+              {/* 1. Secure Document Metrics */}
+              <Card className="flex flex-col border-border shadow-2xs">
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-8 items-center justify-center rounded-sm bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                      <FileText className="size-4" />
+                    </span>
+                    <div>
+                      <CardTitle className="text-sm font-semibold">Secure Documents</CardTitle>
+                      <p className="text-[11px] text-muted-foreground">Digital Court & Police DMS</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-xs font-mono bg-blue-500/10 text-blue-700 border-blue-500/30 dark:text-blue-400">
+                    {dmsMetrics.documents.total} Total
+                  </Badge>
+                </CardHeader>
+                <CardContent className="flex-1 space-y-3 pt-1">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-md border bg-muted/30 p-2.5">
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Total Documents</p>
+                      <p className="text-xl font-bold tabular-nums text-foreground mt-0.5">{dmsMetrics.documents.total}</p>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-2.5">
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Added Recently</p>
+                      <p className="text-xl font-bold tabular-nums text-foreground mt-0.5">{dmsMetrics.documents.addedRecently}</p>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-2.5">
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Pending Verification</p>
+                      <p className="text-xl font-bold tabular-nums text-amber-600 dark:text-amber-400 mt-0.5">
+                        {dmsMetrics.documents.pendingVerification}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-2.5">
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Version Updates</p>
+                      <p className="text-xl font-bold tabular-nums text-purple-600 dark:text-purple-400 mt-0.5">
+                        +{dmsMetrics.documents.versionUpdates}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t pt-2.5 text-xs">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <ShieldCheck className="size-3.5 text-emerald-600" />
+                      <span>Integrity alerts</span>
+                    </span>
+                    {dmsMetrics.documents.integrityAlerts > 0 ? (
+                      <Badge variant="destructive" className="font-mono text-[10px]">
+                        {dmsMetrics.documents.integrityAlerts} Mismatch
+                      </Badge>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="size-3" />
+                        All Verified
+                      </span>
+                    )}
+                  </div>
+
+                  <Button variant="ghost" size="sm" asChild className="w-full text-xs h-8 text-primary justify-between hover:bg-primary/5">
+                    <Link to="/documents">
+                      <span>Browse Document Vault</span>
+                      <ArrowRight className="size-3.5" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* 2. Police Asset Metrics */}
+              <Card className="flex flex-col border-border shadow-2xs">
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-8 items-center justify-center rounded-sm bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                      <Shield className="size-4" />
+                    </span>
+                    <div>
+                      <CardTitle className="text-sm font-semibold">Police Assets</CardTitle>
+                      <p className="text-[11px] text-muted-foreground">Equipment & Fleet Lifecycle</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-xs font-mono bg-indigo-500/10 text-indigo-700 border-indigo-500/30 dark:text-indigo-400">
+                    {dmsMetrics.assets.total} Total
+                  </Badge>
+                </CardHeader>
+                <CardContent className="flex-1 space-y-3 pt-1">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-md border bg-muted/30 p-2.5">
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Active Units</p>
+                      <p className="text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">
+                        {dmsMetrics.assets.active}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-2.5">
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Assigned</p>
+                      <p className="text-xl font-bold tabular-nums text-blue-600 dark:text-blue-400 mt-0.5">
+                        {dmsMetrics.assets.assigned}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-2.5">
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Maintenance</p>
+                      <p className="text-xl font-bold tabular-nums text-amber-600 dark:text-amber-400 mt-0.5">
+                        {dmsMetrics.assets.maintenance}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-2.5">
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Transfer / Handover</p>
+                      <p className="text-xl font-bold tabular-nums text-indigo-600 dark:text-indigo-400 mt-0.5">
+                        {dmsMetrics.assets.transfer}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t pt-2.5 text-xs">
+                    <span className="text-muted-foreground">Lost / Retired items</span>
+                    <span className="font-mono text-xs font-semibold text-muted-foreground">
+                      {dmsMetrics.assets.lostRetired} items
+                    </span>
+                  </div>
+
+                  <Button variant="ghost" size="sm" asChild className="w-full text-xs h-8 text-primary justify-between hover:bg-primary/5">
+                    <Link to="/assets">
+                      <span>Open Asset Inventory</span>
+                      <ArrowRight className="size-3.5" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* 3. Evidence Metrics */}
+              <Card className="flex flex-col border-border shadow-2xs">
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-8 items-center justify-center rounded-sm bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                      <Tag className="size-4" />
+                    </span>
+                    <div>
+                      <CardTitle className="text-sm font-semibold">Evidence & Custody</CardTitle>
+                      <p className="text-[11px] text-muted-foreground">Case Exhibits & Chain of Custody</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-xs font-mono bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+                    {dmsMetrics.evidence.total} Exhibits
+                  </Badge>
+                </CardHeader>
+                <CardContent className="flex-1 space-y-3 pt-1">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-md border bg-muted/30 p-2.5">
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">In Custody Vault</p>
+                      <p className="text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">
+                        {dmsMetrics.evidence.inCustody}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-2.5">
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Under Forensic Exam</p>
+                      <p className="text-xl font-bold tabular-nums text-purple-600 dark:text-purple-400 mt-0.5">
+                        {dmsMetrics.evidence.forensicExam}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-2.5">
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Court Submission</p>
+                      <p className="text-xl font-bold tabular-nums text-sky-600 dark:text-sky-400 mt-0.5">
+                        {dmsMetrics.evidence.awaitingCourtSubmission}
+                      </p>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-2.5">
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Custody Alerts</p>
+                      <p className="text-xl font-bold tabular-nums text-destructive mt-0.5">
+                        {dmsMetrics.evidence.custodyAlerts}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t pt-2.5 text-xs">
+                    <span className="text-muted-foreground">Active Tamper Seals</span>
+                    <span className="font-mono text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      100% Intact
+                    </span>
+                  </div>
+
+                  <Button variant="ghost" size="sm" asChild className="w-full text-xs h-8 text-primary justify-between hover:bg-primary/5">
+                    <Link to="/assets">
+                      <span>View Chain of Custody</span>
+                      <ArrowRight className="size-3.5" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* 4. Security & Integrity Alerts Section */}
+            <Card className="border-border shadow-2xs">
+              <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-8 items-center justify-center rounded-sm bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                    <ShieldAlert className="size-4" />
+                  </span>
+                  <div>
+                    <CardTitle className="text-sm font-semibold">Security & Integrity Alerts</CardTitle>
+                    <p className="text-[11px] text-muted-foreground">
+                      Real-time watchdog: tamper alerts, unauthorized access attempts, overdue transfers, and maintenance alerts.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[11px] bg-rose-500/10 text-rose-700 border-rose-500/30 dark:text-rose-400 font-medium">
+                    {dmsMetrics.alerts.length} Active Notice{dmsMetrics.alerts.length !== 1 ? "s" : ""}
+                  </Badge>
+                  <Button variant="ghost" size="sm" asChild className="h-7 text-xs text-muted-foreground hover:text-foreground">
+                    <Link to="/activity-log">
+                      Audit Logs
+                    </Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-1">
+                <div className="divide-y divide-border">
+                  {dmsMetrics.alerts.map((alert) => (
+                    <div key={alert.id} className="py-3 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wide",
+                              alert.severity === "CRITICAL"
+                                ? "bg-destructive/15 text-destructive border-destructive/30"
+                                : alert.severity === "HIGH"
+                                ? "bg-rose-500/15 text-rose-700 border-rose-500/30 dark:text-rose-400"
+                                : alert.severity === "WARNING"
+                                ? "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400"
+                                : "bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400"
+                            )}
+                          >
+                            {alert.severity}
+                          </span>
+                          <span className="font-mono text-xs font-semibold text-foreground">
+                            {alert.targetCode}
+                          </span>
+                          <span className="text-xs font-medium text-foreground">
+                            {alert.title}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {alert.description}
+                        </p>
+                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground/80">
+                          <span>Logged: {alert.timestamp}</span>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="h-7 text-xs font-medium gap-1 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                        >
+                          <Link to={alert.route as any} params={alert.routeParams as any}>
+                            <span>{alert.actionLabel}</span>
+                            <ExternalLink className="size-3" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>

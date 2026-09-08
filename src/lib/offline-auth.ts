@@ -4,17 +4,99 @@
  * Uses SHA-256 salted cryptographic hashing so plaintext passwords are never stored.
  */
 
+import { AppRole, normalizeRole } from "@/lib/rbac";
+
 export interface OfflineStaffAccount {
   id: string;
   email: string;
   fullName: string;
-  role: "admin" | "registrar" | "judge";
+  role: AppRole;
   judgeId: string | null;
   judgeName: string | null;
   passwordHash: string;
   salt: string;
   lastSyncedAt: string;
 }
+
+export const SEED_OFFLINE_STAFF_ACCOUNTS: OfflineStaffAccount[] = [
+  {
+    id: "usr_admin_01",
+    email: "admin@courts.gov",
+    fullName: "Shri Rajeev Verma (Principal Registrar / Admin)",
+    role: "admin",
+    judgeId: null,
+    judgeName: null,
+    passwordHash: "demo_hash_admin",
+    salt: "salt_admin_2026",
+    lastSyncedAt: "2026-09-08T10:00:00Z",
+  },
+  {
+    id: "usr_reg_01",
+    email: "registrar@courts.gov",
+    fullName: "Smt. Sunita Sharma (Chief Case Registrar)",
+    role: "registrar",
+    judgeId: null,
+    judgeName: null,
+    passwordHash: "demo_hash_reg",
+    salt: "salt_reg_2026",
+    lastSyncedAt: "2026-09-08T10:00:00Z",
+  },
+  {
+    id: "usr_judge_01",
+    email: "judge.kapoor@delhicourts.gov",
+    fullName: "Hon'ble Justice Rajesh Kapoor",
+    role: "judge",
+    judgeId: "demo-judge",
+    judgeName: "Hon'ble Justice Rajesh Kapoor",
+    passwordHash: "demo_hash_judge",
+    salt: "salt_judge_2026",
+    lastSyncedAt: "2026-09-08T10:00:00Z",
+  },
+  {
+    id: "usr_io_01",
+    email: "io.sharma@delhipolice.gov",
+    fullName: "Inspector Vikramaditya Sharma (IO Spl. Cell)",
+    role: "investigating_officer",
+    judgeId: null,
+    judgeName: null,
+    passwordHash: "demo_hash_io",
+    salt: "salt_io_2026",
+    lastSyncedAt: "2026-09-08T10:00:00Z",
+  },
+  {
+    id: "usr_fsl_01",
+    email: "fsl.mehta@cfsl.gov",
+    fullName: "Dr. Ananya Mehta (Forensic Ballistics Expert)",
+    role: "forensic_officer",
+    judgeId: null,
+    judgeName: null,
+    passwordHash: "demo_hash_fsl",
+    salt: "salt_fsl_2026",
+    lastSyncedAt: "2026-09-08T10:00:00Z",
+  },
+  {
+    id: "usr_custodian_01",
+    email: "malkhana.singh@delhipolice.gov",
+    fullName: "Head Constable Surinder Singh (Malkhana Moharrir)",
+    role: "evidence_custodian",
+    judgeId: null,
+    judgeName: null,
+    passwordHash: "demo_hash_custodian",
+    salt: "salt_custodian_2026",
+    lastSyncedAt: "2026-09-08T10:00:00Z",
+  },
+  {
+    id: "usr_police_01",
+    email: "beat.verma@delhipolice.gov",
+    fullName: "Constable Amit Verma (Beat Patrol Officer)",
+    role: "police_officer",
+    judgeId: null,
+    judgeName: null,
+    passwordHash: "demo_hash_police",
+    salt: "salt_police_2026",
+    lastSyncedAt: "2026-09-08T10:00:00Z",
+  },
+];
 
 const VAULT_STORAGE_KEY = "nyayasetu_staff_vault_v1";
 const SESSION_STORAGE_KEY = "nyayasetu_offline_session_v1";
@@ -35,15 +117,41 @@ export async function computePasswordHash(password: string, userSalt: string = G
  * Retrieves the list of known court staff in the local offline vault
  */
 export function getOfflineStaffVault(): OfflineStaffAccount[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return SEED_OFFLINE_STAFF_ACCOUNTS;
   try {
     const raw = localStorage.getItem(VAULT_STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as OfflineStaffAccount[];
+    if (!raw) {
+      localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(SEED_OFFLINE_STAFF_ACCOUNTS));
+      return SEED_OFFLINE_STAFF_ACCOUNTS;
+    }
+    const parsed = JSON.parse(raw) as OfflineStaffAccount[];
+    // Ensure all 7 seeded personas exist in the vault
+    const existingEmails = new Set(parsed.map((a) => a.email.toLowerCase()));
+    let needsUpdate = false;
+    for (const seed of SEED_OFFLINE_STAFF_ACCOUNTS) {
+      if (!existingEmails.has(seed.email.toLowerCase())) {
+        parsed.push(seed);
+        needsUpdate = true;
+      }
+    }
+    if (needsUpdate) {
+      localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(parsed));
+    }
+    return parsed;
   } catch (err) {
     console.error("Failed to read offline staff vault", err);
-    return [];
+    return SEED_OFFLINE_STAFF_ACCOUNTS;
   }
+}
+
+/**
+ * Quick switch to a specific persona for live RBAC & permission verification.
+ */
+export function switchActiveStaffPersona(targetRole: AppRole): OfflineStaffAccount {
+  const vault = getOfflineStaffVault();
+  const found = vault.find((a) => a.role === targetRole) || SEED_OFFLINE_STAFF_ACCOUNTS.find((a) => a.role === targetRole) || SEED_OFFLINE_STAFF_ACCOUNTS[0]!;
+  setOfflineStaffSession(found);
+  return found;
 }
 
 /**
@@ -54,7 +162,7 @@ export async function cacheStaffCredentialsLocally(
     id: string;
     email: string;
     fullName: string;
-    role: "admin" | "registrar" | "judge";
+    role: AppRole;
     judgeId?: string | null;
     judgeName?: string | null;
   },

@@ -25,13 +25,19 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedGovernanceRouteImport } from './routes/_authenticated/governance'
 import { Route as AuthenticatedPrioritySettingsRouteImport } from './routes/_authenticated/priority-settings'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedSmartSchedulingRouteImport } from './routes/_authenticated/smart-scheduling'
 import { Route as AuthenticatedWhatIfSimulationRouteImport } from './routes/_authenticated/what-if-simulation'
+import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets/index'
+import { Route as AuthenticatedAssetsAssetIdRouteImport } from './routes/_authenticated/assets/$assetId'
+import { Route as AuthenticatedAssetsNewRouteImport } from './routes/_authenticated/assets/new'
 import { Route as AuthenticatedCasesIndexRouteImport } from './routes/_authenticated/cases/index'
 import { Route as AuthenticatedCasesCaseIdRouteImport } from './routes/_authenticated/cases/$caseId'
 import { Route as AuthenticatedCasesNewRouteImport } from './routes/_authenticated/cases/new'
 import { Route as AuthenticatedCourtroomsIndexRouteImport } from './routes/_authenticated/courtrooms/index'
 import { Route as AuthenticatedCourtroomsCourtroomIdRouteImport } from './routes/_authenticated/courtrooms/$courtroomId'
+import { Route as AuthenticatedDocumentsIndexRouteImport } from './routes/_authenticated/documents/index'
+import { Route as AuthenticatedDocumentsDocumentIdRouteImport } from './routes/_authenticated/documents/$documentId'
 import { Route as AuthenticatedJudgesIndexRouteImport } from './routes/_authenticated/judges/index'
 import { Route as AuthenticatedJudgesJudgeIdRouteImport } from './routes/_authenticated/judges/$judgeId'
 
@@ -117,6 +123,11 @@ const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSearchRoute = AuthenticatedSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSmartSchedulingRoute =
   AuthenticatedSmartSchedulingRouteImport.update({
     id: '/smart-scheduling',
@@ -129,6 +140,23 @@ const AuthenticatedWhatIfSimulationRoute =
     path: '/what-if-simulation',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAssetsIndexRoute =
+  AuthenticatedAssetsIndexRouteImport.update({
+    id: '/assets/',
+    path: '/assets/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAssetsAssetIdRoute =
+  AuthenticatedAssetsAssetIdRouteImport.update({
+    id: '/assets/$assetId',
+    path: '/assets/$assetId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAssetsNewRoute = AuthenticatedAssetsNewRouteImport.update({
+  id: '/assets/new',
+  path: '/assets/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCasesIndexRoute = AuthenticatedCasesIndexRouteImport.update({
   id: '/cases/',
   path: '/cases/',
@@ -155,6 +183,18 @@ const AuthenticatedCourtroomsCourtroomIdRoute =
   AuthenticatedCourtroomsCourtroomIdRouteImport.update({
     id: '/courtrooms/$courtroomId',
     path: '/courtrooms/$courtroomId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDocumentsIndexRoute =
+  AuthenticatedDocumentsIndexRouteImport.update({
+    id: '/documents/',
+    path: '/documents/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDocumentsDocumentIdRoute =
+  AuthenticatedDocumentsDocumentIdRouteImport.update({
+    id: '/documents/$documentId',
+    path: '/documents/$documentId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedJudgesIndexRoute =
@@ -186,14 +226,20 @@ export interface FileRoutesByFullPath {
   '/governance': typeof AuthenticatedGovernanceRoute
   '/priority-settings': typeof AuthenticatedPrioritySettingsRoute
   '/reports': typeof AuthenticatedReportsRoute
+  '/search': typeof AuthenticatedSearchRoute
   '/smart-scheduling': typeof AuthenticatedSmartSchedulingRoute
   '/what-if-simulation': typeof AuthenticatedWhatIfSimulationRoute
+  '/assets/$assetId': typeof AuthenticatedAssetsAssetIdRoute
+  '/assets/new': typeof AuthenticatedAssetsNewRoute
   '/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
   '/cases/new': typeof AuthenticatedCasesNewRoute
   '/courtrooms/$courtroomId': typeof AuthenticatedCourtroomsCourtroomIdRoute
+  '/documents/$documentId': typeof AuthenticatedDocumentsDocumentIdRoute
   '/judges/$judgeId': typeof AuthenticatedJudgesJudgeIdRoute
+  '/assets/': typeof AuthenticatedAssetsIndexRoute
   '/cases/': typeof AuthenticatedCasesIndexRoute
   '/courtrooms/': typeof AuthenticatedCourtroomsIndexRoute
+  '/documents/': typeof AuthenticatedDocumentsIndexRoute
   '/judges/': typeof AuthenticatedJudgesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -212,14 +258,20 @@ export interface FileRoutesByTo {
   '/governance': typeof AuthenticatedGovernanceRoute
   '/priority-settings': typeof AuthenticatedPrioritySettingsRoute
   '/reports': typeof AuthenticatedReportsRoute
+  '/search': typeof AuthenticatedSearchRoute
   '/smart-scheduling': typeof AuthenticatedSmartSchedulingRoute
   '/what-if-simulation': typeof AuthenticatedWhatIfSimulationRoute
+  '/assets/$assetId': typeof AuthenticatedAssetsAssetIdRoute
+  '/assets/new': typeof AuthenticatedAssetsNewRoute
   '/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
   '/cases/new': typeof AuthenticatedCasesNewRoute
   '/courtrooms/$courtroomId': typeof AuthenticatedCourtroomsCourtroomIdRoute
+  '/documents/$documentId': typeof AuthenticatedDocumentsDocumentIdRoute
   '/judges/$judgeId': typeof AuthenticatedJudgesJudgeIdRoute
+  '/assets': typeof AuthenticatedAssetsIndexRoute
   '/cases': typeof AuthenticatedCasesIndexRoute
   '/courtrooms': typeof AuthenticatedCourtroomsIndexRoute
+  '/documents': typeof AuthenticatedDocumentsIndexRoute
   '/judges': typeof AuthenticatedJudgesIndexRoute
 }
 export interface FileRoutesById {
@@ -240,14 +292,20 @@ export interface FileRoutesById {
   '/_authenticated/governance': typeof AuthenticatedGovernanceRoute
   '/_authenticated/priority-settings': typeof AuthenticatedPrioritySettingsRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/_authenticated/smart-scheduling': typeof AuthenticatedSmartSchedulingRoute
   '/_authenticated/what-if-simulation': typeof AuthenticatedWhatIfSimulationRoute
+  '/_authenticated/assets/$assetId': typeof AuthenticatedAssetsAssetIdRoute
+  '/_authenticated/assets/new': typeof AuthenticatedAssetsNewRoute
   '/_authenticated/cases/$caseId': typeof AuthenticatedCasesCaseIdRoute
   '/_authenticated/cases/new': typeof AuthenticatedCasesNewRoute
   '/_authenticated/courtrooms/$courtroomId': typeof AuthenticatedCourtroomsCourtroomIdRoute
+  '/_authenticated/documents/$documentId': typeof AuthenticatedDocumentsDocumentIdRoute
   '/_authenticated/judges/$judgeId': typeof AuthenticatedJudgesJudgeIdRoute
+  '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
   '/_authenticated/cases/': typeof AuthenticatedCasesIndexRoute
   '/_authenticated/courtrooms/': typeof AuthenticatedCourtroomsIndexRoute
+  '/_authenticated/documents/': typeof AuthenticatedDocumentsIndexRoute
   '/_authenticated/judges/': typeof AuthenticatedJudgesIndexRoute
 }
 export interface FileRouteTypes {
@@ -268,14 +326,20 @@ export interface FileRouteTypes {
     | '/governance'
     | '/priority-settings'
     | '/reports'
+    | '/search'
     | '/smart-scheduling'
     | '/what-if-simulation'
+    | '/assets/$assetId'
+    | '/assets/new'
     | '/cases/$caseId'
     | '/cases/new'
     | '/courtrooms/$courtroomId'
+    | '/documents/$documentId'
     | '/judges/$judgeId'
+    | '/assets/'
     | '/cases/'
     | '/courtrooms/'
+    | '/documents/'
     | '/judges/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -294,14 +358,20 @@ export interface FileRouteTypes {
     | '/governance'
     | '/priority-settings'
     | '/reports'
+    | '/search'
     | '/smart-scheduling'
     | '/what-if-simulation'
+    | '/assets/$assetId'
+    | '/assets/new'
     | '/cases/$caseId'
     | '/cases/new'
     | '/courtrooms/$courtroomId'
+    | '/documents/$documentId'
     | '/judges/$judgeId'
+    | '/assets'
     | '/cases'
     | '/courtrooms'
+    | '/documents'
     | '/judges'
   id:
     | '__root__'
@@ -321,14 +391,20 @@ export interface FileRouteTypes {
     | '/_authenticated/governance'
     | '/_authenticated/priority-settings'
     | '/_authenticated/reports'
+    | '/_authenticated/search'
     | '/_authenticated/smart-scheduling'
     | '/_authenticated/what-if-simulation'
+    | '/_authenticated/assets/$assetId'
+    | '/_authenticated/assets/new'
     | '/_authenticated/cases/$caseId'
     | '/_authenticated/cases/new'
     | '/_authenticated/courtrooms/$courtroomId'
+    | '/_authenticated/documents/$documentId'
     | '/_authenticated/judges/$judgeId'
+    | '/_authenticated/assets/'
     | '/_authenticated/cases/'
     | '/_authenticated/courtrooms/'
+    | '/_authenticated/documents/'
     | '/_authenticated/judges/'
   fileRoutesById: FileRoutesById
 }
@@ -454,6 +530,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReportsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/search': {
+      id: '/_authenticated/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof AuthenticatedSearchRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/smart-scheduling': {
       id: '/_authenticated/smart-scheduling'
       path: '/smart-scheduling'
@@ -466,6 +549,27 @@ declare module '@tanstack/react-router' {
       path: '/what-if-simulation'
       fullPath: '/what-if-simulation'
       preLoaderRoute: typeof AuthenticatedWhatIfSimulationRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assets/': {
+      id: '/_authenticated/assets/'
+      path: '/assets'
+      fullPath: '/assets/'
+      preLoaderRoute: typeof AuthenticatedAssetsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assets/$assetId': {
+      id: '/_authenticated/assets/$assetId'
+      path: '/assets/$assetId'
+      fullPath: '/assets/$assetId'
+      preLoaderRoute: typeof AuthenticatedAssetsAssetIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assets/new': {
+      id: '/_authenticated/assets/new'
+      path: '/assets/new'
+      fullPath: '/assets/new'
+      preLoaderRoute: typeof AuthenticatedAssetsNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/cases/': {
@@ -503,6 +607,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCourtroomsCourtroomIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/documents/': {
+      id: '/_authenticated/documents/'
+      path: '/documents'
+      fullPath: '/documents/'
+      preLoaderRoute: typeof AuthenticatedDocumentsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/documents/$documentId': {
+      id: '/_authenticated/documents/$documentId'
+      path: '/documents/$documentId'
+      fullPath: '/documents/$documentId'
+      preLoaderRoute: typeof AuthenticatedDocumentsDocumentIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/judges/': {
       id: '/_authenticated/judges/'
       path: '/judges'
@@ -532,14 +650,20 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGovernanceRoute: typeof AuthenticatedGovernanceRoute
   AuthenticatedPrioritySettingsRoute: typeof AuthenticatedPrioritySettingsRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
   AuthenticatedSmartSchedulingRoute: typeof AuthenticatedSmartSchedulingRoute
   AuthenticatedWhatIfSimulationRoute: typeof AuthenticatedWhatIfSimulationRoute
+  AuthenticatedAssetsAssetIdRoute: typeof AuthenticatedAssetsAssetIdRoute
+  AuthenticatedAssetsNewRoute: typeof AuthenticatedAssetsNewRoute
   AuthenticatedCasesCaseIdRoute: typeof AuthenticatedCasesCaseIdRoute
   AuthenticatedCasesNewRoute: typeof AuthenticatedCasesNewRoute
   AuthenticatedCourtroomsCourtroomIdRoute: typeof AuthenticatedCourtroomsCourtroomIdRoute
+  AuthenticatedDocumentsDocumentIdRoute: typeof AuthenticatedDocumentsDocumentIdRoute
   AuthenticatedJudgesJudgeIdRoute: typeof AuthenticatedJudgesJudgeIdRoute
+  AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
   AuthenticatedCasesIndexRoute: typeof AuthenticatedCasesIndexRoute
   AuthenticatedCourtroomsIndexRoute: typeof AuthenticatedCourtroomsIndexRoute
+  AuthenticatedDocumentsIndexRoute: typeof AuthenticatedDocumentsIndexRoute
   AuthenticatedJudgesIndexRoute: typeof AuthenticatedJudgesIndexRoute
 }
 
@@ -555,15 +679,21 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGovernanceRoute: AuthenticatedGovernanceRoute,
   AuthenticatedPrioritySettingsRoute: AuthenticatedPrioritySettingsRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedSearchRoute: AuthenticatedSearchRoute,
   AuthenticatedSmartSchedulingRoute: AuthenticatedSmartSchedulingRoute,
   AuthenticatedWhatIfSimulationRoute: AuthenticatedWhatIfSimulationRoute,
+  AuthenticatedAssetsAssetIdRoute: AuthenticatedAssetsAssetIdRoute,
+  AuthenticatedAssetsNewRoute: AuthenticatedAssetsNewRoute,
   AuthenticatedCasesCaseIdRoute: AuthenticatedCasesCaseIdRoute,
   AuthenticatedCasesNewRoute: AuthenticatedCasesNewRoute,
   AuthenticatedCourtroomsCourtroomIdRoute:
     AuthenticatedCourtroomsCourtroomIdRoute,
+  AuthenticatedDocumentsDocumentIdRoute: AuthenticatedDocumentsDocumentIdRoute,
   AuthenticatedJudgesJudgeIdRoute: AuthenticatedJudgesJudgeIdRoute,
+  AuthenticatedAssetsIndexRoute: AuthenticatedAssetsIndexRoute,
   AuthenticatedCasesIndexRoute: AuthenticatedCasesIndexRoute,
   AuthenticatedCourtroomsIndexRoute: AuthenticatedCourtroomsIndexRoute,
+  AuthenticatedDocumentsIndexRoute: AuthenticatedDocumentsIndexRoute,
   AuthenticatedJudgesIndexRoute: AuthenticatedJudgesIndexRoute,
 }
 

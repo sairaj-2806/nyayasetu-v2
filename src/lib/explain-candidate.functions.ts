@@ -1,7 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 
 import { queryLLM, getEnvVar } from "@/lib/ai.server";
+import { checkRateLimit } from "@/lib/rate-limit.server";
+import { sanitizeUserInput, detectPromptInjection } from "@/lib/security.server";
 
 const CandidateSchema = z
   .object({
@@ -98,6 +101,34 @@ function generateRuleBasedExplanation(data: z.infer<typeof Input>): string {
 export const explainSchedulingRecommendation = createServerFn({ method: "POST" })
   .validator((data: unknown) => Input.parse(data))
   .handler(async ({ data }) => {
+    // 1. Rate Limiting Protection (30 per minute per client IP)
+    const request = getRequest();
+    const clientIp =
+      request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request?.headers?.get("x-real-ip") ||
+      "anonymous-scheduling-explainer";
+
+    const rateCheck = checkRateLimit(`explain:${clientIp}`, {
+      maxRequests: 30,
+      windowMs: 60_000,
+    });
+
+    if (!rateCheck.allowed) {
+      return {
+        explanation: generateRuleBasedExplanation(data),
+      };
+    }
+
+    const cleanCaseNumber = sanitizeUserInput(data.caseNumber || "Case", 50);
+    const cleanParties = sanitizeUserInput(data.parties || "Parties on record", 150);
+
+    const injectionCheck = detectPromptInjection(`${cleanCaseNumber} ${cleanParties}`);
+    if (injectionCheck.isSuspicious) {
+      return {
+        explanation: generateRuleBasedExplanation(data),
+      };
+    }
+
     const hasAI =
       getEnvVar("CUSTOM_LLM_URL") ||
       getEnvVar("OPENAI_API_KEY") ||
@@ -120,8 +151,8 @@ export const explainSchedulingRecommendation = createServerFn({ method: "POST" }
 
         const prompt = `
 Case Information:
-- Case Number: ${data.caseNumber}
-- Parties: ${data.parties || "Parties on record"}
+- Case Number: ${cleanCaseNumber}
+- Parties: ${cleanParties}
 - Estimated Duration: ${data.estimatedDuration} minutes
 - Priority Score: ${data.priorityScore ?? "Standard"}
 

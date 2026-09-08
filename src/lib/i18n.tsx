@@ -69,6 +69,9 @@ export const translations = {
   "nav.governance": { en: "Governance & Compliance", hi: "शासन एवं अनुपालन" },
   "nav.admin": { en: "Admin Panel", hi: "प्रशासन पैनल" },
   "nav.priority-settings": { en: "Priority Settings", hi: "प्राथमिकता सेटिंग्स" },
+  "nav.assets": { en: "Police Assets", hi: "पुलिस संपत्तियां एवं साक्ष्य" },
+  "nav.documents": { en: "Digital Documents", hi: "डिजिटल दस्तावेज़" },
+  "nav.search": { en: "Global Search", hi: "ग्लोबल खोज" },
 
   // Dashboard
   "dash.pending-cases": { en: "Pending cases", hi: "लंबित मामले" },

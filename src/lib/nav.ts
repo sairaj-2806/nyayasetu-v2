@@ -9,12 +9,15 @@ import {
   FlaskConical,
   TrendingDown,
   FileBarChart,
+  FileText,
   ScrollText,
   ShieldCheck,
+  ShieldAlert,
   Gavel as GavelIcon,
   ListOrdered,
   SlidersHorizontal,
   UserCog,
+  Search,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,7 +32,11 @@ export type NavItem = {
 export const benchNavSections: { label: string; items: NavItem[] }[] = [
   {
     label: "My bench",
-    items: [{ title: "My Bench", to: "/bench", icon: GavelIcon }],
+    items: [
+      { title: "My Bench", to: "/bench", icon: GavelIcon },
+      { title: "Global Search", to: "/search", icon: Search },
+      { title: "Digital Documents", to: "/documents", icon: FileText },
+    ],
   },
 ];
 
@@ -38,7 +45,10 @@ export const navSections: { label: string; items: NavItem[] }[] = [
     label: "Overview",
     items: [
       { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+      { title: "Global Search", to: "/search", icon: Search },
       { title: "Cases", to: "/cases", icon: Folder },
+      { title: "Digital Documents", to: "/documents", icon: FileText },
+      { title: "Police Assets", to: "/assets", icon: ShieldAlert },
       { title: "Judges", to: "/judges", icon: Gavel },
       { title: "Courtrooms", to: "/courtrooms", icon: DoorOpen },
       { title: "Calendar", to: "/calendar", icon: CalendarDays },

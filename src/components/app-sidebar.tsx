@@ -37,7 +37,10 @@ export function AppSidebar() {
 
   const routeTitleKey: Record<string, TranslationKey> = {
     "/dashboard": "nav.dashboard",
+    "/search": "nav.search",
     "/cases": "nav.cases",
+    "/documents": "nav.documents",
+    "/assets": "nav.assets",
     "/judges": "nav.judges",
     "/courtrooms": "nav.courtrooms",
     "/calendar": "nav.calendar",

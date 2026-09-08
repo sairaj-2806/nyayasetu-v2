@@ -8,6 +8,704 @@ export type Database = {
   };
   public: {
     Tables: {
+      asset_assignments: {
+        Row: {
+          actual_return_date: string | null;
+          asset_id: string;
+          assigned_by: string | null;
+          assignment_date: string;
+          condition_at_checkin: string | null;
+          condition_at_checkout: string;
+          created_at: string;
+          expected_return_date: string | null;
+          id: string;
+          notes: string;
+          officer_badge: string;
+          officer_id: string | null;
+          officer_name: string;
+          purpose: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          actual_return_date?: string | null;
+          asset_id: string;
+          assigned_by?: string | null;
+          assignment_date?: string;
+          condition_at_checkin?: string | null;
+          condition_at_checkout?: string;
+          created_at?: string;
+          expected_return_date?: string | null;
+          id?: string;
+          notes?: string;
+          officer_badge?: string;
+          officer_id?: string | null;
+          officer_name: string;
+          purpose?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          actual_return_date?: string | null;
+          asset_id?: string;
+          assigned_by?: string | null;
+          assignment_date?: string;
+          condition_at_checkin?: string | null;
+          condition_at_checkout?: string;
+          created_at?: string;
+          expected_return_date?: string | null;
+          id?: string;
+          notes?: string;
+          officer_badge?: string;
+          officer_id?: string | null;
+          officer_name?: string;
+          purpose?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "asset_assignments_asset_id_fkey";
+            columns: ["asset_id"];
+            isOneToOne: false;
+            referencedRelation: "police_assets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "asset_assignments_assigned_by_fkey";
+            columns: ["assigned_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "asset_assignments_officer_id_fkey";
+            columns: ["officer_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      asset_categories: {
+        Row: {
+          code: string;
+          created_at: string;
+          description: string;
+          id: string;
+          is_evidence_category: boolean;
+          name: string;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          description?: string;
+          id?: string;
+          is_evidence_category?: boolean;
+          name: string;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          description?: string;
+          id?: string;
+          is_evidence_category?: boolean;
+          name?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      asset_documents: {
+        Row: {
+          asset_id: string;
+          created_at: string;
+          document_id: string;
+          id: string;
+          notes: string;
+          relationship_type: string;
+        };
+        Insert: {
+          asset_id: string;
+          created_at?: string;
+          document_id: string;
+          id?: string;
+          notes?: string;
+          relationship_type: string;
+        };
+        Update: {
+          asset_id?: string;
+          created_at?: string;
+          document_id?: string;
+          id?: string;
+          notes?: string;
+          relationship_type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "asset_documents_asset_id_fkey";
+            columns: ["asset_id"];
+            isOneToOne: false;
+            referencedRelation: "police_assets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "asset_documents_document_id_fkey";
+            columns: ["document_id"];
+            isOneToOne: false;
+            referencedRelation: "case_documents";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      asset_maintenance: {
+        Row: {
+          actions_taken: string;
+          asset_id: string;
+          completed_date: string | null;
+          cost: number;
+          created_at: string;
+          findings: string;
+          id: string;
+          maintenance_type: string;
+          next_scheduled_service: string | null;
+          scheduled_date: string;
+          service_provider: string;
+          status: string;
+          technician_name: string;
+          updated_at: string;
+        };
+        Insert: {
+          actions_taken?: string;
+          asset_id: string;
+          completed_date?: string | null;
+          cost?: number;
+          created_at?: string;
+          findings?: string;
+          id?: string;
+          maintenance_type: string;
+          next_scheduled_service?: string | null;
+          scheduled_date?: string;
+          service_provider?: string;
+          status?: string;
+          technician_name?: string;
+          updated_at?: string;
+        };
+        Update: {
+          actions_taken?: string;
+          asset_id?: string;
+          completed_date?: string | null;
+          cost?: number;
+          created_at?: string;
+          findings?: string;
+          id?: string;
+          maintenance_type?: string;
+          next_scheduled_service?: string | null;
+          scheduled_date?: string;
+          service_provider?: string;
+          status?: string;
+          technician_name?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "asset_maintenance_asset_id_fkey";
+            columns: ["asset_id"];
+            isOneToOne: false;
+            referencedRelation: "police_assets";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      asset_transfers: {
+        Row: {
+          asset_id: string;
+          created_at: string;
+          dispatched_at: string;
+          from_custodian_id: string | null;
+          from_custodian_name: string;
+          from_location: string;
+          id: string;
+          reason: string;
+          received_at: string | null;
+          signature_verification: string | null;
+          status: string;
+          to_custodian_id: string | null;
+          to_custodian_name: string;
+          to_location: string;
+          transfer_number: string;
+          transit_seal_number: string | null;
+        };
+        Insert: {
+          asset_id: string;
+          created_at?: string;
+          dispatched_at?: string;
+          from_custodian_id?: string | null;
+          from_custodian_name: string;
+          from_location: string;
+          id?: string;
+          reason?: string;
+          received_at?: string | null;
+          signature_verification?: string | null;
+          status?: string;
+          to_custodian_id?: string | null;
+          to_custodian_name: string;
+          to_location: string;
+          transfer_number: string;
+          transit_seal_number?: string | null;
+        };
+        Update: {
+          asset_id?: string;
+          created_at?: string;
+          dispatched_at?: string;
+          from_custodian_id?: string | null;
+          from_custodian_name?: string;
+          from_location?: string;
+          id?: string;
+          reason?: string;
+          received_at?: string | null;
+          signature_verification?: string | null;
+          status?: string;
+          to_custodian_id?: string | null;
+          to_custodian_name?: string;
+          to_location?: string;
+          transfer_number?: string;
+          transit_seal_number?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "asset_transfers_asset_id_fkey";
+            columns: ["asset_id"];
+            isOneToOne: false;
+            referencedRelation: "police_assets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "asset_transfers_from_custodian_id_fkey";
+            columns: ["from_custodian_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "asset_transfers_to_custodian_id_fkey";
+            columns: ["to_custodian_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      case_documents: {
+        Row: {
+          case_id: string | null;
+          category: string;
+          created_at: string;
+          created_by: string | null;
+          current_version: number;
+          document_number: string;
+          file_format: string;
+          file_name: string;
+          file_size_bytes: number;
+          fir_number: string | null;
+          id: string;
+          is_sealed: boolean;
+          is_tampered: boolean;
+          latest_sha256: string;
+          metadata: Json;
+          originating_agency: string;
+          police_station: string;
+          sensitivity_tier: Database["public"]["Enums"]["document_sensitivity_tier"];
+          storage_path: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          case_id?: string | null;
+          category: string;
+          created_at?: string;
+          created_by?: string | null;
+          current_version?: number;
+          document_number: string;
+          file_format?: string;
+          file_name: string;
+          file_size_bytes?: number;
+          fir_number?: string | null;
+          id?: string;
+          is_sealed?: boolean;
+          is_tampered?: boolean;
+          latest_sha256: string;
+          metadata?: Json;
+          originating_agency?: string;
+          police_station?: string;
+          sensitivity_tier?: Database["public"]["Enums"]["document_sensitivity_tier"];
+          storage_path?: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          case_id?: string | null;
+          category?: string;
+          created_at?: string;
+          created_by?: string | null;
+          current_version?: number;
+          document_number?: string;
+          file_format?: string;
+          file_name?: string;
+          file_size_bytes?: number;
+          fir_number?: string | null;
+          id?: string;
+          is_sealed?: boolean;
+          is_tampered?: boolean;
+          latest_sha256?: string;
+          metadata?: Json;
+          originating_agency?: string;
+          police_station?: string;
+          sensitivity_tier?: Database["public"]["Enums"]["document_sensitivity_tier"];
+          storage_path?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "case_documents_case_id_fkey";
+            columns: ["case_id"];
+            isOneToOne: false;
+            referencedRelation: "cases";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "case_documents_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      document_integrity_metadata: {
+        Row: {
+          blockchain_block_hash: string | null;
+          blockchain_block_number: number | null;
+          bsa_compliance_clause: string;
+          certificate_ref: string | null;
+          created_at: string;
+          digital_signature: string | null;
+          document_id: string;
+          id: string;
+          last_verified_at: string;
+          merkle_root: string | null;
+          sha256_hash: string;
+          signer_identity: string | null;
+          validator_node: string | null;
+          verification_status: string;
+          version_id: string | null;
+        };
+        Insert: {
+          blockchain_block_hash?: string | null;
+          blockchain_block_number?: number | null;
+          bsa_compliance_clause?: string;
+          certificate_ref?: string | null;
+          created_at?: string;
+          digital_signature?: string | null;
+          document_id: string;
+          id?: string;
+          last_verified_at?: string;
+          merkle_root?: string | null;
+          sha256_hash: string;
+          signer_identity?: string | null;
+          validator_node?: string | null;
+          verification_status?: string;
+          version_id?: string | null;
+        };
+        Update: {
+          blockchain_block_hash?: string | null;
+          blockchain_block_number?: number | null;
+          bsa_compliance_clause?: string;
+          certificate_ref?: string | null;
+          created_at?: string;
+          digital_signature?: string | null;
+          document_id?: string;
+          id?: string;
+          last_verified_at?: string;
+          merkle_root?: string | null;
+          sha256_hash?: string;
+          signer_identity?: string | null;
+          validator_node?: string | null;
+          verification_status?: string;
+          version_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "document_integrity_metadata_document_id_fkey";
+            columns: ["document_id"];
+            isOneToOne: false;
+            referencedRelation: "case_documents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "document_integrity_metadata_version_id_fkey";
+            columns: ["version_id"];
+            isOneToOne: false;
+            referencedRelation: "document_versions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      document_versions: {
+        Row: {
+          change_summary: string;
+          created_at: string;
+          document_id: string;
+          file_name: string;
+          file_size_bytes: number;
+          id: string;
+          sha256_hash: string;
+          storage_path: string;
+          uploaded_by: string | null;
+          version_number: number;
+        };
+        Insert: {
+          change_summary?: string;
+          created_at?: string;
+          document_id: string;
+          file_name: string;
+          file_size_bytes?: number;
+          id?: string;
+          sha256_hash: string;
+          storage_path?: string;
+          uploaded_by?: string | null;
+          version_number: number;
+        };
+        Update: {
+          change_summary?: string;
+          created_at?: string;
+          document_id?: string;
+          file_name?: string;
+          file_size_bytes?: number;
+          id?: string;
+          sha256_hash?: string;
+          storage_path?: string;
+          uploaded_by?: string | null;
+          version_number?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_document_id_fkey";
+            columns: ["document_id"];
+            isOneToOne: false;
+            referencedRelation: "case_documents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "document_versions_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      evidence_chain_of_custody: {
+        Row: {
+          action: string;
+          asset_id: string | null;
+          case_id: string | null;
+          created_at: string;
+          digital_signature: string;
+          document_id: string | null;
+          from_custodian: string;
+          id: string;
+          notes: string;
+          purpose_reason: string;
+          recorded_by: string | null;
+          tamper_seal_intact: boolean;
+          tamper_seal_number: string;
+          to_custodian: string;
+          transfer_timestamp: string;
+          verification_hash: string;
+        };
+        Insert: {
+          action: string;
+          asset_id?: string | null;
+          case_id?: string | null;
+          created_at?: string;
+          digital_signature?: string;
+          document_id?: string | null;
+          from_custodian: string;
+          id?: string;
+          notes?: string;
+          purpose_reason?: string;
+          recorded_by?: string | null;
+          tamper_seal_intact?: boolean;
+          tamper_seal_number?: string;
+          to_custodian: string;
+          transfer_timestamp?: string;
+          verification_hash?: string;
+        };
+        Update: {
+          action?: string;
+          asset_id?: string | null;
+          case_id?: string | null;
+          created_at?: string;
+          digital_signature?: string;
+          document_id?: string | null;
+          from_custodian?: string;
+          id?: string;
+          notes?: string;
+          purpose_reason?: string;
+          recorded_by?: string | null;
+          tamper_seal_intact?: boolean;
+          tamper_seal_number?: string;
+          to_custodian?: string;
+          transfer_timestamp?: string;
+          verification_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "evidence_chain_of_custody_asset_id_fkey";
+            columns: ["asset_id"];
+            isOneToOne: false;
+            referencedRelation: "police_assets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "evidence_chain_of_custody_case_id_fkey";
+            columns: ["case_id"];
+            isOneToOne: false;
+            referencedRelation: "cases";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "evidence_chain_of_custody_document_id_fkey";
+            columns: ["document_id"];
+            isOneToOne: false;
+            referencedRelation: "case_documents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "evidence_chain_of_custody_recorded_by_fkey";
+            columns: ["recorded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      police_assets: {
+        Row: {
+          asset_code: string;
+          assigned_officer_id: string | null;
+          assigned_officer_name: string;
+          barcode_rfid: string | null;
+          case_id: string | null;
+          category_id: string;
+          condition: Database["public"]["Enums"]["asset_condition"];
+          created_at: string;
+          current_custodian_id: string | null;
+          current_custodian_name: string;
+          current_location: string;
+          department_station: string;
+          evidence_status: Database["public"]["Enums"]["evidence_lifecycle_status"] | null;
+          fir_number: string | null;
+          id: string;
+          metadata: Json;
+          name: string;
+          purchase_cost: number | null;
+          purchase_date: string | null;
+          serial_number: string | null;
+          status: Database["public"]["Enums"]["asset_lifecycle_status"];
+          tamper_seal_number: string | null;
+          updated_at: string;
+          vendor_supplier: string | null;
+          warranty_expiry: string | null;
+        };
+        Insert: {
+          asset_code: string;
+          assigned_officer_id?: string | null;
+          assigned_officer_name?: string;
+          barcode_rfid?: string | null;
+          case_id?: string | null;
+          category_id: string;
+          condition?: Database["public"]["Enums"]["asset_condition"];
+          created_at?: string;
+          current_custodian_id?: string | null;
+          current_custodian_name?: string;
+          current_location?: string;
+          department_station?: string;
+          evidence_status?: Database["public"]["Enums"]["evidence_lifecycle_status"] | null;
+          fir_number?: string | null;
+          id?: string;
+          metadata?: Json;
+          name: string;
+          purchase_cost?: number | null;
+          purchase_date?: string | null;
+          serial_number?: string | null;
+          status?: Database["public"]["Enums"]["asset_lifecycle_status"];
+          tamper_seal_number?: string | null;
+          updated_at?: string;
+          vendor_supplier?: string | null;
+          warranty_expiry?: string | null;
+        };
+        Update: {
+          asset_code?: string;
+          assigned_officer_id?: string | null;
+          assigned_officer_name?: string;
+          barcode_rfid?: string | null;
+          case_id?: string | null;
+          category_id?: string;
+          condition?: Database["public"]["Enums"]["asset_condition"];
+          created_at?: string;
+          current_custodian_id?: string | null;
+          current_custodian_name?: string;
+          current_location?: string;
+          department_station?: string;
+          evidence_status?: Database["public"]["Enums"]["evidence_lifecycle_status"] | null;
+          fir_number?: string | null;
+          id?: string;
+          metadata?: Json;
+          name?: string;
+          purchase_cost?: number | null;
+          purchase_date?: string | null;
+          serial_number?: string | null;
+          status?: Database["public"]["Enums"]["asset_lifecycle_status"];
+          tamper_seal_number?: string | null;
+          updated_at?: string;
+          vendor_supplier?: string | null;
+          warranty_expiry?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "police_assets_assigned_officer_id_fkey";
+            columns: ["assigned_officer_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "police_assets_case_id_fkey";
+            columns: ["case_id"];
+            isOneToOne: false;
+            referencedRelation: "cases";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "police_assets_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "asset_categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "police_assets_current_custodian_id_fkey";
+            columns: ["current_custodian_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       adjournments: {
         Row: {
           case_id: string;
@@ -623,9 +1321,13 @@ export type Database = {
     };
     Enums: {
       app_role: "admin" | "registrar" | "judge";
+      asset_condition: "NEW" | "EXCELLENT" | "GOOD" | "FAIR" | "DAMAGED" | "NEEDS_REPAIR" | "DECOMMISSIONED";
+      asset_lifecycle_status: "REGISTERED" | "AVAILABLE" | "ASSIGNED" | "IN_USE" | "TRANSFERRED" | "MAINTENANCE" | "RETURNED" | "RETIRED" | "LOST";
       availability_status: "available" | "unavailable";
       case_status: "filed" | "scheduled" | "in_progress" | "adjourned" | "disposed";
+      document_sensitivity_tier: "PUBLIC" | "RESTRICTED" | "SEALED_COVER_IN_CAMERA";
       entity_type: "judge" | "courtroom";
+      evidence_lifecycle_status: "SEIZED" | "REGISTERED" | "SEALED" | "STORED" | "TRANSFERRED" | "FORENSIC_EXAMINATION" | "RETURNED" | "COURT_SUBMISSION" | "DISPOSED";
       recommendation_status: "accepted" | "modified" | "rejected";
       schedule_status: "proposed" | "confirmed" | "completed" | "cancelled";
     };
