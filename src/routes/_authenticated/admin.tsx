@@ -4,15 +4,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Activity,
+  Briefcase,
+  CheckCircle2,
   Copy,
   Gavel,
   KeyRound,
   Pencil,
   RefreshCw,
   Search,
+  Shield,
   ShieldAlert,
   ShieldCheck,
   Trash2,
+  UserCheck,
+  UserCog,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -22,7 +27,8 @@ import { PageHeader } from "@/components/page-shell";
 import { ErrorState } from "@/components/states";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -41,6 +47,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -48,7 +55,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -98,14 +107,57 @@ export const Route = createFileRoute("/_authenticated/admin")({
 const roleLabels: Record<RegistryRole, string> = {
   admin: "Administrator",
   registrar: "Registrar",
-  judge: "Judge (bench)",
+  judge: "Judge (Bench)",
+  police_officer: "Police Officer",
+  investigating_officer: "Investigating Officer",
+  forensic_officer: "Forensic Officer",
+  evidence_custodian: "Evidence Custodian",
+  legal_officer: "Legal Officer / Prosecutor",
+  document_officer: "Document Officer",
 };
 
 const roleTone: Record<RegistryRole, string> = {
-  admin: "border-primary/40 bg-primary/10 text-primary",
-  registrar: "border-border bg-accent text-accent-foreground",
-  judge: "border-border bg-secondary text-secondary-foreground",
+  admin: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-400",
+  registrar: "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400",
+  judge: "border-purple-500/40 bg-purple-500/10 text-purple-700 dark:text-purple-400",
+  police_officer: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  investigating_officer: "border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-400",
+  forensic_officer: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  evidence_custodian: "border-teal-500/40 bg-teal-500/10 text-teal-700 dark:text-teal-400",
+  legal_officer: "border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
+  document_officer: "border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-400",
 };
+
+const roleDescriptions: Record<RegistryRole, string> = {
+  admin: "Full platform administration, user management, audit trails, and system courtroom parameters.",
+  registrar: "Court roster management, case listing, scheduling engine, and cause list generation.",
+  judge: "Judicial bench portal, cause list proceedings, judicial orders, and hearing dossier.",
+  police_officer: "Station asset custody, charge sheets, summon service tracking, and seizure logs.",
+  investigating_officer: "Case investigation, evidence submissions, case diary management, and IO reports.",
+  forensic_officer: "Forensic reports, ballistics/DNA chain of custody, and lab evidence verification.",
+  evidence_custodian: "Malkhana evidence room management, physical intake, QR tracking, and secure custody.",
+  legal_officer: "Prosecution filings, witness liaison, trial representations, and bail briefs.",
+  document_officer: "Registry archives, document stamping, certified copy issuance, and sealed records.",
+};
+
+const roleCategories: { category: string; roles: RegistryRole[] }[] = [
+  {
+    category: "Judicial & Registry Core",
+    roles: ["admin", "registrar", "judge"],
+  },
+  {
+    category: "Investigation & Law Enforcement",
+    roles: ["police_officer", "investigating_officer"],
+  },
+  {
+    category: "Forensics & Malkhana Evidence",
+    roles: ["forensic_officer", "evidence_custodian"],
+  },
+  {
+    category: "Prosecution & Archives",
+    roles: ["legal_officer", "document_officer"],
+  },
+];
 
 function generatePassword() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%";
@@ -151,15 +203,31 @@ function AdminPanelPage() {
   const [tab, setTab] = useState("overview");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | RegistryRole>("all");
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    fullName: string;
+    email: string;
+    password: string;
+    role: RegistryRole;
+    additionalRoles: RegistryRole[];
+    judgeId: string;
+  }>({
     fullName: "",
     email: "",
     password: "",
-    role: "registrar" as RegistryRole,
+    role: "registrar",
+    additionalRoles: [],
     judgeId: "",
   });
   const [passwordDrafts, setPasswordDrafts] = useState<Record<string, string>>({});
   const [renaming, setRenaming] = useState<{ userId: string; fullName: string } | null>(null);
+  const [roleEditorUser, setRoleEditorUser] = useState<{
+    id: string;
+    fullName: string;
+    email: string;
+    primaryRole: RegistryRole;
+    roles: RegistryRole[];
+    judgeId: string | null;
+  } | null>(null);
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ["registry-accounts"] });
@@ -176,14 +244,25 @@ function AdminPanelPage() {
           email: form.email,
           password: form.password,
           role: form.role,
-          judgeId: form.role === "judge" ? form.judgeId || null : null,
+          additionalRoles: form.additionalRoles,
+          judgeId:
+            form.role === "judge" || form.additionalRoles.includes("judge")
+              ? form.judgeId || null
+              : null,
         },
       }),
     onSuccess: () => {
       toast.success(`${roleLabels[form.role]} account created`, {
-        description: "Share the temporary password with the account holder.",
+        description: "Share the temporary credentials securely with the account holder.",
       });
-      setForm({ fullName: "", email: "", password: "", role: "registrar", judgeId: "" });
+      setForm({
+        fullName: "",
+        email: "",
+        password: "",
+        role: "registrar",
+        additionalRoles: [],
+        judgeId: "",
+      });
       setTab("accounts");
       refresh();
     },
@@ -191,10 +270,15 @@ function AdminPanelPage() {
   });
 
   const changeRole = useMutation({
-    mutationFn: (input: { userId: string; role: RegistryRole; judgeId?: string | null }) =>
-      updateRole({ data: input }),
+    mutationFn: (input: {
+      userId: string;
+      role: RegistryRole;
+      additionalRoles?: RegistryRole[];
+      judgeId?: string | null;
+    }) => updateRole({ data: input }),
     onSuccess: () => {
-      toast.success("Role updated");
+      toast.success("Role privileges updated");
+      setRoleEditorUser(null);
       refresh();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -231,9 +315,30 @@ function AdminPanelPage() {
   const rows = useMemo(() => accounts.data ?? [], [accounts.data]);
   const counts = useMemo(
     () => ({
-      admins: rows.filter((a) => a.role === "admin").length,
-      registrars: rows.filter((a) => a.role === "registrar").length,
-      bench: rows.filter((a) => a.role === "judge").length,
+      admins: rows.filter((a) => a.roles.includes("admin") || a.role === "admin").length,
+      registrars: rows.filter((a) => a.roles.includes("registrar") || a.role === "registrar").length,
+      bench: rows.filter((a) => a.roles.includes("judge") || a.role === "judge").length,
+      officers: rows.filter(
+        (a) =>
+          a.roles.some((r) =>
+            [
+              "police_officer",
+              "investigating_officer",
+              "forensic_officer",
+              "evidence_custodian",
+              "legal_officer",
+              "document_officer",
+            ].includes(r),
+          ) ||
+          [
+            "police_officer",
+            "investigating_officer",
+            "forensic_officer",
+            "evidence_custodian",
+            "legal_officer",
+            "document_officer",
+          ].includes(a.role as any),
+      ).length,
       dormant: rows.filter((a) => !a.lastSignInAt).length,
     }),
     [rows],
@@ -241,12 +346,14 @@ function AdminPanelPage() {
   const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase();
     return rows.filter((a) => {
-      const matchesRole = roleFilter === "all" || a.role === roleFilter;
+      const matchesRole =
+        roleFilter === "all" || a.role === roleFilter || a.roles.includes(roleFilter);
       const matchesTerm =
         !term ||
         a.fullName.toLowerCase().includes(term) ||
         a.email.toLowerCase().includes(term) ||
-        (a.judgeName ?? "").toLowerCase().includes(term);
+        (a.judgeName ?? "").toLowerCase().includes(term) ||
+        a.roles.some((r) => roleLabels[r]?.toLowerCase().includes(term));
       return matchesRole && matchesTerm;
     });
   }, [rows, search, roleFilter]);
@@ -292,7 +399,7 @@ function AdminPanelPage() {
         <PageHeader
           eyebrow="Administration"
           title="Admin panel"
-          description="Issue and manage every registry login — administrators, registrars and judicial bench accounts — and keep an eye on registry health from one place."
+          description="Issue and manage every court & enforcement login — across all 9 judicial, investigation, forensics, custody, prosecution, and administrative roles."
         />
         <Button variant="outline" size="sm" onClick={refresh}>
           <RefreshCw className="size-4" />
@@ -300,10 +407,11 @@ function AdminPanelPage() {
         </Button>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <SummaryCard label="Administrators" value={counts.admins} icon={ShieldCheck} />
         <SummaryCard label="Registrars" value={counts.registrars} icon={Users} />
-        <SummaryCard label="Bench logins" value={counts.bench} icon={KeyRound} />
+        <SummaryCard label="Judicial Bench" value={counts.bench} icon={Gavel} />
+        <SummaryCard label="Officers & Custody" value={counts.officers} icon={Briefcase} />
         <SummaryCard label="Never signed in" value={counts.dormant} icon={UserPlus} />
       </div>
 
@@ -450,15 +558,22 @@ function AdminPanelPage() {
                     value={roleFilter}
                     onValueChange={(value) => setRoleFilter(value as "all" | RegistryRole)}
                   >
-                    <SelectTrigger className="w-[190px]">
+                    <SelectTrigger className="w-[200px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All roles</SelectItem>
-                      {(Object.keys(roleLabels) as RegistryRole[]).map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {roleLabels[role]}
-                        </SelectItem>
+                      {roleCategories.map((group) => (
+                        <SelectGroup key={group.category}>
+                          <SelectLabel className="text-xs uppercase tracking-wider text-muted-foreground">
+                            {group.category}
+                          </SelectLabel>
+                          {group.roles.map((role) => (
+                            <SelectItem key={role} value={role}>
+                              {roleLabels[role]}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
@@ -519,27 +634,74 @@ function AdminPanelPage() {
                             </button>
                           </TableCell>
                           <TableCell>
-                            <Select
-                              value={account.role ?? "registrar"}
-                              onValueChange={(role) =>
-                                changeRole.mutate({
-                                  userId: account.id,
-                                  role: role as RegistryRole,
-                                  judgeId: account.judgeId,
-                                })
-                              }
-                            >
-                              <SelectTrigger className="w-[170px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {(Object.keys(roleLabels) as RegistryRole[]).map((role) => (
-                                  <SelectItem key={role} value={role}>
-                                    {roleLabels[role]}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <div className="space-y-1.5 min-w-[210px]">
+                              <div className="flex items-center gap-2">
+                                <Select
+                                  value={account.role ?? "registrar"}
+                                  onValueChange={(role) =>
+                                    changeRole.mutate({
+                                      userId: account.id,
+                                      role: role as RegistryRole,
+                                      additionalRoles: account.roles.filter((r) => r !== role),
+                                      judgeId: account.judgeId,
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className="h-8 w-[160px] text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {roleCategories.map((group) => (
+                                      <SelectGroup key={group.category}>
+                                        <SelectLabel className="text-xs uppercase tracking-wider text-muted-foreground">
+                                          {group.category}
+                                        </SelectLabel>
+                                        {group.roles.map((role) => (
+                                          <SelectItem key={role} value={role}>
+                                            {roleLabels[role]}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectGroup>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8"
+                                  title="Manage multiple roles for this account"
+                                  aria-label={`Manage roles for ${account.fullName}`}
+                                  onClick={() =>
+                                    setRoleEditorUser({
+                                      id: account.id,
+                                      fullName: account.fullName,
+                                      email: account.email,
+                                      primaryRole: account.role ?? "registrar",
+                                      roles:
+                                        account.roles.length > 0
+                                          ? [...account.roles]
+                                          : [account.role ?? "registrar"],
+                                      judgeId: account.judgeId,
+                                    })
+                                  }
+                                >
+                                  <UserCog className="size-4 text-muted-foreground hover:text-foreground" />
+                                </Button>
+                              </div>
+                              {account.roles.length > 1 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {account.roles.map((r) => (
+                                    <Badge
+                                      key={r}
+                                      variant="outline"
+                                      className={`text-[10px] px-1.5 py-0 h-4.5 ${roleTone[r]}`}
+                                    >
+                                      {roleLabels[r]}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {account.judgeName ? (
@@ -696,48 +858,113 @@ function AdminPanelPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Role</Label>
+                  <Label>Primary Role</Label>
                   <Select
                     value={form.role}
                     onValueChange={(role) =>
-                      setForm((f) => ({ ...f, role: role as RegistryRole, judgeId: "" }))
+                      setForm((f) => ({
+                        ...f,
+                        role: role as RegistryRole,
+                        additionalRoles: f.additionalRoles.filter((r) => r !== role),
+                        judgeId:
+                          role === "judge" || f.additionalRoles.includes("judge") ? f.judgeId : "",
+                      }))
                     }
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {(Object.keys(roleLabels) as RegistryRole[]).map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {roleLabels[role]}
-                        </SelectItem>
+                      {roleCategories.map((group) => (
+                        <SelectGroup key={group.category}>
+                          <SelectLabel className="text-xs uppercase tracking-wider text-muted-foreground">
+                            {group.category}
+                          </SelectLabel>
+                          {group.roles.map((role) => (
+                            <SelectItem key={role} value={role}>
+                              {roleLabels[role]}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {form.role === "judge" && (
-                <div className="space-y-2">
-                  <Label>Link to judge record</Label>
+              <div className="rounded-lg border bg-muted/40 p-3.5 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 font-medium text-foreground">
+                  <Badge variant="outline" className={roleTone[form.role]}>
+                    {roleLabels[form.role]}
+                  </Badge>
+                  <span>Role Scope & Responsibilities:</span>
+                </div>
+                <p className="mt-1.5 leading-relaxed">{roleDescriptions[form.role]}</p>
+              </div>
+
+              <div className="space-y-3 rounded-lg border p-4 bg-background">
+                <div>
+                  <Label className="text-sm font-semibold">Additional Roles (Optional)</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Assign additional roles to provision a multi-role user profile (e.g., Police Officer + Investigating Officer).
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+                  {(Object.keys(roleLabels) as RegistryRole[])
+                    .filter((r) => r !== form.role)
+                    .map((r) => {
+                      const isChecked = form.additionalRoles.includes(r);
+                      return (
+                        <label
+                          key={r}
+                          className={`flex items-start gap-2.5 p-2 rounded-md border cursor-pointer transition-colors text-xs ${
+                            isChecked
+                              ? "border-primary bg-primary/5 text-foreground font-medium"
+                              : "border-border/60 hover:bg-muted/50 text-muted-foreground"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={isChecked}
+                            onCheckedChange={(checked) => {
+                              setForm((f) => ({
+                                ...f,
+                                additionalRoles: checked
+                                  ? [...f.additionalRoles, r]
+                                  : f.additionalRoles.filter((ar) => ar !== r),
+                              }));
+                            }}
+                            className="mt-0.5"
+                          />
+                          <div className="flex-1">
+                            <span className="block text-foreground">{roleLabels[r]}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {(form.role === "judge" || form.additionalRoles.includes("judge")) && (
+                <div className="space-y-2 rounded-lg border border-purple-500/30 bg-purple-500/5 p-4">
+                  <Label className="text-foreground font-semibold">Link to Judge Bench Record</Label>
                   <Select
                     value={form.judgeId}
                     onValueChange={(judgeId) => setForm((f) => ({ ...f, judgeId }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a judge" />
+                      <SelectValue placeholder="Select a judge record" />
                     </SelectTrigger>
                     <SelectContent>
                       {(judges.data ?? []).map((judge) => (
                         <SelectItem key={judge.id} value={judge.id}>
                           {judge.name}
-                          {judge.user_id ? " (already linked)" : ""}
+                          {judge.user_id ? " (already linked to another login)" : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Bench logins are read-only and scoped to that judge's own listings.
+                    Bench logins access the dedicated Bench Portal to review scheduled cases, daily cause lists, and enter hearing notes.
                   </p>
                 </div>
               )}
@@ -745,9 +972,10 @@ function AdminPanelPage() {
               <Button
                 onClick={() => create.mutate()}
                 disabled={create.isPending || !form.email || form.password.length < 8}
+                className="w-full sm:w-auto"
               >
                 <UserPlus className="size-4" />
-                {create.isPending ? "Creating…" : "Create account"}
+                {create.isPending ? "Creating account…" : "Create account"}
               </Button>
             </CardContent>
           </Card>
@@ -831,6 +1059,149 @@ function AdminPanelPage() {
               onClick={() => renaming && rename.mutate(renaming)}
             >
               Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={roleEditorUser !== null}
+        onOpenChange={(open) => !open && setRoleEditorUser(null)}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Manage Roles & Permissions</DialogTitle>
+            <DialogDescription>
+              Assign canonical roles to {roleEditorUser?.fullName} ({roleEditorUser?.email}).
+            </DialogDescription>
+          </DialogHeader>
+          {roleEditorUser && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>Primary Role</Label>
+                <Select
+                  value={roleEditorUser.primaryRole}
+                  onValueChange={(val) => {
+                    const r = val as RegistryRole;
+                    setRoleEditorUser((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            primaryRole: r,
+                            roles: Array.from(new Set([r, ...prev.roles])),
+                          }
+                        : prev,
+                    );
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roleCategories.map((group) => (
+                      <SelectGroup key={group.category}>
+                        <SelectLabel className="text-xs uppercase tracking-wider text-muted-foreground">
+                          {group.category}
+                        </SelectLabel>
+                        {group.roles.map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {roleLabels[r]}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Assigned Roles</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(Object.keys(roleLabels) as RegistryRole[]).map((r) => {
+                    const isChecked = roleEditorUser.roles.includes(r);
+                    const isPrimary = roleEditorUser.primaryRole === r;
+                    return (
+                      <label
+                        key={r}
+                        className={`flex items-center gap-2.5 p-2 rounded-md border text-xs cursor-pointer transition-colors ${
+                          isChecked
+                            ? "border-primary bg-primary/5 text-foreground"
+                            : "border-border/60 hover:bg-muted/50 text-muted-foreground"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={isChecked}
+                          disabled={isPrimary}
+                          onCheckedChange={(checked) => {
+                            if (isPrimary) return;
+                            setRoleEditorUser((prev) => {
+                              if (!prev) return prev;
+                              const nextRoles = checked
+                                ? [...prev.roles, r]
+                                : prev.roles.filter((item) => item !== r);
+                              return { ...prev, roles: nextRoles };
+                            });
+                          }}
+                        />
+                        <div className="flex-1">
+                          <span className="font-medium text-foreground">{roleLabels[r]}</span>
+                          {isPrimary && (
+                            <span className="ml-1 text-[10px] text-muted-foreground">(primary)</span>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {roleEditorUser.roles.includes("judge") && (
+                <div className="space-y-2 rounded-lg border border-purple-500/30 bg-purple-500/5 p-3 text-xs">
+                  <Label className="text-foreground font-semibold">Link to Judge Record</Label>
+                  <Select
+                    value={roleEditorUser.judgeId ?? ""}
+                    onValueChange={(val) =>
+                      setRoleEditorUser((prev) =>
+                        prev ? { ...prev, judgeId: val || null } : prev,
+                      )
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a judge record" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(judges.data ?? []).map((judge) => (
+                        <SelectItem key={judge.id} value={judge.id}>
+                          {judge.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRoleEditorUser(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!roleEditorUser || changeRole.isPending}
+              onClick={() => {
+                if (!roleEditorUser) return;
+                changeRole.mutate({
+                  userId: roleEditorUser.id,
+                  role: roleEditorUser.primaryRole,
+                  additionalRoles: roleEditorUser.roles.filter(
+                    (r) => r !== roleEditorUser.primaryRole,
+                  ),
+                  judgeId: roleEditorUser.roles.includes("judge")
+                    ? roleEditorUser.judgeId
+                    : null,
+                });
+              }}
+            >
+              Save Roles
             </Button>
           </DialogFooter>
         </DialogContent>

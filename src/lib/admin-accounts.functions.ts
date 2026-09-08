@@ -1,13 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { type AppRole } from "@/lib/rbac";
 
-export type RegistryRole = "admin" | "registrar" | "judge";
+export type RegistryRole = AppRole;
 
 export type RegistryAccount = {
   id: string;
   email: string;
   fullName: string;
   role: RegistryRole | null;
+  roles: RegistryRole[];
   createdAt: string;
   lastSignInAt: string | null;
   judgeId: string | null;
@@ -40,7 +42,13 @@ export const listRegistryAccounts = createServerFn({ method: "POST" })
     ]);
 
     const nameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name ?? ""]));
-    const roleById = new Map((roles ?? []).map((r) => [r.user_id, r.role as RegistryRole]));
+    const rolesByUserId = new Map<string, RegistryRole[]>();
+    for (const r of roles ?? []) {
+      const list = rolesByUserId.get(r.user_id) || [];
+      list.push(r.role as RegistryRole);
+      rolesByUserId.set(r.user_id, list);
+    }
+
     const benchById = new Map(
       (judges ?? []).filter((j) => j.user_id).map((j) => [j.user_id as string, j]),
     );
@@ -48,11 +56,14 @@ export const listRegistryAccounts = createServerFn({ method: "POST" })
     return userList.users
       .map((u) => {
         const bench = benchById.get(u.id);
+        const userRoles = rolesByUserId.get(u.id) || [];
+        const primaryRole = (userRoles[0] || u.user_metadata?.["role"] || null) as RegistryRole | null;
         return {
           id: u.id,
           email: u.email ?? "",
           fullName: (nameById.get(u.id) || "").trim() || (u.email ?? "").split("@")[0] || "Account",
-          role: roleById.get(u.id) ?? null,
+          role: primaryRole,
+          roles: userRoles.length > 0 ? userRoles : primaryRole ? [primaryRole] : [],
           createdAt: u.created_at,
           lastSignInAt: u.last_sign_in_at ?? null,
           judgeId: bench?.id ?? null,
@@ -62,7 +73,7 @@ export const listRegistryAccounts = createServerFn({ method: "POST" })
       .sort((a, b) => a.fullName.localeCompare(b.fullName));
   });
 
-/** Administrator-only: creates a registrar, administrator or bench login. */
+/** Administrator-only: creates a user login for any official workspace role. */
 export const createRegistryAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(
@@ -71,6 +82,7 @@ export const createRegistryAccount = createServerFn({ method: "POST" })
       password: string;
       fullName: string;
       role: RegistryRole;
+      additionalRoles?: RegistryRole[];
       judgeId?: string | null;
     }) => {
       const email = input.email.trim().toLowerCase();
@@ -104,10 +116,14 @@ export const createRegistryAccount = createServerFn({ method: "POST" })
     const userId = created.user.id;
     await supabaseAdmin.from("profiles").upsert({ id: userId, full_name: data.fullName });
     await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-    const { error: insertError } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: userId, role: data.role });
-    if (insertError) throw new Error(insertError.message);
+
+    const allRoles = Array.from(new Set([data.role, ...(data.additionalRoles || [])]));
+    for (const r of allRoles) {
+      const { error: insertError } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: userId, role: r as any });
+      if (insertError) console.warn(`Failed to insert role ${r}:`, insertError.message);
+    }
 
     if (data.role === "judge" && data.judgeId) {
       const { error: linkError } = await supabaseAdmin
@@ -119,7 +135,7 @@ export const createRegistryAccount = createServerFn({ method: "POST" })
 
     await supabaseAdmin.from("audit_logs").insert({
       user_id: context.userId,
-      action: `Created ${data.role} account for ${data.email}`,
+      action: `Created ${data.role} account for ${data.email}${data.additionalRoles?.length ? ` with additional roles (${data.additionalRoles.join(", ")})` : ""}`,
       entity_affected: "user_accounts",
     });
 
@@ -129,10 +145,17 @@ export const createRegistryAccount = createServerFn({ method: "POST" })
 /** Administrator-only: changes the role carried by an existing login. */
 export const updateRegistryAccountRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: { userId: string; role: RegistryRole; judgeId?: string | null }) => {
-    if (!input.userId) throw new Error("An account is required.");
-    return input;
-  })
+  .validator(
+    (input: {
+      userId: string;
+      role: RegistryRole;
+      additionalRoles?: RegistryRole[];
+      judgeId?: string | null;
+    }) => {
+      if (!input.userId) throw new Error("An account is required.");
+      return input;
+    },
+  )
   .handler(async ({ data, context }) => {
     const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
@@ -146,10 +169,14 @@ export const updateRegistryAccountRole = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
-    const { error: insertError } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: data.userId, role: data.role });
-    if (insertError) throw new Error(insertError.message);
+
+    const allRoles = Array.from(new Set([data.role, ...(data.additionalRoles || [])]));
+    for (const r of allRoles) {
+      const { error: insertError } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: data.userId, role: r as any });
+      if (insertError) console.warn(`Failed to update role ${r}:`, insertError.message);
+    }
 
     if (data.role === "judge") {
       if (data.judgeId) {
@@ -165,7 +192,7 @@ export const updateRegistryAccountRole = createServerFn({ method: "POST" })
 
     await supabaseAdmin.from("audit_logs").insert({
       user_id: context.userId,
-      action: `Changed account role to ${data.role}`,
+      action: `Changed account role to ${data.role}${data.additionalRoles?.length ? ` (+${data.additionalRoles.join(", ")})` : ""}`,
       entity_affected: "user_accounts",
     });
 
