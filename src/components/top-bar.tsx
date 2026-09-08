@@ -104,14 +104,33 @@ export function TopBar() {
         <NetworkBadge />
         {staff?.role !== "judge" && <NotificationsBell />}
 
-        {/* Language toggle */}
+        {/* Language toggle (English / हिन्दी) */}
         <button
+          type="button"
           onClick={() => setLang(lang === "en" ? "hi" : "en")}
-          className="flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-semibold transition-colors hover:bg-muted text-muted-foreground hover:text-foreground"
-          title={lang === "en" ? "Switch to Hindi" : "Switch to English"}
+          className="flex items-center gap-1.5 rounded-md border border-border/70 bg-background/80 px-2 py-1 text-xs font-medium transition-all hover:bg-muted hover:border-primary/40 cursor-pointer shadow-2xs"
+          title={lang === "en" ? "Switch interface to Hindi (हिन्दी में बदलें)" : "Switch interface to English (अंग्रेजी में बदलें)"}
         >
-          <Languages className="size-3.5" />
-          <span className="hidden sm:inline">{lang === "en" ? "EN | हिं" : "हिं | EN"}</span>
+          <Languages className="size-3.5 text-primary" />
+          <span
+            className={`px-1 py-0.2 rounded text-[11px] font-semibold transition-colors ${
+              lang === "en"
+                ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            EN
+          </span>
+          <span className="text-muted-foreground/30 text-[10px]">|</span>
+          <span
+            className={`px-1 py-0.2 rounded text-[11px] font-semibold transition-colors ${
+              lang === "hi"
+                ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            हिन्दी
+          </span>
         </button>
 
         <DropdownMenu>

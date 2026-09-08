@@ -13,7 +13,6 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { TopBar } from "@/components/top-bar";
 import { AssistantPanel } from "@/components/assistant-panel";
 import { useCurrentStaff } from "@/hooks/use-current-staff";
-import { LanguageProvider } from "@/lib/i18n";
 import { getOfflineStaffSession } from "@/lib/offline-auth";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -53,23 +52,21 @@ function AuthenticatedLayout() {
   // Tablet widths start with the rail collapsed so content keeps a usable measure.
   const defaultOpen = typeof window === "undefined" ? true : window.innerWidth >= 1024;
   return (
-    <LanguageProvider>
-      <SidebarProvider defaultOpen={defaultOpen}>
-        <div className="flex min-h-screen w-full bg-background">
-          <AppSidebar />
-          <BenchScopeGuard />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <TopBar />
-            <main className="flex-1">
-              <div key={pathname} className="registry-enter">
-                <Outlet />
-              </div>
-            </main>
-          </div>
-          {staff?.role !== "judge" && <AssistantPanel />}
+    <SidebarProvider defaultOpen={defaultOpen}>
+      <div className="flex min-h-screen w-full bg-background">
+        <AppSidebar />
+        <BenchScopeGuard />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopBar />
+          <main className="flex-1">
+            <div key={pathname} className="registry-enter">
+              <Outlet />
+            </div>
+          </main>
         </div>
-      </SidebarProvider>
-    </LanguageProvider>
+        {staff?.role !== "judge" && <AssistantPanel />}
+      </div>
+    </SidebarProvider>
   );
 }
 

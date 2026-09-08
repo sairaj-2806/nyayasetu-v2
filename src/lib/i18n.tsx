@@ -1,13 +1,22 @@
 /**
- * Full-Page High-Performance Hindi & English Translation Engine for NyayaSetu
+ * High-Performance Bidirectional Hindi & English Translation Engine for NyayaSetu
  *
- * Provides:
- * 1. Deep Context-Based Translation (`useLanguage()` & `t()`)
- * 2. 100% Crash-Free, Bidirectional DOM TreeWalker Engine (EN ⇄ हिं)
- * 3. React DOM reconciliation guard (prevents removeChild/insertBefore crashes)
- * 4. Zero external dependencies (No invasive Google Translate script injections)
+ * Features:
+ * 1. True Bidirectional Translation (EN ⇄ HI): Never gets stuck in Hindi; translates back to English cleanly.
+ * 2. Official Indian Court Legal Terminology (मानक उच्च न्यायालय एवं जिला न्यायालय विधिक शब्दावली).
+ * 3. React DOM Reconciliation Guard (prevents removeChild/insertBefore crashes).
+ * 4. Contextual React hook `useLanguage()` + `t()` with dynamic UI tree walking.
+ * 5. Automatic reverse-translation engine for dynamically inserted DOM nodes.
  */
-import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  type ReactNode,
+} from "react";
 
 export type Language = "en" | "hi";
 
@@ -49,77 +58,80 @@ if (typeof window !== "undefined" && typeof Node !== "undefined" && Node.prototy
 export const translations = {
   // Navigation
   "nav.overview": { en: "Overview", hi: "अवलोकन" },
-  "nav.scheduling": { en: "Scheduling", hi: "समय-निर्धारण" },
-  "nav.administration": { en: "Administration", hi: "प्रशासन" },
-  "nav.dashboard": { en: "Dashboard", hi: "डैशबोर्ड" },
-  "nav.cases": { en: "Cases", hi: "मामले" },
+  "nav.scheduling": { en: "Scheduling", hi: "वाद अनुसूचन" },
+  "nav.administration": { en: "Administration", hi: "न्यायालयीन प्रशासन" },
+  "nav.dashboard": { en: "Dashboard", hi: "नियंत्रण कक्ष" },
+  "nav.cases": { en: "Cases", hi: "वाद एवं प्रकरण" },
   "nav.judges": { en: "Judges", hi: "न्यायाधीश" },
   "nav.courtrooms": { en: "Courtrooms", hi: "न्यायालय कक्ष" },
-  "nav.calendar": { en: "Calendar", hi: "कैलेंडर" },
-  "nav.cause-list": { en: "Cause List", hi: "वाद सूची" },
-  "nav.smart-scheduling": { en: "Smart Scheduling", hi: "स्मार्ट शेड्यूलिंग" },
-  "nav.conflicts": { en: "Conflict Detection", hi: "विरोध पहचान" },
-  "nav.what-if": { en: "What-If Simulation", hi: "क्या-अगर सिमुलेशन" },
-  "nav.backlog": { en: "Backlog Simulator", hi: "बैकलॉग सिमुलेटर" },
-  "nav.reports": { en: "Reports", hi: "रिपोर्ट्स" },
-  "nav.activity-log": { en: "Activity Log", hi: "गतिविधि लॉग" },
-  "nav.governance": { en: "Governance & Compliance", hi: "शासन एवं अनुपालन" },
-  "nav.admin": { en: "Admin Panel", hi: "प्रशासन पैनल" },
-  "nav.priority-settings": { en: "Priority Settings", hi: "प्राथमिकता सेटिंग्स" },
-  "nav.assets": { en: "Police Assets", hi: "पुलिस संपत्तियां एवं साक्ष्य" },
-  "nav.documents": { en: "Digital Documents", hi: "डिजिटल दस्तावेज़" },
-  "nav.search": { en: "Global Search", hi: "ग्लोबल खोज" },
+  "nav.calendar": { en: "Calendar", hi: "न्यायालयीन कैलेंडर" },
+  "nav.cause-list": { en: "Cause List", hi: "दैनिक वाद सूची" },
+  "nav.smart-scheduling": { en: "Smart Scheduling", hi: "स्मार्ट वाद अनुसूची निर्धारण" },
+  "nav.conflicts": { en: "Conflict Detection", hi: "समय एवं कक्ष टकराव पहचान" },
+  "nav.what-if": { en: "What-If Simulation", hi: "परिदृश्य विश्लेषण एवं अनुकरण" },
+  "nav.backlog": { en: "Backlog Simulator", hi: "लंबित वाद निपटान सिमुलेटर" },
+  "nav.reports": { en: "Reports", hi: "विधिक प्रतिवेदन" },
+  "nav.activity-log": { en: "Activity Log", hi: "अपरिवर्तनीय गतिविधि विवरण" },
+  "nav.governance": { en: "Governance & Compliance", hi: "प्रशासनिक नियंत्रण एवं विधिक अनुपालन" },
+  "nav.admin": { en: "Admin Panel", hi: "मुख्य प्रशासक पैनल" },
+  "nav.priority-settings": { en: "Priority Settings", hi: "वाद प्राथमिकता मानदंड सेटिंग्स" },
+  "nav.assets": { en: "Police Assets", hi: "पुलिस संसाधन व संपत्ति" },
+  "nav.documents": { en: "Digital Documents", hi: "डिजिटल दस्तावेज़ व अभिलेख" },
+  "nav.evidence": { en: "Evidence Exhibits", hi: "साक्ष्य प्रदर्श" },
+  "nav.search": { en: "Global Search", hi: "एकीकृत रजिस्ट्री खोज" },
+  "nav.bench": { en: "My Bench", hi: "मेरी न्यायपीठ" },
+  "nav.case-status": { en: "Case Status", hi: "वाद स्थिति एवं सीएनआर खोज" },
 
   // Dashboard
-  "dash.pending-cases": { en: "Pending cases", hi: "लंबित मामले" },
-  "dash.tier1-cases": { en: "Tier 1 cases", hi: "टीयर 1 मामले" },
+  "dash.pending-cases": { en: "Pending cases", hi: "लंबित वाद / विचाराधीन प्रकरण" },
+  "dash.tier1-cases": { en: "Tier 1 cases", hi: "टीयर 1 प्राथमिकता वाद" },
   "dash.scheduled": { en: "Scheduled hearings", hi: "निर्धारित सुनवाइयाँ" },
-  "dash.conflicts": { en: "Conflicts detected", hi: "पहचाने गए विरोध" },
-  "dash.judge-util": { en: "Judge utilisation", hi: "न्यायाधीश उपयोग दर" },
-  "dash.courtroom-util": { en: "Courtroom utilisation", hi: "कक्ष उपयोग दर" },
-  "dash.awaiting": { en: "Awaiting scheduling", hi: "समय-निर्धारण प्रतीक्षारत" },
-  "dash.disposed": { en: "Disposed cases", hi: "निपटाए गए मामले" },
+  "dash.conflicts": { en: "Conflicts detected", hi: "पहचाने गए समय/कक्ष टकराव" },
+  "dash.judge-util": { en: "Judge utilisation", hi: "न्यायाधीश कार्य उपयोग दर" },
+  "dash.courtroom-util": { en: "Courtroom utilisation", hi: "न्यायालय कक्ष उपयोग दर" },
+  "dash.awaiting": { en: "Awaiting scheduling", hi: "अनुसूची निर्धारण प्रतीक्षारत" },
+  "dash.disposed": { en: "Disposed cases", hi: "निस्तारित वाद" },
   "dash.judge-workload": { en: "Judge workload distribution", hi: "न्यायाधीश कार्यभार वितरण" },
   "dash.courtroom-util-title": { en: "Courtroom utilisation", hi: "न्यायालय कक्ष उपयोग" },
-  "dash.registry-briefing": { en: "Registry briefing", hi: "रजिस्ट्री सारांश" },
-  "dash.court-readiness": { en: "Court readiness", hi: "न्यायालय तत्परता" },
-  "dash.conflict-review": { en: "Conflict review", hi: "विरोध समीक्षा" },
-  "dash.unlisted": { en: "Unlisted open cases", hi: "असूचीबद्ध मामले" },
-  "dash.tier1-attention": { en: "Tier 1 attention", hi: "टीयर 1 ध्यान" },
-  "dash.bench-capacity": { en: "Bench capacity", hi: "पीठ क्षमता" },
-  "dash.courtroom-slots": { en: "Courtroom slots", hi: "कक्ष स्लॉट" },
-  "dash.impact": { en: "NyayaSetu Impact", hi: "न्यायसेतु प्रभाव" },
-  "dash.impact.conflicts": { en: "Conflicts Detected & Prevented", hi: "पहचाने और रोके गए विरोध" },
-  "dash.impact.tier1": { en: "Tier 1 Cases Prioritised", hi: "प्राथमिकता प्राप्त टीयर 1 मामले" },
-  "dash.impact.recs": { en: "AI Recommendations Issued", hi: "AI अनुशंसाएं जारी" },
+  "dash.registry-briefing": { en: "Registry briefing", hi: "रजिस्ट्री दैनिक सारांश" },
+  "dash.court-readiness": { en: "Court readiness", hi: "न्यायालयीन तत्परता" },
+  "dash.conflict-review": { en: "Conflict review", hi: "टकराव निवारण समीक्षा" },
+  "dash.unlisted": { en: "Unlisted open cases", hi: "असूचीबद्ध खुले वाद" },
+  "dash.tier1-attention": { en: "Tier 1 attention", hi: "टीयर 1 विशेष ध्यान" },
+  "dash.bench-capacity": { en: "Bench capacity", hi: "न्यायपीठ क्षमता" },
+  "dash.courtroom-slots": { en: "Courtroom slots", hi: "न्यायालय कक्ष समय-स्लॉट" },
+  "dash.impact": { en: "NyayaSetu Impact", hi: "न्यायसेतु प्रभाव एवं दक्षता" },
+  "dash.impact.conflicts": { en: "Conflicts Detected & Prevented", hi: "पहचाने और टाले गए टकराव" },
+  "dash.impact.tier1": { en: "Tier 1 Cases Prioritised", hi: "शीर्ष प्राथमिकता प्रदत्त वाद" },
+  "dash.impact.recs": { en: "AI Recommendations Issued", hi: "जारी एआई (AI) अनुशंसाएं" },
   "dash.impact.hearings": { en: "Active Scheduled Hearings", hi: "सक्रिय निर्धारित सुनवाइयाँ" },
 
   // Cases Table & Filters
-  "cases.case-number": { en: "Case Number", hi: "मामला संख्या" },
-  "cases.category": { en: "Category", hi: "श्रेणी" },
-  "cases.status": { en: "Status", hi: "स्थिति" },
-  "cases.filing-date": { en: "Filing Date", hi: "दाखिल तिथि" },
-  "cases.priority": { en: "Priority", hi: "प्राथमिकता" },
-  "cases.parties": { en: "Parties", hi: "पक्षकार" },
-  "cases.adjournments": { en: "Adjournments", hi: "स्थगन" },
+  "cases.case-number": { en: "Case Number", hi: "वाद संख्या" },
+  "cases.category": { en: "Category", hi: "विधिक श्रेणी" },
+  "cases.status": { en: "Status", hi: "वर्तमान स्थिति" },
+  "cases.filing-date": { en: "Filing Date", hi: "वाद संस्थित तिथि" },
+  "cases.priority": { en: "Priority", hi: "प्राथमिकता क्रम" },
+  "cases.parties": { en: "Parties", hi: "पक्षकार (वादी / प्रतिवादी)" },
+  "cases.adjournments": { en: "Adjournments", hi: "स्थगन संख्या" },
   "cases.pending-days": { en: "Pending Days", hi: "लंबित दिन" },
 
   // Cause List
-  "cause-list.title": { en: "Cause List", hi: "वाद सूची" },
-  "cause-list.date": { en: "Date", hi: "तारीख" },
+  "cause-list.title": { en: "Cause List", hi: "दैनिक वाद सूची" },
+  "cause-list.date": { en: "Date", hi: "दिनांक" },
   "cause-list.judge": { en: "Judge", hi: "न्यायाधीश" },
   "cause-list.courtroom": { en: "Courtroom", hi: "न्यायालय कक्ष" },
   "cause-list.slot": { en: "Slot", hi: "समय स्लॉट" },
-  "cause-list.generate": { en: "Generate Optimised Board", hi: "अनुकूलित वाद सूची बनाएं" },
-  "cause-list.morning": { en: "Urgent Mentions & Admissions", hi: "तत्काल उल्लेख एवं प्रवेश" },
-  "cause-list.contested": { en: "Contested Arguments & Evidence", hi: "विवादित तर्क एवं साक्ष्य" },
-  "cause-list.afternoon": { en: "Orders & Miscellaneous Disposals", hi: "आदेश एवं विविध निपटान" },
+  "cause-list.generate": { en: "Generate Optimised Board", hi: "अनुकूलित वाद सूची तैयार करें" },
+  "cause-list.morning": { en: "Urgent Mentions & Admissions", hi: "अति आवश्यक उल्लेख एवं प्रवेश" },
+  "cause-list.contested": { en: "Contested Arguments & Evidence", hi: "अंतिम बहस एवं साक्ष्य परीक्षण" },
+  "cause-list.afternoon": { en: "Orders & Miscellaneous Disposals", hi: "आदेश, निर्णय एवं प्रकीर्ण निस्तारण" },
 
   // General & Actions
   "general.refresh": { en: "Refresh", hi: "ताज़ा करें" },
-  "general.loading": { en: "Loading…", hi: "लोड हो रहा है…" },
+  "general.loading": { en: "Loading…", hi: "डेटा लोड हो रहा है…" },
   "general.error": { en: "Error", hi: "त्रुटि" },
-  "general.search": { en: "Search cases…", hi: "मामले खोजें…" },
+  "general.search": { en: "Search cases…", hi: "वाद या प्रकरण खोजें…" },
   "general.sign-out": { en: "Sign out", hi: "साइन आउट" },
   "general.accept": { en: "Accept", hi: "स्वीकार करें" },
   "general.modify": { en: "Modify", hi: "संशोधित करें" },
@@ -130,165 +142,225 @@ export const translations = {
 
 export type TranslationKey = keyof typeof translations;
 
-// ─── PHRASE & VOCABULARY DICTIONARY FOR DOM TRANSLATION ────────────────────────
-// Ordered so longer, specific phrases are matched before short/single words.
-const DOM_TRANSLATIONS: [RegExp, string][] = [
-  // Full Headers & Features
-  [/Smart Scheduling/gi, "स्मार्ट शेड्यूलिंग"],
-  [/Conflict Detection/gi, "विरोध पहचान प्रणाली"],
-  [/What-If Simulation/gi, "क्या-अगर सिमुलेशन"],
-  [/Backlog Simulator/gi, "बैकलॉग सिमुलेटर"],
-  [/Governance & Compliance/gi, "शासन एवं अनुपालन"],
-  [/Priority Settings/gi, "प्राथमिकता सेटिंग्स"],
-  [/Architecture Preview/gi, "वास्तुकला पूर्वावलोकन"],
-  [/Activity Log/gi, "गतिविधि लॉग"],
-  [/Cause List/gi, "वाद सूची"],
-  [/Decision Receipt/gi, "निर्णय रसीद"],
-  [/Explainable Decision Receipt/gi, "व्याख्यात्मक निर्णय रसीद"],
-  [/NyayaSetu Registry/gi, "न्यायसेतु रजिस्ट्री"],
-  [/AI powered court scheduling control/gi, "AI संचालित न्यायालय समय-निर्धारण नियंत्रण"],
-  [/AI powered court scheduling/gi, "AI संचालित न्यायालय शेड्यूलिंग"],
-  [/Run Scheduling Engine/gi, "शेड्यूलिंग इंजन चलाएं"],
-  [/Load SIH Demo/gi, "SIH डेमो लोड करें"],
-  [/Load Demo Scenario/gi, "डेमो परिदृश्य लोड करें"],
-  [/Load Demo/gi, "डेमो लोड करें"],
-  [/Apply Changes/gi, "परिवर्तन लागू करें"],
-  [/Generate Optimised Board/gi, "अनुकूलित वाद सूची बनाएं"],
-  [/Export PDF/gi, "पीडीएफ डाउनलोड करें"],
-  [/Alternative scheduling options/gi, "वैकल्पिक शेड्यूलिंग विकल्प"],
-  [/Alternative Scheduling Options/gi, "वैकल्पिक शेड्यूलिंग विकल्प"],
-  [/Why this combination was recommended/gi, "इस संयोजन की सिफारिश क्यों की गई"],
-  [/Scheduling recommendation · top ranked/gi, "शेड्यूलिंग अनुशंसा · शीर्ष वरीयता"],
-  [/Hard Constraints \(all must pass\)/gi, "अनिवार्य शर्तें (सभी पूर्ण होनी चाहिए)"],
-  [/Hard Constraints/gi, "अनिवार्य शर्तें"],
-  [/Soft Preferences \(ranking only\)/gi, "प्राथमिकता वरीयताएं (केवल रैंकिंग हेतु)"],
-  [/Soft Preferences/gi, "प्राथमिकता वरीयताएं"],
-  [/Deterministic rules engine/gi, "निश्चित नियम इंजन"],
-  [/No AI randomness/gi, "कोई आकस्मिक AI त्रुटि नहीं"],
-  [/Same inputs always produce same output/gi, "समान इनपुट पर हमेशा समान परिणाम"],
-  [/Court readiness/gi, "न्यायालय तत्परता"],
-  [/Registry briefing/gi, "रजिस्ट्री सारांश"],
-  [/Judge workload distribution/gi, "न्यायाधीश कार्यभार वितरण"],
-  [/Courtroom utilisation/gi, "न्यायालय कक्ष उपयोग"],
-  [/Active hearings per judge/gi, "प्रति न्यायाधीश सक्रिय सुनवाइयाँ"],
-  [/Pending cases/gi, "लंबित मामले"],
-  [/Tier 1 cases/gi, "टीयर 1 मामले"],
-  [/Scheduled hearings/gi, "निर्धारित सुनवाइयाँ"],
-  [/Conflicts detected/gi, "पहचाने गए विरोध"],
-  [/Judge utilisation/gi, "न्यायाधीश उपयोग दर"],
-  [/Awaiting scheduling/gi, "शेड्यूलिंग प्रतीक्षारत"],
-  [/Disposed cases/gi, "निपटाए गए मामले"],
-  [/Fit score \/ 100/gi, "अनुकूलता स्कोर / 100"],
-  [/fit score/gi, "अनुकूलता स्कोर"],
-  [/minutes estimated/gi, "मिनट अनुमानित"],
-  [/estimated duration/gi, "अनुमानित अवधि"],
-  [/previous adjournments/gi, "पिछले स्थगन"],
-  [/Select a pending case/gi, "एक लंबित मामला चुनें"],
-  [/Choose a case…/gi, "मामला चुनें…"],
-  [/Choose a pending case…/gi, "लंबित मामला चुनें…"],
-  [/No pending cases/gi, "कोई लंबित मामला नहीं"],
-  [/Checking case priority/gi, "मामले की प्राथमिकता की जांच"],
-  [/Checking judge & courtroom availability/gi, "न्यायाधीश एवं कक्ष उपलब्धता की जांच"],
-  [/Checking booking conflicts/gi, "बुकिंग विरोध की जांच"],
-  [/Checking duration fit/gi, "अवधि अनुकूलता की जांच"],
-  [/Analysis complete/gi, "विश्लेषण पूर्ण"],
-  [/Accept & Confirm Listing/gi, "स्वीकार करें एवं सूचीबद्घ करें"],
-  [/Modify \/ Pick Alternative/gi, "संशोधित करें / विकल्प चुनें"],
-  [/Reject Recommendation/gi, "अनुशंसा अस्वीकार करें"],
-  [/Explain recommendation/gi, "अनुशंसा की व्याख्या करें"],
-  [/Explain with AI/gi, "AI द्वारा समझाएं"],
-  [/Explain with AI Copilot/gi, "AI कोपायलट द्वारा समझाएं"],
-  [/AI Decision Support/gi, "AI निर्णय सहायता"],
-  [/AI Explanation/gi, "AI व्याख्या"],
-  [/Refresh analysis/gi, "विश्लेषण ताज़ा करें"],
+// ─── MASTER BIDIRECTIONAL PHRASE & VOCABULARY DICTIONARY ────────────────────────
+// Tuple structure: [English Regex, Hindi Translation, English Source]
+// Ordered from longest compound phrases to shorter single words.
+const DICTIONARY_PAIRS: [RegExp, string, string][] = [
+  // Full Headers & System Features
+  [/Smart Scheduling/gi, "स्मार्ट वाद अनुसूची निर्धारण", "Smart Scheduling"],
+  [/Conflict Detection/gi, "समय एवं कक्ष टकराव पहचान", "Conflict Detection"],
+  [/What-If Simulation/gi, "परिदृश्य विश्लेषण एवं अनुकरण", "What-If Simulation"],
+  [/Backlog Simulator/gi, "लंबित वाद निपटान सिमुलेटर", "Backlog Simulator"],
+  [/Governance & Compliance/gi, "प्रशासनिक नियंत्रण एवं विधिक अनुपालन", "Governance & Compliance"],
+  [/Priority Settings/gi, "वाद प्राथमिकता मानदंड सेटिंग्स", "Priority Settings"],
+  [/Architecture Preview/gi, "प्रणाली संरचना पूर्वावलोकन", "Architecture Preview"],
+  [/Activity Log/gi, "अपरिवर्तनीय गतिविधि विवरण", "Activity Log"],
+  [/Cause List/gi, "दैनिक वाद सूची", "Cause List"],
+  [/Decision Receipt/gi, "विधिक निर्णय अभिलेख एवं रसीद", "Decision Receipt"],
+  [/Explainable Decision Receipt/gi, "पारदर्शी विधिक निर्णय अभिलेख", "Explainable Decision Receipt"],
+  [/NyayaSetu Registry/gi, "न्यायसेतु न्यायालय अभिलेखागार", "NyayaSetu Registry"],
+  [/AI powered court scheduling control/gi, "एआई संचालित न्यायालय अनुसूची निर्धारण नियंत्रण", "AI powered court scheduling control"],
+  [/AI powered court scheduling/gi, "एआई संचालित न्यायालय अनुसूचन", "AI powered court scheduling"],
+  [/Run Scheduling Engine/gi, "अनुसूची निर्धारण इंजन चलाएं", "Run Scheduling Engine"],
+  [/Load SIH Demo/gi, "डेमो परिदृश्य लोड करें", "Load SIH Demo"],
+  [/Load Demo Scenario/gi, "डेमो परिदृश्य लोड करें", "Load Demo Scenario"],
+  [/Load Demo/gi, "डेमो डेटा लोड करें", "Load Demo"],
+  [/Apply Changes/gi, "परिवर्तन लागू करें", "Apply Changes"],
+  [/Generate Optimised Board/gi, "अनुकूलित वाद सूची तैयार करें", "Generate Optimised Board"],
+  [/Export PDF/gi, "पीडीएफ (PDF) निर्यात करें", "Export PDF"],
+  [/Alternative scheduling options/gi, "वैकल्पिक अनुसूची निर्धारण विकल्प", "Alternative scheduling options"],
+  [/Alternative Scheduling Options/gi, "वैकल्पिक अनुसूची निर्धारण विकल्प", "Alternative Scheduling Options"],
+  [/Why this combination was recommended/gi, "इस संयोजन की अनुशंसा का विधिक आधार", "Why this combination was recommended"],
+  [/Scheduling recommendation · top ranked/gi, "अनुसूची अनुशंसा · शीर्ष वरीयता प्राप्त", "Scheduling recommendation · top ranked"],
+  [/Hard Constraints \(all must pass\)/gi, "बाध्यकारी विधिक नियम (सभी का अनुपालन अनिवार्य)", "Hard Constraints (all must pass)"],
+  [/Hard Constraints/gi, "बाध्यकारी विधिक नियम", "Hard Constraints"],
+  [/Soft Preferences \(ranking only\)/gi, "प्राथमिकता वरीयताएं (केवल रैंकिंग हेतु)", "Soft Preferences (ranking only)"],
+  [/Soft Preferences/gi, "प्राथमिकता वरीयताएं", "Soft Preferences"],
+  [/Deterministic rules engine/gi, "निश्चित विधिक नियम इंजन", "Deterministic rules engine"],
+  [/No AI randomness/gi, "कोई आकस्मिक त्रुटि नहीं", "No AI randomness"],
+  [/Same inputs always produce same output/gi, "समान इनपुट पर सदैव वही सुसंगत परिणाम", "Same inputs always produce same output"],
+  [/Court readiness/gi, "न्यायालयीन तत्परता", "Court readiness"],
+  [/Registry briefing/gi, "रजिस्ट्री दैनिक सारांश", "Registry briefing"],
+  [/Judge workload distribution/gi, "न्यायाधीश कार्यभार वितरण", "Judge workload distribution"],
+  [/Courtroom utilisation/gi, "न्यायालय कक्ष उपयोग", "Courtroom utilisation"],
+  [/Active hearings per judge/gi, "प्रति न्यायाधीश सक्रिय सुनवाइयाँ", "Active hearings per judge"],
+  [/Pending cases/gi, "लंबित वाद / विचाराधीन प्रकरण", "Pending cases"],
+  [/Tier 1 cases/gi, "टीयर 1 प्राथमिकता वाद", "Tier 1 cases"],
+  [/Tier 2 cases/gi, "टीयर 2 वाद", "Tier 2 cases"],
+  [/Tier 3 cases/gi, "टीयर 3 वाद", "Tier 3 cases"],
+  [/Scheduled hearings/gi, "निर्धारित सुनवाइयाँ", "Scheduled hearings"],
+  [/Conflicts detected/gi, "पहचाने गए समय/कक्ष टकराव", "Conflicts detected"],
+  [/Judge utilisation/gi, "न्यायाधीश कार्य उपयोग दर", "Judge utilisation"],
+  [/Awaiting scheduling/gi, "अनुसूची निर्धारण प्रतीक्षारत", "Awaiting scheduling"],
+  [/Disposed cases/gi, "निस्तारित वाद", "Disposed cases"],
+  [/Fit score \/ 100/gi, "अनुकूलता गुणांक / 100", "Fit score / 100"],
+  [/fit score/gi, "अनुकूलता गुणांक", "fit score"],
+  [/minutes estimated/gi, "मिनट (अनुमानित)", "minutes estimated"],
+  [/estimated duration/gi, "अनुमानित सुनवाई अवधि", "estimated duration"],
+  [/previous adjournments/gi, "पूर्व स्थगन संख्या", "previous adjournments"],
+  [/Select a pending case/gi, "एक लंबित वाद चुनें", "Select a pending case"],
+  [/Choose a case…/gi, "वाद या प्रकरण चुनें…", "Choose a case…"],
+  [/Choose a pending case…/gi, "लंबित वाद चुनें…", "Choose a pending case…"],
+  [/No pending cases/gi, "कोई लंबित वाद उपलब्ध नहीं", "No pending cases"],
+  [/Checking case priority/gi, "वाद प्राथमिकता की जांच की जा रही है", "Checking case priority"],
+  [/Checking judge & courtroom availability/gi, "न्यायाधीश एवं न्यायालय कक्ष उपलब्धता की जांच", "Checking judge & courtroom availability"],
+  [/Checking booking conflicts/gi, "समय एवं कक्ष टकराव की जांच", "Checking booking conflicts"],
+  [/Checking duration fit/gi, "सुनवाई अवधि अनुकूलता की जांच", "Checking duration fit"],
+  [/Analysis complete/gi, "विश्लेषण सफलतापूर्वक पूर्ण", "Analysis complete"],
+  [/Accept & Confirm Listing/gi, "स्वीकार करें एवं वाद सूची में दर्ज करें", "Accept & Confirm Listing"],
+  [/Modify \/ Pick Alternative/gi, "संशोधित करें / अन्य विकल्प चुनें", "Modify / Pick Alternative"],
+  [/Reject Recommendation/gi, "अनुशंसा अस्वीकृत करें", "Reject Recommendation"],
+  [/Explain recommendation/gi, "अनुशंसा का विधिक आधार समझें", "Explain recommendation"],
+  [/Explain with AI/gi, "एआई (AI) विधिक व्याख्या", "Explain with AI"],
+  [/Explain with AI Copilot/gi, "एआई कोपायलट द्वारा समझें", "Explain with AI Copilot"],
+  [/AI Decision Support/gi, "एआई निर्णय सहायता प्रणाली", "AI Decision Support"],
+  [/AI Explanation/gi, "एआई विधिक कारण व्याख्या", "AI Explanation"],
+  [/Refresh analysis/gi, "विश्लेषण ताज़ा करें", "Refresh analysis"],
 
   // Indian Legal & Court Terms
-  [/Senior Citizen Litigant/gi, "वरिष्ठ नागरिक पक्षकार"],
-  [/Senior citizen/gi, "वरिष्ठ नागरिक"],
-  [/Fast Track Special Court/gi, "फास्ट ट्रैक विशेष न्यायालय"],
-  [/POCSO Act Case/gi, "पॉक्सो (POCSO) अधिनियम मामला"],
-  [/POCSO Act/gi, "पॉक्सो अधिनियम"],
-  [/POCSO/gi, "पॉक्सो"],
-  [/Bail Application/gi, "जमानत याचिका"],
-  [/Criminal Law/gi, "दांडिक / आपराधिक विधि"],
-  [/Civil Law/gi, "दीवानी विधि"],
-  [/Family Law/gi, "पारिवारिक विधि"],
-  [/Commercial Disputes/gi, "व्यावसायिक विवाद"],
-  [/Commercial Law/gi, "व्यावसायिक विधि"],
-  [/Constitutional Law/gi, "संवैधानिक विधि"],
-  [/Labour & Industrial/gi, "श्रम एवं औद्योगिक"],
-  [/Property Dispute 5yr\+/gi, "5+ वर्ष पुराना संपत्ति विवाद"],
-  [/Statutory Limitation Approaching/gi, "कानूनी परिसीमा तिथि निकट"],
-  [/Urgent Mentions & Admissions/gi, "तत्काल उल्लेख एवं प्रवेश"],
-  [/Contested Arguments & Evidence/gi, "विवादित बहस एवं साक्ष्य"],
-  [/Orders & Miscellaneous Disposals/gi, "आदेश एवं विविध निपटान"],
-  [/Judge available at this slot/gi, "इस स्लॉट पर न्यायाधीश उपलब्ध हैं"],
-  [/Courtroom available/gi, "न्यायालय कक्ष उपलब्ध है"],
-  [/No double-booking/gi, "कोई दोहरा आवंटन नहीं"],
-  [/Hearing duration fits slot/gi, "सुनवाई अवधि स्लॉट के अनुकूल है"],
-  [/Judge workload within threshold/gi, "न्यायाधीश कार्यभार सीमा के भीतर है"],
-  [/Not a court holiday/gi, "न्यायालय अवकाश नहीं है"],
-  [/Judge emergency leave \/ absence/gi, "न्यायाधीश का आकस्मिक अवकाश / अनुपस्थिति"],
-  [/Courtroom emergency infrastructure closure/gi, "कक्ष का आकस्मिक बुनियादी ढांचा बंद"],
-  [/Applying simulated condition/gi, "सिम्युलेटेड स्थिति लागू की जा रही है"],
-  [/Tracing affected hearings/gi, "प्रभावित सुनवाइयों की पहचान"],
-  [/Re-checking judge & courtroom availability/gi, "न्यायाधीश एवं कक्ष की पुनः उपलब्धता जांच"],
-  [/Re-checking conflicts and duration fit/gi, "विरोध एवं अवधि की पुनः जांच"],
+  [/Senior Citizen Litigant/gi, "वरिष्ठ नागरिक पक्षकार", "Senior Citizen Litigant"],
+  [/Senior citizen/gi, "वरिष्ठ नागरिक", "Senior citizen"],
+  [/Fast Track Special Court/gi, "फास्ट ट्रैक विशेष न्यायालय", "Fast Track Special Court"],
+  [/POCSO Act Case/gi, "पॉक्सो (POCSO) अधिनियम प्रकरण", "POCSO Act Case"],
+  [/POCSO Act/gi, "पॉक्सो अधिनियम", "POCSO Act"],
+  [/POCSO/gi, "पॉक्सो (POCSO)", "POCSO"],
+  [/Bail Application/gi, "जमानत आवेदन पत्र", "Bail Application"],
+  [/Criminal Law/gi, "आपराधिक / दांडिक विधि", "Criminal Law"],
+  [/Civil Law/gi, "दीवानी विधि", "Civil Law"],
+  [/Family Law/gi, "पारिवारिक विधि", "Family Law"],
+  [/Commercial Disputes/gi, "वाणिज्यिक वाद", "Commercial Disputes"],
+  [/Commercial Law/gi, "वाणिज्यिक विधि", "Commercial Law"],
+  [/Constitutional Law/gi, "संवैधानिक विधि", "Constitutional Law"],
+  [/Labour & Industrial/gi, "श्रम एवं औद्योगिक विधि", "Labour & Industrial"],
+  [/Property Dispute 5yr\+/gi, "5+ वर्ष पुराना संपत्ति विवाद", "Property Dispute 5yr+"],
+  [/Property Dispute/gi, "संपत्ति विवाद", "Property Dispute"],
+  [/Statutory Limitation Approaching/gi, "वैधानिक परिसीमा तिथि निकट", "Statutory Limitation Approaching"],
+  [/Urgent Mentions & Admissions/gi, "अति आवश्यक उल्लेख एवं प्रवेश", "Urgent Mentions & Admissions"],
+  [/Contested Arguments & Evidence/gi, "अंतिम बहस एवं साक्ष्य परीक्षण", "Contested Arguments & Evidence"],
+  [/Orders & Miscellaneous Disposals/gi, "आदेश, निर्णय एवं प्रकीर्ण निस्तारण", "Orders & Miscellaneous Disposals"],
+  [/Judge available at this slot/gi, "इस समय-स्लॉट पर न्यायाधीश उपलब्ध हैं", "Judge available at this slot"],
+  [/Courtroom available/gi, "न्यायालय कक्ष उपलब्ध है", "Courtroom available"],
+  [/No double-booking/gi, "कोई दोहरा आवंटन नहीं", "No double-booking"],
+  [/Hearing duration fits slot/gi, "सुनवाई अवधि समय-स्लॉट के अनुकूल है", "Hearing duration fits slot"],
+  [/Judge workload within threshold/gi, "न्यायाधीश कार्यभार निर्धारित सीमा में है", "Judge workload within threshold"],
+  [/Not a court holiday/gi, "न्यायालयीन अवकाश नहीं है", "Not a court holiday"],
+  [/Judge emergency leave \/ absence/gi, "न्यायाधीश का आकस्मिक अवकाश / अनुपस्थिति", "Judge emergency leave / absence"],
+  [/Courtroom emergency infrastructure closure/gi, "न्यायालय कक्ष का आकस्मिक रख-रखाव बंद", "Courtroom emergency infrastructure closure"],
+  [/Applying simulated condition/gi, "सिम्युलेटेड स्थिति लागू की जा रही है", "Applying simulated condition"],
+  [/Tracing affected hearings/gi, "प्रभावित सुनवाइयों की पहचान की जा रही है", "Tracing affected hearings"],
+  [/Re-checking judge & courtroom availability/gi, "न्यायाधीश एवं कक्ष की पुनः उपलब्धता जांच", "Re-checking judge & courtroom availability"],
+  [/Re-checking conflicts and duration fit/gi, "टकराव एवं अवधि की पुनः जांच", "Re-checking conflicts and duration fit"],
 
-  // Short words & UI Controls
-  [/\bJudicial Officers\b/gi, "न्यायिक अधिकारी"],
-  [/\bCourtrooms\b/gi, "न्यायालय कक्ष"],
-  [/\bCourtroom\b/gi, "न्यायालय कक्ष"],
-  [/\bJudges\b/gi, "न्यायाधीश"],
-  [/\bJudge\b/gi, "न्यायाधीश"],
-  [/\bSlot\b/gi, "स्लॉट"],
-  [/\bSlots\b/gi, "स्लॉट"],
-  [/\bBenches\b/gi, "पीठें"],
-  [/\bBench\b/gi, "पीठ"],
-  [/\bParties\b/gi, "पक्षकार"],
-  [/\bStatus\b/gi, "स्थिति"],
-  [/\bPriority\b/gi, "प्राथमिकता"],
-  [/\bCategory\b/gi, "श्रेणी"],
-  [/\bFiling Date\b/gi, "दाखिल तिथि"],
-  [/\bAction\b/gi, "कार्रवाई"],
-  [/\bActions\b/gi, "कार्रवाइयां"],
-  [/\bOverview\b/gi, "अवलोकन"],
-  [/\bAdministration\b/gi, "प्रशासन"],
-  [/\bScheduling\b/gi, "समय-निर्धारण"],
-  [/\bDashboard\b/gi, "डैशबोर्ड"],
-  [/\bCases\b/gi, "मामले"],
-  [/\bCase\b/gi, "मामला"],
-  [/\bCalendar\b/gi, "कैलेंडर"],
-  [/\bReports\b/gi, "रिपोर्ट्स"],
-  [/\bReport\b/gi, "रिपोर्ट"],
-  [/\bDisposed\b/gi, "निपटाया गया"],
-  [/\bPending\b/gi, "लंबित"],
-  [/\bScheduled\b/gi, "निर्धारित"],
-  [/\bAdjourned\b/gi, "स्थगित"],
-  [/\bAdjournments\b/gi, "स्थगन"],
-  [/\bAdjournment\b/gi, "स्थगन"],
-  [/\bConfirmed\b/gi, "पुष्ट"],
-  [/\bProposed\b/gi, "प्रस्तावित"],
-  [/\bHigh Urgency\b/gi, "अति उच्च प्राथमिकता"],
-  [/\bMedium Urgency\b/gi, "मध्यम प्राथमिकता"],
-  [/\bNormal Urgency\b/gi, "सामान्य प्राथमिकता"],
-  [/\bRefresh\b/gi, "ताज़ा करें"],
-  [/\bSign out\b/gi, "साइन आउट"],
-  [/\bSearch\b/gi, "खोजें"],
-  [/\bCancel\b/gi, "रद्द करें"],
-  [/\bSubmit\b/gi, "जमा करें"],
-  [/\bSave\b/gi, "सहेजें"],
-  [/\bClose\b/gi, "बंद करें"],
-  [/\bAccept\b/gi, "स्वीकार करें"],
-  [/\bModify\b/gi, "संशोधित करें"],
-  [/\bReject\b/gi, "अस्वीकार करें"],
-  [/\bOptions\b/gi, "विकल्प"],
-  [/\bOption\b/gi, "विकल्प"],
+  // Police Assets & Evidence Terminology
+  [/Evidence Exhibits/gi, "साक्ष्य प्रदर्श", "Evidence Exhibits"],
+  [/Evidence Exhibit/gi, "साक्ष्य प्रदर्श", "Evidence Exhibit"],
+  [/Police Assets/gi, "पुलिस संसाधन व संपत्ति", "Police Assets"],
+  [/Police Asset/gi, "पुलिस संसाधन", "Police Asset"],
+  [/Chain of Custody/gi, "अभिरक्षा श्रृंखला (Chain of Custody)", "Chain of Custody"],
+  [/Evidence Custodian/gi, "मालखाना अभिरक्षक / मोहर्रिर", "Evidence Custodian"],
+  [/Investigating Officer/gi, "विवेचना अधिकारी (I.O.)", "Investigating Officer"],
+  [/Central Malkhana/gi, "केंद्रीय मालखाना", "Central Malkhana"],
+  [/Malkhana/gi, "मालखाना", "Malkhana"],
+  [/Digital Documents/gi, "डिजिटल दस्तावेज़ व अभिलेख", "Digital Documents"],
+  [/Digital Document/gi, "डिजिटल दस्तावेज़", "Digital Document"],
+  [/Document Vault/gi, "दस्तावेज़ अभिरक्षा केंद्र", "Document Vault"],
+  [/Forensic Report/gi, "फोरेंसिक रिपोर्ट", "Forensic Report"],
+  [/Ballistic Report/gi, "बैलिस्टिक रिपोर्ट", "Ballistic Report"],
+  [/Search Registry/gi, "रजिस्ट्री खोजें", "Search Registry"],
+  [/Unified Global Registry Search/gi, "एकीकृत रजिस्ट्री खोज", "Unified Global Registry Search"],
+  [/Global Search/gi, "एकीकृत खोज", "Global Search"],
+
+  // Core Legal Roles
+  [/\bJudicial Officers\b/gi, "न्यायिक अधिकारी", "Judicial Officers"],
+  [/\bJudicial Officer\b/gi, "न्यायिक अधिकारी", "Judicial Officer"],
+  [/\bPrincipal Registrar\b/gi, "प्रधान रजिस्ट्रार", "Principal Registrar"],
+  [/\bCourt Administrator\b/gi, "न्यायालय प्रशासक", "Court Administrator"],
+  [/\bCourt Staff\b/gi, "न्यायालयीन कर्मचारी", "Court Staff"],
+  [/\bRegistrar\b/gi, "रजिस्ट्रार", "Registrar"],
+  [/\bCourtrooms\b/gi, "न्यायालय कक्ष", "Courtrooms"],
+  [/\bCourtroom\b/gi, "न्यायालय कक्ष", "Courtroom"],
+  [/\bJudges\b/gi, "न्यायाधीश", "Judges"],
+  [/\bJudge\b/gi, "न्यायाधीश", "Judge"],
+  [/\bBenches\b/gi, "न्यायपीठें", "Benches"],
+  [/\bBench\b/gi, "न्यायपीठ", "Bench"],
+  [/\bParties\b/gi, "पक्षकार", "Parties"],
+  [/\bParty\b/gi, "पक्षकार", "Party"],
+  [/\bPetitioner\b/gi, "याचिकाकर्ता", "Petitioner"],
+  [/\bRespondent\b/gi, "प्रतिवादी", "Respondent"],
+  [/\bAdvocate\b/gi, "अधिवक्ता", "Advocate"],
+  [/\bLitigant\b/gi, "वादकारी", "Litigant"],
+
+  // Case Attributes & States
+  [/\bCase Number\b/gi, "वाद संख्या", "Case Number"],
+  [/\bFiling Date\b/gi, "वाद संस्थित तिथि", "Filing Date"],
+  [/\bHearing Date\b/gi, "सुनवाई तिथि", "Hearing Date"],
+  [/\bNext Date\b/gi, "अगली नियत तिथि", "Next Date"],
+  [/\bCases\b/gi, "वाद एवं प्रकरण", "Cases"],
+  [/\bCase\b/gi, "वाद / प्रकरण", "Case"],
+  [/\bStatus\b/gi, "स्थिति", "Status"],
+  [/\bPriority\b/gi, "प्राथमिकता", "Priority"],
+  [/\bCategory\b/gi, "श्रेणी", "Category"],
+  [/\bSlot\b/gi, "समय-स्लॉट", "Slot"],
+  [/\bSlots\b/gi, "समय-स्लॉट", "Slots"],
+  [/\bCalendar\b/gi, "कैलेंडर", "Calendar"],
+  [/\bReports\b/gi, "प्रतिवेदन", "Reports"],
+  [/\bReport\b/gi, "प्रतिवेदन", "Report"],
+  [/\bDisposed\b/gi, "निस्तारित", "Disposed"],
+  [/\bPending\b/gi, "लंबित", "Pending"],
+  [/\bScheduled\b/gi, "निर्धारित", "Scheduled"],
+  [/\bAdjourned\b/gi, "स्थगित", "Adjourned"],
+  [/\bAdjournments\b/gi, "स्थगन", "Adjournments"],
+  [/\bAdjournment\b/gi, "स्थगन", "Adjournment"],
+  [/\bConfirmed\b/gi, "पुष्ट", "Confirmed"],
+  [/\bProposed\b/gi, "प्रस्तावित", "Proposed"],
+  [/\bHigh Urgency\b/gi, "अति उच्च प्राथमिकता", "High Urgency"],
+  [/\bMedium Urgency\b/gi, "मध्यम प्राथमिकता", "Medium Urgency"],
+  [/\bNormal Urgency\b/gi, "सामान्य प्राथमिकता", "Normal Urgency"],
+  [/\bAvailable\b/gi, "उपलब्ध", "Available"],
+  [/\bAssigned\b/gi, "आवंटित", "Assigned"],
+  [/\bMaintenance\b/gi, "अनुरक्षण में", "Maintenance"],
+
+  // UI Actions & General Controls
+  [/\bOverview\b/gi, "अवलोकन", "Overview"],
+  [/\bAdministration\b/gi, "प्रशासन", "Administration"],
+  [/\bScheduling\b/gi, "अनुसूचन", "Scheduling"],
+  [/\bDashboard\b/gi, "डैशबोर्ड", "Dashboard"],
+  [/\bRefresh\b/gi, "ताज़ा करें", "Refresh"],
+  [/\bSign out\b/gi, "साइन आउट", "Sign out"],
+  [/\bSearch cases…\b/gi, "वाद या प्रकरण खोजें…", "Search cases…"],
+  [/\bSearch\b/gi, "खोजें", "Search"],
+  [/\bCancel\b/gi, "रद्द करें", "Cancel"],
+  [/\bSubmit\b/gi, "जमा करें", "Submit"],
+  [/\bSave\b/gi, "सहेजें", "Save"],
+  [/\bClose\b/gi, "बंद करें", "Close"],
+  [/\bAccept\b/gi, "स्वीकार करें", "Accept"],
+  [/\bModify\b/gi, "संशोधित करें", "Modify"],
+  [/\bReject\b/gi, "अस्वीकार करें", "Reject"],
+  [/\bAction\b/gi, "कार्रवाई", "Action"],
+  [/\bActions\b/gi, "कार्रवाइयां", "Actions"],
+  [/\bOptions\b/gi, "विकल्प", "Options"],
+  [/\bOption\b/gi, "विकल्प", "Option"],
+  [/\bLoading…\b/gi, "डेटा लोड हो रहा है…", "Loading…"],
+  [/\bLoading\b/gi, "लोड हो रहा है", "Loading"],
+  [/\bError\b/gi, "त्रुटि", "Error"],
+  [/\bSuccess\b/gi, "सफल", "Success"],
 ];
 
-// ─── SAFE DOM TEXT TRANSLATION ENGINE ──────────────────────────────────────────
-// Uses WeakMap to remember the exact original English string of every text node.
+// Pre-build forward and reverse maps
+const EN_TO_HI_MAP: [RegExp, string][] = DICTIONARY_PAIRS.map(([regex, hi]) => [regex, hi]);
+
+// Build reverse dictionary sorted by descending Hindi length so long phrases match before individual words
+const HI_TO_EN_MAP: [RegExp, string][] = [...DICTIONARY_PAIRS]
+  .sort((a, b) => b[1].length - a[1].length)
+  .map(([, hi, en]) => {
+    // Escape special regex characters in Hindi phrase
+    const escaped = hi.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return [new RegExp(escaped, "g"), en];
+  });
+
+// WeakMaps to track original text across DOM elements
 const originalTextMap = new WeakMap<Node, string>();
+const originalPlaceholderMap = new WeakMap<Element, string>();
 
 function shouldSkipElement(el: HTMLElement | null): boolean {
   if (!el) return true;
@@ -314,31 +386,48 @@ function translateSingleTextNode(node: Text, toHindi: boolean) {
   const parent = node.parentElement;
   if (shouldSkipElement(parent)) return;
 
+  const currentVal = node.nodeValue ?? "";
+  if (!currentVal || !currentVal.trim()) return;
+
+  // Skip pure numbers, punctuation or symbols
+  if (/^[\d\s.,:;/#%*+()\-–—_@!?"'’|]+$/.test(currentVal)) return;
+
   if (toHindi) {
-    if (!originalTextMap.has(node)) {
-      originalTextMap.set(node, node.nodeValue ?? "");
+    // Save original English ONLY if node does NOT already contain Devanagari Hindi
+    if (!originalTextMap.has(node) && !/[\u0900-\u097F]/.test(currentVal)) {
+      originalTextMap.set(node, currentVal);
     }
-    const orig = originalTextMap.get(node) ?? "";
-    if (!orig || !orig.trim()) return;
+    const source = originalTextMap.get(node) ?? currentVal;
 
-    // Check if numbers or symbols only
-    if (/^[\d\s.,:;/#%*+()\-–—_]+$/.test(orig)) return;
-
-    let translated = orig;
-    for (let i = 0; i < DOM_TRANSLATIONS.length; i++) {
-      const [regex, replacement] = DOM_TRANSLATIONS[i]!;
-      translated = translated.replace(regex, replacement);
+    let translated = source;
+    for (let i = 0; i < EN_TO_HI_MAP.length; i++) {
+      const [regex, hiText] = EN_TO_HI_MAP[i]!;
+      translated = translated.replace(regex, hiText);
     }
 
-    if (translated !== node.nodeValue) {
+    if (translated !== currentVal) {
       node.nodeValue = translated;
     }
   } else {
     // Restore English
-    if (originalTextMap.has(node)) {
-      const orig = originalTextMap.get(node);
-      if (orig !== undefined && orig !== node.nodeValue) {
+    // 1. First priority: restore from cached original English string
+    const orig = originalTextMap.get(node);
+    if (orig && !/[\u0900-\u097F]/.test(orig)) {
+      if (node.nodeValue !== orig) {
         node.nodeValue = orig;
+      }
+      return;
+    }
+
+    // 2. If node was recreated by React while in Hindi or has no entry, run reverse translation!
+    if (/[\u0900-\u097F]/.test(currentVal)) {
+      let english = currentVal;
+      for (let i = 0; i < HI_TO_EN_MAP.length; i++) {
+        const [hiRegex, enText] = HI_TO_EN_MAP[i]!;
+        english = english.replace(hiRegex, enText);
+      }
+      if (english !== currentVal) {
+        node.nodeValue = english;
       }
     }
   }
@@ -354,16 +443,31 @@ function walkAndTranslate(root: Node, toHindi: boolean) {
     const el = root as HTMLElement;
     if (shouldSkipElement(el)) return;
 
-    // Translate placeholder attributes safely
+    // Handle input placeholders
     if (el.hasAttribute("placeholder")) {
       const ph = el.getAttribute("placeholder") || "";
       if (toHindi) {
-        let tPh = ph;
-        for (let i = 0; i < DOM_TRANSLATIONS.length; i++) {
-          const [regex, replacement] = DOM_TRANSLATIONS[i]!;
-          tPh = tPh.replace(regex, replacement);
+        if (!originalPlaceholderMap.has(el) && !/[\u0900-\u097F]/.test(ph)) {
+          originalPlaceholderMap.set(el, ph);
+        }
+        let tPh = originalPlaceholderMap.get(el) ?? ph;
+        for (let i = 0; i < EN_TO_HI_MAP.length; i++) {
+          const [regex, hiText] = EN_TO_HI_MAP[i]!;
+          tPh = tPh.replace(regex, hiText);
         }
         if (tPh !== ph) el.setAttribute("placeholder", tPh);
+      } else {
+        const orig = originalPlaceholderMap.get(el);
+        if (orig) {
+          el.setAttribute("placeholder", orig);
+        } else if (/[\u0900-\u097F]/.test(ph)) {
+          let enPh = ph;
+          for (let i = 0; i < HI_TO_EN_MAP.length; i++) {
+            const [hiRegex, enText] = HI_TO_EN_MAP[i]!;
+            enPh = enPh.replace(hiRegex, enText);
+          }
+          el.setAttribute("placeholder", enPh);
+        }
       }
     }
 
@@ -400,27 +504,35 @@ const LanguageContext = createContext<LanguageContextValue>({
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Language>(() => {
     if (typeof window === "undefined") return "en";
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored === "hi" ? "hi" : "en";
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      return stored === "hi" ? "hi" : "en";
+    } catch {
+      return "en";
+    }
   });
 
   const observerRef = useRef<MutationObserver | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
   const isTranslatingRef = useRef(false);
 
-  function setLang(l: Language) {
+  const setLang = useCallback((l: Language) => {
     setLangState(l);
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, l);
-      // Clean up any stale Google Translate cookies that might linger
-      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      try {
+        window.localStorage.setItem(STORAGE_KEY, l);
+        document.documentElement.lang = l;
+      } catch (err) {
+        console.warn("Failed to persist language preference", err);
+      }
     }
-  }
+  }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
 
     const isHi = lang === "hi";
+    document.documentElement.lang = lang;
 
     // Disconnect previous observer
     if (observerRef.current) {
@@ -432,7 +544,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       debounceTimerRef.current = null;
     }
 
-    // Run safe full-page translation
+    // Run safe full-page translation or reversion
     isTranslatingRef.current = true;
     try {
       walkAndTranslate(document.body, isHi);
@@ -440,7 +552,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       isTranslatingRef.current = false;
     }
 
-    // Only observe when in Hindi, watching ONLY childList additions (no characterData!)
+    // Only attach MutationObserver when in Hindi to catch dynamically mounted content
     if (isHi) {
       observerRef.current = new MutationObserver((mutations) => {
         if (isTranslatingRef.current) return;
@@ -486,28 +598,44 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [lang]);
 
   /**
-   * Universal translation helper:
+   * Universal bidirectional translation helper:
    * 1. Checks if `keyOrPhrase` is a key in `translations` (e.g. "nav.dashboard")
-   * 2. Checks if `keyOrPhrase` matches any dictionary phrase
-   * 3. Falls back to original phrase when in English or if no match
+   * 2. When in English, restores English or reverse-translates any Hindi string
+   * 3. When in Hindi, forward-translates to formal legal Hindi
    */
-  function t(keyOrPhrase: string): string {
-    if (lang === "en") {
+  const t = useCallback(
+    (keyOrPhrase: string): string => {
+      if (!keyOrPhrase) return "";
+
+      if (lang === "en") {
+        const known = (translations as Record<string, { en: string; hi: string }>)[keyOrPhrase];
+        if (known) return known.en;
+
+        // If string contains Hindi characters, reverse translate to English
+        if (/[\u0900-\u097F]/.test(keyOrPhrase)) {
+          let english = keyOrPhrase;
+          for (let i = 0; i < HI_TO_EN_MAP.length; i++) {
+            const [hiRegex, enText] = HI_TO_EN_MAP[i]!;
+            english = english.replace(hiRegex, enText);
+          }
+          return english;
+        }
+        return keyOrPhrase;
+      }
+
+      // lang === "hi"
       const known = (translations as Record<string, { en: string; hi: string }>)[keyOrPhrase];
-      return known ? known.en : keyOrPhrase;
-    }
+      if (known) return known.hi;
 
-    // Hindi lookup
-    const known = (translations as Record<string, { en: string; hi: string }>)[keyOrPhrase];
-    if (known) return known.hi;
-
-    let translated = keyOrPhrase;
-    for (let i = 0; i < DOM_TRANSLATIONS.length; i++) {
-      const [regex, replacement] = DOM_TRANSLATIONS[i]!;
-      translated = translated.replace(regex, replacement);
-    }
-    return translated;
-  }
+      let translated = keyOrPhrase;
+      for (let i = 0; i < EN_TO_HI_MAP.length; i++) {
+        const [regex, hiText] = EN_TO_HI_MAP[i]!;
+        translated = translated.replace(regex, hiText);
+      }
+      return translated;
+    },
+    [lang],
+  );
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t }}>{children}</LanguageContext.Provider>

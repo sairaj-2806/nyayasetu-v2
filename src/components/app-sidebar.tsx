@@ -41,6 +41,7 @@ export function AppSidebar() {
     "/cases": "nav.cases",
     "/documents": "nav.documents",
     "/assets": "nav.assets",
+    "/evidence": "nav.evidence",
     "/judges": "nav.judges",
     "/courtrooms": "nav.courtrooms",
     "/calendar": "nav.calendar",
@@ -54,6 +55,8 @@ export function AppSidebar() {
     "/governance": "nav.governance",
     "/admin": "nav.admin",
     "/priority-settings": "nav.priority-settings",
+    "/bench": "nav.bench",
+    "/case-status": "nav.case-status",
   };
 
   const sections = (isJudge ? benchNavSections : navSections)
