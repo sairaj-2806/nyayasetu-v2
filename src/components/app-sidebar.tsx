@@ -29,9 +29,9 @@ export function AppSidebar() {
   const isJudge = staff.data?.role === "judge";
 
   const sectionLabelKey: Record<string, TranslationKey> = {
-    "Overview": "nav.overview",
-    "Scheduling": "nav.scheduling",
-    "Administration": "nav.administration",
+    Overview: "nav.overview",
+    Scheduling: "nav.scheduling",
+    Administration: "nav.administration",
     "My bench": "nav.overview",
   };
 
@@ -108,7 +108,11 @@ export function AppSidebar() {
                         }}
                       >
                         <item.icon className="size-4" />
-                        <span>{routeTitleKey[item.to] ? t(routeTitleKey[item.to] as TranslationKey) : item.title}</span>
+                        <span>
+                          {routeTitleKey[item.to]
+                            ? t(routeTitleKey[item.to] as TranslationKey)
+                            : item.title}
+                        </span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

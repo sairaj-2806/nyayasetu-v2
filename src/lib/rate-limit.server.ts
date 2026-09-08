@@ -45,10 +45,7 @@ export type RateLimitResult = {
  * @param identifier Unique client identifier (e.g. user ID, session ID, or IP)
  * @param options Rate limit configuration
  */
-export function checkRateLimit(
-  identifier: string,
-  options: RateLimitOptions,
-): RateLimitResult {
+export function checkRateLimit(identifier: string, options: RateLimitOptions): RateLimitResult {
   const windowMs = options.windowMs ?? 60_000;
   const maxRequests = options.maxRequests;
   const now = Date.now();

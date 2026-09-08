@@ -35,9 +35,7 @@ const DEFAULT_ANON_KEY = "sb_publishable_FZvKCCOsCUtbS9qP7v2XAw_xblsYT8d";
 
 function createSupabaseAdminClient() {
   const SUPABASE_URL =
-    process.env["SUPABASE_URL"] ||
-    process.env["VITE_SUPABASE_URL"] ||
-    DEFAULT_SUPABASE_URL;
+    process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"] || DEFAULT_SUPABASE_URL;
 
   const rawServiceKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
   const SUPABASE_KEY =
@@ -45,9 +43,9 @@ function createSupabaseAdminClient() {
     rawServiceKey !== "placeholder-service-role-key" &&
     rawServiceKey.trim().length > 10
       ? rawServiceKey
-      : (process.env["SUPABASE_PUBLISHABLE_KEY"] ||
-         process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
-         DEFAULT_ANON_KEY);
+      : process.env["SUPABASE_PUBLISHABLE_KEY"] ||
+        process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
+        DEFAULT_ANON_KEY;
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
     global: {

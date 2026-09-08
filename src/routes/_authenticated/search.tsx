@@ -73,7 +73,11 @@ const QUICK_PRESETS = [
   { label: "Central Malkhana", query: "Central Malkhana", desc: "Secure Vault Inventory" },
 ];
 
-const ENTITY_TABS: { id: SearchEntityType | "all"; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const ENTITY_TABS: {
+  id: SearchEntityType | "all";
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
   { id: "all", label: "All Records", icon: Layers },
   { id: "case", label: "Cases", icon: Scale },
   { id: "document", label: "Documents", icon: FileText },
@@ -109,21 +113,53 @@ function getEntityIcon(type: SearchEntityType) {
 function getEntityBadge(type: SearchEntityType) {
   switch (type) {
     case "case":
-      return <Badge className="bg-sky-500/15 text-sky-700 border-sky-500/30 dark:text-sky-300">Case</Badge>;
+      return (
+        <Badge className="bg-sky-500/15 text-sky-700 border-sky-500/30 dark:text-sky-300">
+          Case
+        </Badge>
+      );
     case "document":
-      return <Badge className="bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-300">Document</Badge>;
+      return (
+        <Badge className="bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-300">
+          Document
+        </Badge>
+      );
     case "document_version":
-      return <Badge className="bg-purple-500/15 text-purple-700 border-purple-500/30 dark:text-purple-300">Version</Badge>;
+      return (
+        <Badge className="bg-purple-500/15 text-purple-700 border-purple-500/30 dark:text-purple-300">
+          Version
+        </Badge>
+      );
     case "police_asset":
-      return <Badge className="bg-indigo-500/15 text-indigo-700 border-indigo-500/30 dark:text-indigo-300">Police Asset</Badge>;
+      return (
+        <Badge className="bg-indigo-500/15 text-indigo-700 border-indigo-500/30 dark:text-indigo-300">
+          Police Asset
+        </Badge>
+      );
     case "evidence":
-      return <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-300">Evidence Exhibit</Badge>;
+      return (
+        <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-300">
+          Evidence Exhibit
+        </Badge>
+      );
     case "officer_custodian":
-      return <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-300">Custodian</Badge>;
+      return (
+        <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-300">
+          Custodian
+        </Badge>
+      );
     case "location":
-      return <Badge className="bg-orange-500/15 text-orange-700 border-orange-500/30 dark:text-orange-300">Facility / Vault</Badge>;
+      return (
+        <Badge className="bg-orange-500/15 text-orange-700 border-orange-500/30 dark:text-orange-300">
+          Facility / Vault
+        </Badge>
+      );
     case "audit_event":
-      return <Badge className="bg-rose-500/15 text-rose-700 border-rose-500/30 dark:text-rose-300">Audit Trail</Badge>;
+      return (
+        <Badge className="bg-rose-500/15 text-rose-700 border-rose-500/30 dark:text-rose-300">
+          Audit Trail
+        </Badge>
+      );
   }
 }
 
@@ -141,7 +177,7 @@ export const Route = createFileRoute("/_authenticated/search")({
   component: UnifiedGlobalSearchPage,
 });
 
-export function UnifiedGlobalSearchPage() {
+function UnifiedGlobalSearchPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: staff } = useCurrentStaff();
@@ -150,10 +186,12 @@ export function UnifiedGlobalSearchPage() {
   // Extract initial search parameters from URL
   const rawSearch = (location.search || {}) as Record<string, unknown>;
   const initialQ = typeof rawSearch["q"] === "string" ? rawSearch["q"] : "";
-  const initialType = typeof rawSearch["type"] === "string" ? (rawSearch["type"] as SearchEntityType | "all") : "all";
+  const initialType =
+    typeof rawSearch["type"] === "string" ? (rawSearch["type"] as SearchEntityType | "all") : "all";
   const initialCase = typeof rawSearch["case"] === "string" ? rawSearch["case"] : "";
   const initialDocType = typeof rawSearch["docType"] === "string" ? rawSearch["docType"] : "all";
-  const initialAssetType = typeof rawSearch["assetType"] === "string" ? rawSearch["assetType"] : "all";
+  const initialAssetType =
+    typeof rawSearch["assetType"] === "string" ? rawSearch["assetType"] : "all";
   const initialStatus = typeof rawSearch["status"] === "string" ? rawSearch["status"] : "all";
   const initialLocation = typeof rawSearch["location"] === "string" ? rawSearch["location"] : "all";
   const initialStartDate = typeof rawSearch["startDate"] === "string" ? rawSearch["startDate"] : "";
@@ -174,7 +212,16 @@ export function UnifiedGlobalSearchPage() {
   const [isSearching, startSearchTransition] = useTransition();
 
   // Execute Search
-  const doSearch = (overrideQuery?: string, overrideTab?: SearchEntityType | "all") => {
+  const doSearch = (
+    overrideQuery?: string,
+    overrideTab?: SearchEntityType | "all",
+    syncUrl = false,
+  ) => {
+    // If user has navigated away from /search, never trigger search or history replacement
+    if (typeof window !== "undefined" && window.location.pathname !== "/search") {
+      return;
+    }
+
     const q = overrideQuery !== undefined ? overrideQuery : inputQuery;
     const tab = overrideTab !== undefined ? overrideTab : activeTab;
 
@@ -212,33 +259,36 @@ export function UnifiedGlobalSearchPage() {
       }
     });
 
-    // Update query params in URL
-    navigate({
-      to: "/search" as any,
-      search: {
-        q: q.trim() ? q.trim() : undefined,
-        type: tab === "all" ? undefined : tab,
-        case: caseFilter.trim() ? caseFilter.trim() : undefined,
-        docType: docTypeFilter === "all" ? undefined : docTypeFilter,
-        assetType: assetTypeFilter === "all" ? undefined : assetTypeFilter,
-        status: statusFilter === "all" ? undefined : statusFilter,
-        location: locationFilter === "all" ? undefined : locationFilter,
-        startDate: startDateFilter.trim() ? startDateFilter.trim() : undefined,
-        endDate: endDateFilter.trim() ? endDateFilter.trim() : undefined,
-      } as any,
-      replace: true,
-    });
+    // Only update query params in URL when explicitly requested by user action (e.g. search button click or Enter key)
+    // and NEVER on initial mount or background transitions so router navigation to other routes is never hijacked
+    if (syncUrl && typeof window !== "undefined" && window.location.pathname === "/search") {
+      navigate({
+        to: "/search" as any,
+        search: {
+          q: q.trim() ? q.trim() : undefined,
+          type: tab === "all" ? undefined : tab,
+          case: caseFilter.trim() ? caseFilter.trim() : undefined,
+          docType: docTypeFilter === "all" ? undefined : docTypeFilter,
+          assetType: assetTypeFilter === "all" ? undefined : assetTypeFilter,
+          status: statusFilter === "all" ? undefined : statusFilter,
+          location: locationFilter === "all" ? undefined : locationFilter,
+          startDate: startDateFilter.trim() ? startDateFilter.trim() : undefined,
+          endDate: endDateFilter.trim() ? endDateFilter.trim() : undefined,
+        } as any,
+        replace: true,
+      });
+    }
   };
 
-  // Trigger search on initial load or parameter change
+  // Trigger initial search and filter changes without hijacking the router's location
   useEffect(() => {
-    doSearch();
+    doSearch(undefined, undefined, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, docTypeFilter, assetTypeFilter, statusFilter, locationFilter]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      doSearch();
+      doSearch(undefined, undefined, true);
     }
   };
 
@@ -263,7 +313,7 @@ export function UnifiedGlobalSearchPage() {
     endDateFilter;
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-8 sm:py-10 space-y-6 pb-16">
       <PageHeader
         title="Unified Global Registry Search"
         description="Authorized multi-entity cross-domain search across Court Cases, Pleadings, Evidence Exhibits, Police Assets, Custodians and Audit Records."
@@ -327,9 +377,7 @@ export function UnifiedGlobalSearchPage() {
               >
                 <Filter className="size-4" />
                 Filters
-                {hasActiveFilters && (
-                  <span className="size-2 rounded-full bg-primary" />
-                )}
+                {hasActiveFilters && <span className="size-2 rounded-full bg-primary" />}
               </Button>
             </div>
           </div>
@@ -452,11 +500,7 @@ export function UnifiedGlobalSearchPage() {
                     <RotateCcw className="size-3" />
                     Reset
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => doSearch()}
-                    className="h-8 text-xs flex-1"
-                  >
+                  <Button size="sm" onClick={() => doSearch()} className="h-8 text-xs flex-1">
                     Apply
                   </Button>
                 </div>
@@ -471,9 +515,7 @@ export function UnifiedGlobalSearchPage() {
         {ENTITY_TABS.map((tab) => {
           const Icon = tab.icon;
           const count =
-            tab.id === "all"
-              ? results?.totalMatches ?? 0
-              : results?.byEntityCount[tab.id] ?? 0;
+            tab.id === "all" ? (results?.totalMatches ?? 0) : (results?.byEntityCount[tab.id] ?? 0);
           const isActive = activeTab === tab.id;
 
           return (
@@ -488,7 +530,7 @@ export function UnifiedGlobalSearchPage() {
                 "inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-md border transition-all whitespace-nowrap",
                 isActive
                   ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                  : "bg-card text-muted-foreground hover:text-foreground hover:bg-accent border-transparent"
+                  : "bg-card text-muted-foreground hover:text-foreground hover:bg-accent border-transparent",
               )}
             >
               <Icon className="size-3.5" />
@@ -498,7 +540,7 @@ export function UnifiedGlobalSearchPage() {
                   "px-1.5 py-0.2 rounded-full text-[10px] font-mono",
                   isActive
                     ? "bg-primary-foreground/20 text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
+                    : "bg-muted text-muted-foreground",
                 )}
               >
                 {count}

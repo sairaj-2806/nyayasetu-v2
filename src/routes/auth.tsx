@@ -123,7 +123,10 @@ function AuthPage() {
             toast.warning("Network Unreachable — Logged in Offline", {
               description: `Signed in as ${fallbackRes.account.fullName} using local cached credentials.`,
             });
-            navigate({ to: fallbackRes.account.role === "judge" ? "/bench" : "/dashboard", replace: true });
+            navigate({
+              to: fallbackRes.account.role === "judge" ? "/bench" : "/dashboard",
+              replace: true,
+            });
             return;
           }
         }
@@ -174,7 +177,10 @@ function AuthPage() {
       const fallbackRes = await authenticateOffline(cleanEmail, password);
       setLoading(false);
       if (fallbackRes.success && fallbackRes.account) {
-        navigate({ to: fallbackRes.account.role === "judge" ? "/bench" : "/dashboard", replace: true });
+        navigate({
+          to: fallbackRes.account.role === "judge" ? "/bench" : "/dashboard",
+          replace: true,
+        });
         return;
       }
       setError("Unable to connect to court authentication. Please check credentials or network.");
@@ -250,7 +256,8 @@ function AuthPage() {
             <div className="mt-4 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-800 dark:text-amber-300">
               <ShieldCheck className="size-4 shrink-0 text-amber-600 mt-0.5" />
               <div>
-                <strong className="font-semibold">Offline Court Login:</strong> You can sign in without internet using your device's locally cached credentials.
+                <strong className="font-semibold">Offline Court Login:</strong> You can sign in
+                without internet using your device's locally cached credentials.
               </div>
             </div>
           )}

@@ -105,8 +105,16 @@ const JUDICIAL_STEPS = [
 // Stepper phases for the new Police Asset & Evidence Digital Twin simulation
 const ASSET_TWIN_STEPS = [
   { key: "topology", label: "Ingesting asset, custody & docket topology", icon: Layers },
-  { key: "intersect", label: "Tracing intersecting officers, trial cases & exhibits", icon: ShieldAlert },
-  { key: "compliance", label: "Evaluating hearing adjournment & Section 63 BSA risks", icon: Scale },
+  {
+    key: "intersect",
+    label: "Tracing intersecting officers, trial cases & exhibits",
+    icon: ShieldAlert,
+  },
+  {
+    key: "compliance",
+    label: "Evaluating hearing adjournment & Section 63 BSA risks",
+    icon: Scale,
+  },
   { key: "synthesis", label: "Synthesizing deterministic alternative mitigations", icon: Sparkles },
 ] as const;
 
@@ -119,30 +127,41 @@ function Page() {
   const queryClient = useQueryClient();
 
   // Top-level simulation category switcher
-  const [simulationCategory, setSimulationCategory] = useState<"judicial" | "police-assets">("police-assets");
+  const [simulationCategory, setSimulationCategory] = useState<"judicial" | "police-assets">(
+    "police-assets",
+  );
 
   // --- Judicial Simulation States ---
-  const [conditionType, setConditionType] = useState<"judge-unavailable" | "courtroom-closure">("judge-unavailable");
+  const [conditionType, setConditionType] = useState<"judge-unavailable" | "courtroom-closure">(
+    "judge-unavailable",
+  );
   const [judgeId, setJudgeId] = useState("");
   const [courtroomId, setCourtroomId] = useState("");
   const [date, setDate] = useState("");
   const [judicialStep, setJudicialStep] = useState(-1);
-  const [judicialResult, setJudicialResult] = useState<SimulationResult | CourtroomSimulationResult | null>(null);
+  const [judicialResult, setJudicialResult] = useState<
+    SimulationResult | CourtroomSimulationResult | null
+  >(null);
   const [choices, setChoices] = useState<Record<string, string>>({});
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState<number | null>(null);
 
   // --- Police Asset & Evidence Digital Twin States ---
-  const [selectedScenarioType, setSelectedScenarioType] = useState<PoliceAssetSimulationScenarioType>("vehicle-unavailable");
+  const [selectedScenarioType, setSelectedScenarioType] =
+    useState<PoliceAssetSimulationScenarioType>("vehicle-unavailable");
   const [targetAssetCode, setTargetAssetCode] = useState("VH-1045");
   const [targetOfficerName, setTargetOfficerName] = useState("Insp. Rajesh Sharma");
-  const [targetLockerLocation, setTargetLockerLocation] = useState("Locker L-12 (Central Malkhana High-Security Vault)");
+  const [targetLockerLocation, setTargetLockerLocation] = useState(
+    "Locker L-12 (Central Malkhana High-Security Vault)",
+  );
   const [targetTransferId, setTargetTransferId] = useState("TRF-NDPS-89");
   const [delayHours, setDelayHours] = useState(48);
   const [simulatedDate, setSimulatedDate] = useState("Tomorrow (11:30 AM)");
   const [assetTwinStep, setAssetTwinStep] = useState(-1);
   const [assetTwinResult, setAssetTwinResult] = useState<PoliceAssetSimulationResult | null>(null);
-  const [activeImpactTab, setActiveImpactTab] = useState<"assets" | "officers" | "cases" | "evidence" | "documents">("cases");
+  const [activeImpactTab, setActiveImpactTab] = useState<
+    "assets" | "officers" | "cases" | "evidence" | "documents"
+  >("cases");
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -158,12 +177,18 @@ function Page() {
     if (!engineData.data) return;
     const firstJudgeWithHearings = engineData.data.judges.find((j) =>
       engineData.data!.schedules.some(
-        (s) => (s.status === "proposed" || s.status === "confirmed") && s.judge_id === j.id && s.hearing_slots,
+        (s) =>
+          (s.status === "proposed" || s.status === "confirmed") &&
+          s.judge_id === j.id &&
+          s.hearing_slots,
       ),
     );
     if (!firstJudgeWithHearings) return;
     const scheduleForJudge = engineData.data.schedules.find(
-      (s) => (s.status === "proposed" || s.status === "confirmed") && s.judge_id === firstJudgeWithHearings.id && s.hearing_slots,
+      (s) =>
+        (s.status === "proposed" || s.status === "confirmed") &&
+        s.judge_id === firstJudgeWithHearings.id &&
+        s.hearing_slots,
     );
     const demoDate = scheduleForJudge?.hearing_slots?.date ?? "";
     discardJudicial();
@@ -191,7 +216,9 @@ function Page() {
     setApplied(null);
     setJudicialStep(0);
 
-    timers.current = JUDICIAL_STEPS.map((_, i) => setTimeout(() => setJudicialStep(i + 1), 480 * (i + 1)));
+    timers.current = JUDICIAL_STEPS.map((_, i) =>
+      setTimeout(() => setJudicialStep(i + 1), 480 * (i + 1)),
+    );
     timers.current.push(
       setTimeout(() => {
         let sim: SimulationResult | CourtroomSimulationResult | null = null;
@@ -266,7 +293,9 @@ function Page() {
       toast.success(`What-If Simulation applied — ${reassigned} hearing(s) reassigned`);
       await queryClient.invalidateQueries();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not apply the What-If Simulation");
+      toast.error(
+        error instanceof Error ? error.message : "Could not apply the What-If Simulation",
+      );
     } finally {
       setApplying(false);
     }
@@ -279,7 +308,7 @@ function Page() {
     setAssetTwinResult(null);
   }
 
-  function handleSelectPresetScenario(preset: typeof PRESET_SIMULATION_SCENARIOS[0]) {
+  function handleSelectPresetScenario(preset: (typeof PRESET_SIMULATION_SCENARIOS)[0]) {
     setSelectedScenarioType(preset.id);
     discardAssetTwin();
     if (preset.id === "vehicle-unavailable") {
@@ -318,7 +347,9 @@ function Page() {
     const input: PoliceAssetSimulationInput = {
       scenarioType: selectedScenarioType,
       title,
-      description: preset?.description || "Simulate police asset & evidence logistical disruption in digital twin.",
+      description:
+        preset?.description ||
+        "Simulate police asset & evidence logistical disruption in digital twin.",
       targetAssetCode,
       targetOfficerName,
       targetLockerLocation,
@@ -409,7 +440,10 @@ function Page() {
         >
           <ShieldCheck className="size-4 text-current" />
           <span>Police Asset / Evidence Impact</span>
-          <Badge variant="secondary" className="text-[10px] py-0 px-1 font-mono uppercase bg-white/20 text-current">
+          <Badge
+            variant="secondary"
+            className="text-[10px] py-0 px-1 font-mono uppercase bg-white/20 text-current"
+          >
             New Category
           </Badge>
         </button>
@@ -447,11 +481,15 @@ function Page() {
                   Simulation Only — In-Memory Digital Twin Sandbox
                 </p>
                 <p className="text-xs text-amber-800 dark:text-amber-200 mt-0.5">
-                  All disruptions, chain-of-custody impacts, and alternatives are computed on an in-memory replica graph. Production database records are strictly unaltered.
+                  All disruptions, chain-of-custody impacts, and alternatives are computed on an
+                  in-memory replica graph. Production database records are strictly unaltered.
                 </p>
               </div>
             </div>
-            <Badge variant="outline" className="text-[10px] font-mono border-amber-500/40 shrink-0 uppercase">
+            <Badge
+              variant="outline"
+              className="text-[10px] font-mono border-amber-500/40 shrink-0 uppercase"
+            >
               No Production Changes
             </Badge>
           </div>
@@ -523,7 +561,8 @@ function Page() {
                 Scenario Parameters Configuration
               </CardTitle>
               <CardDescription>
-                Customize the simulation inputs to test specific vehicles, evidence lockers, officers, or transfer delay windows.
+                Customize the simulation inputs to test specific vehicles, evidence lockers,
+                officers, or transfer delay windows.
               </CardDescription>
             </CardHeader>
             <CardContent className="px-4 sm:px-6 space-y-4">
@@ -566,7 +605,8 @@ function Page() {
                         className="text-xs font-mono h-9"
                       />
                       <p className="text-[10px] text-muted-foreground">
-                        Simulates biometric lock failure for Locker L-12 containing physical exhibits.
+                        Simulates biometric lock failure for Locker L-12 containing physical
+                        exhibits.
                       </p>
                     </div>
                     <div className="space-y-1.5">
@@ -592,7 +632,8 @@ function Page() {
                         className="text-xs h-9"
                       />
                       <p className="text-[10px] text-muted-foreground">
-                        Senior Investigating Officer with active session depositions and checked-out armory weapons.
+                        Senior Investigating Officer with active session depositions and checked-out
+                        armory weapons.
                       </p>
                     </div>
                     <div className="space-y-1.5">
@@ -645,11 +686,17 @@ function Page() {
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/60">
                 <p className="text-xs text-muted-foreground">
-                  Click run to compute the multi-domain ripple effects across assets, officers, trial cases, and legal documents.
+                  Click run to compute the multi-domain ripple effects across assets, officers,
+                  trial cases, and legal documents.
                 </p>
                 <div className="flex items-center gap-2">
                   {assetTwinResult && (
-                    <Button variant="ghost" size="sm" onClick={discardAssetTwin} className="h-9 text-xs">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={discardAssetTwin}
+                      className="h-9 text-xs"
+                    >
                       Reset
                     </Button>
                   )}
@@ -760,7 +807,9 @@ function Page() {
                   </div>
 
                   <div className="rounded-lg border border-border/80 bg-muted/40 p-3 text-center">
-                    <p className="text-[11px] font-medium text-muted-foreground">Affected Officers</p>
+                    <p className="text-[11px] font-medium text-muted-foreground">
+                      Affected Officers
+                    </p>
                     <p className="text-xl font-bold text-foreground mt-1">
                       {assetTwinResult.metrics.totalOfficersAffected}
                     </p>
@@ -774,14 +823,18 @@ function Page() {
                   </div>
 
                   <div className="rounded-lg border border-border/80 bg-muted/40 p-3 text-center">
-                    <p className="text-[11px] font-medium text-muted-foreground">Adjournment Risk</p>
+                    <p className="text-[11px] font-medium text-muted-foreground">
+                      Adjournment Risk
+                    </p>
                     <p className="text-xl font-bold text-destructive mt-1">
                       {assetTwinResult.metrics.highRiskAdjournmentCount} High
                     </p>
                   </div>
 
                   <div className="rounded-lg border border-border/80 bg-muted/40 p-3 text-center">
-                    <p className="text-[11px] font-medium text-muted-foreground">Affected Evidence</p>
+                    <p className="text-[11px] font-medium text-muted-foreground">
+                      Affected Evidence
+                    </p>
                     <p className="text-xl font-bold text-foreground mt-1">
                       {assetTwinResult.metrics.totalEvidenceAffected}
                     </p>
@@ -901,8 +954,10 @@ function Page() {
                           <div>
                             <h4 className="text-sm font-semibold text-foreground">{c.caseTitle}</h4>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              Stage: <strong className="text-foreground">{c.stage}</strong> • Scheduled Session:{" "}
-                              <strong className="text-primary">{c.scheduledHearingDate}</strong> in {c.hearingCourtroom} ({c.judgeName})
+                              Stage: <strong className="text-foreground">{c.stage}</strong> •
+                              Scheduled Session:{" "}
+                              <strong className="text-primary">{c.scheduledHearingDate}</strong> in{" "}
+                              {c.hearingCourtroom} ({c.judgeName})
                             </p>
                           </div>
 
@@ -931,9 +986,17 @@ function Page() {
                           </div>
                           <h4 className="text-xs font-bold text-foreground">{ast.name}</h4>
                           <div className="text-[11px] text-muted-foreground space-y-0.5">
-                            <p>Category: <strong className="text-foreground">{ast.categoryName}</strong></p>
-                            <p>Location: <strong className="text-foreground">{ast.location}</strong></p>
-                            <p>Custodian: <strong className="text-foreground">{ast.custodian}</strong></p>
+                            <p>
+                              Category:{" "}
+                              <strong className="text-foreground">{ast.categoryName}</strong>
+                            </p>
+                            <p>
+                              Location: <strong className="text-foreground">{ast.location}</strong>
+                            </p>
+                            <p>
+                              Custodian:{" "}
+                              <strong className="text-foreground">{ast.custodian}</strong>
+                            </p>
                           </div>
                           <p className="text-xs text-destructive bg-destructive/5 p-2 rounded border border-destructive/20">
                             <strong>Impact:</strong> {ast.impactReason}
@@ -960,11 +1023,14 @@ function Page() {
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Station: <strong className="text-foreground">{off.station}</strong> • Active Dockets:{" "}
+                            Station: <strong className="text-foreground">{off.station}</strong> •
+                            Active Dockets:{" "}
                             <strong className="text-foreground">{off.activeCasesCount}</strong>
                           </p>
                           <div className="rounded-md bg-muted/60 p-2.5 border border-border/60 text-xs text-foreground space-y-1">
-                            <p><strong>Operational Impact:</strong> {off.dutyImpact}</p>
+                            <p>
+                              <strong>Operational Impact:</strong> {off.dutyImpact}
+                            </p>
                             <p className="text-primary font-medium">
                               <strong>Recommended Substitute:</strong> {off.recommendedSubstitute}
                             </p>
@@ -986,16 +1052,23 @@ function Page() {
                               <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 font-mono text-xs font-bold">
                                 {ev.assetCode}
                               </Badge>
-                              <span className="font-semibold text-xs text-foreground">{ev.name}</span>
+                              <span className="font-semibold text-xs text-foreground">
+                                {ev.name}
+                              </span>
                             </div>
                             {ev.tamperSealNumber && (
-                              <Badge variant="outline" className="font-mono text-[10px] text-emerald-600">
+                              <Badge
+                                variant="outline"
+                                className="font-mono text-[10px] text-emerald-600"
+                              >
                                 Seal #{ev.tamperSealNumber}
                               </Badge>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Storage Location: <strong className="text-foreground">{ev.storageLocation}</strong> • Status: {ev.currentStatus}
+                            Storage Location:{" "}
+                            <strong className="text-foreground">{ev.storageLocation}</strong> •
+                            Status: {ev.currentStatus}
                           </p>
                           <div className="grid gap-2 sm:grid-cols-2 text-xs">
                             <div className="rounded bg-destructive/5 p-2 border border-destructive/20 text-destructive">
@@ -1022,18 +1095,26 @@ function Page() {
                               <Badge className="bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20 font-mono text-xs font-bold">
                                 {doc.documentNumber}
                               </Badge>
-                              <span className="font-semibold text-xs text-foreground">{doc.title}</span>
+                              <span className="font-semibold text-xs text-foreground">
+                                {doc.title}
+                              </span>
                             </div>
                             <Badge variant="outline" className="text-[10px]">
                               {doc.category}
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Associated Case: <strong className="text-primary font-mono">{doc.caseNumber || "Unassigned"}</strong>
+                            Associated Case:{" "}
+                            <strong className="text-primary font-mono">
+                              {doc.caseNumber || "Unassigned"}
+                            </strong>
                           </p>
                           <div className="rounded bg-muted/60 p-2 font-mono text-[11px] text-muted-foreground flex items-center justify-between">
                             <span className="truncate">SHA-256: {doc.sha256}</span>
-                            <Badge variant="secondary" className="text-[9px] uppercase shrink-0 ml-2">
+                            <Badge
+                              variant="secondary"
+                              className="text-[9px] uppercase shrink-0 ml-2"
+                            >
                               Cryptographic Seal Intact
                             </Badge>
                           </div>
@@ -1052,7 +1133,8 @@ function Page() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                     <Sparkles className="size-4 text-emerald-600 dark:text-emerald-400" />
-                    Recommended Alternatives & Operational Mitigations ({assetTwinResult.recommendedAlternatives.length})
+                    Recommended Alternatives & Operational Mitigations (
+                    {assetTwinResult.recommendedAlternatives.length})
                   </h3>
                   <Badge variant="outline" className="text-[10px] font-mono uppercase">
                     Deterministic Resolution
@@ -1061,14 +1143,20 @@ function Page() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   {assetTwinResult.recommendedAlternatives.map((alt, idx) => (
-                    <Card key={alt.id} className="border-emerald-500/30 bg-emerald-500/5 shadow-xs flex flex-col justify-between">
+                    <Card
+                      key={alt.id}
+                      className="border-emerald-500/30 bg-emerald-500/5 shadow-xs flex flex-col justify-between"
+                    >
                       <CardHeader className="p-4 pb-2">
                         <div className="flex items-center justify-between gap-2">
                           <Badge className="bg-emerald-500 text-white text-[10px] font-bold">
                             Alternative #{idx + 1}
                           </Badge>
                           <div className="flex items-center gap-1.5">
-                            <Badge variant="outline" className="text-[10px] font-mono border-emerald-500/40 text-emerald-700 dark:text-emerald-400 font-bold">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-mono border-emerald-500/40 text-emerald-700 dark:text-emerald-400 font-bold"
+                            >
                               {alt.feasibilityScore}% Feasibility Fit
                             </Badge>
                             <Badge
@@ -1110,7 +1198,8 @@ function Page() {
 
                         <div className="text-[11px] text-muted-foreground border-t border-emerald-500/20 pt-2 space-y-0.5">
                           <p>
-                            Assigned Resource: <strong className="text-foreground">{alt.resourceAssigned}</strong>
+                            Assigned Resource:{" "}
+                            <strong className="text-foreground">{alt.resourceAssigned}</strong>
                           </p>
                           <p className="text-[10px] text-emerald-700 dark:text-emerald-400">
                             {alt.complianceNotes}
@@ -1255,7 +1344,11 @@ function Page() {
                       Discard
                     </Button>
                   )}
-                  <Button onClick={runJudicial} disabled={runningJudicial || !date} className="gap-2">
+                  <Button
+                    onClick={runJudicial}
+                    disabled={runningJudicial || !date}
+                    className="gap-2"
+                  >
                     {runningJudicial && <Loader2 className="size-4 animate-spin" />}
                     {runningJudicial ? "Simulating…" : "Run Simulation"}
                   </Button>
@@ -1308,15 +1401,21 @@ function Page() {
                 <CardHeader>
                   <CardTitle className="text-base">Impacted Judicial Hearings</CardTitle>
                   <CardDescription>
-                    {judicialResult.affected.length} hearing(s) affected by the simulated condition on {judicialResult.date}.
+                    {judicialResult.affected.length} hearing(s) affected by the simulated condition
+                    on {judicialResult.date}.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {judicialResult.affected.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No active hearings were listed on this date.</p>
+                    <p className="text-xs text-muted-foreground">
+                      No active hearings were listed on this date.
+                    </p>
                   ) : (
                     judicialResult.affected.map((h) => (
-                      <div key={h.scheduleId} className="rounded-lg border border-border p-4 space-y-3">
+                      <div
+                        key={h.scheduleId}
+                        className="rounded-lg border border-border p-4 space-y-3"
+                      >
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-sm text-foreground">
                             {h.caseRow.case_number} · {h.caseRow.parties}
@@ -1329,12 +1428,16 @@ function Page() {
                           Slot: {formatSlotLabel(h.slot)} • Current Judge: {h.judge.name}
                         </p>
                         <div className="pt-2">
-                          <p className="text-xs font-semibold text-foreground mb-2">Recommended Reassignments:</p>
+                          <p className="text-xs font-semibold text-foreground mb-2">
+                            Recommended Reassignments:
+                          </p>
                           <div className="grid gap-2 sm:grid-cols-2">
                             {h.alternatives.map((alt) => (
                               <div
                                 key={alt.key}
-                                onClick={() => setChoices((prev) => ({ ...prev, [h.scheduleId]: alt.key }))}
+                                onClick={() =>
+                                  setChoices((prev) => ({ ...prev, [h.scheduleId]: alt.key }))
+                                }
                                 className={cn(
                                   "cursor-pointer rounded border p-2 text-xs transition-all",
                                   choices[h.scheduleId] === alt.key
@@ -1343,7 +1446,9 @@ function Page() {
                                 )}
                               >
                                 <div className="flex items-center justify-between">
-                                  <span className="font-semibold text-foreground">{alt.judge.name}</span>
+                                  <span className="font-semibold text-foreground">
+                                    {alt.judge.name}
+                                  </span>
                                   <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px]">
                                     Fit {alt.score}/100
                                   </Badge>

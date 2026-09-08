@@ -64,7 +64,13 @@ export interface AssetTransferRecord {
 export interface AssetMaintenanceRecord {
   id: string;
   asset_id: string;
-  maintenance_type: "ROUTINE_SERVICE" | "INSPECTION" | "REPAIR" | "CALIBRATION" | "DECONTAMINATION" | "CERTIFICATION";
+  maintenance_type:
+    | "ROUTINE_SERVICE"
+    | "INSPECTION"
+    | "REPAIR"
+    | "CALIBRATION"
+    | "DECONTAMINATION"
+    | "CERTIFICATION";
   service_provider: string;
   scheduled_date: string;
   completed_date?: string | null;
@@ -350,6 +356,84 @@ export const SEED_POLICE_ASSETS: PoliceAsset[] = [
     created_at: "2026-02-14T11:00:00Z",
     updated_at: "2026-03-04T16:20:00Z",
   },
+  {
+    id: "ast-seed-008",
+    asset_code: "EV-1046",
+    name: "SanDisk Extreme 2TB Rugged External SSD (Exhibit EV-1046)",
+    category_id: "cat-001",
+    category_name: "Digital Storage Media & Devices",
+    status: "IN_USE",
+    evidence_status: "STORED",
+    condition: "GOOD",
+    current_location: "District Court Central Malkhana Vault B, High-Security Locker #12",
+    department_station: "Special Cell Police Station, Lodhi Colony",
+    current_custodian_name: "Head Constable Ramesh Chand (Malkhana Moharrir)",
+    assigned_officer_name: "Inspector Vikram Rathore",
+    case_number: "BNS/2026/0014",
+    case_title: "State of NCT vs. Aman Sharma & Ors.",
+    fir_number: "FIR No. 28/2026 U/S 111/318 BNS",
+    serial_number: "SNDK-E61-2TB-77412",
+    barcode_rfid: "RFID-EV-1046",
+    tamper_seal_number: "MHA-EV-1046-B",
+    purchase_date: "2026-02-14",
+    purchase_cost: null,
+    vendor_supplier: "Seized Evidence Exhibit / Panchnama",
+    warranty_expiry: null,
+    created_at: "2026-02-14T11:15:00Z",
+    updated_at: "2026-03-04T16:25:00Z",
+  },
+  {
+    id: "ast-seed-009",
+    asset_code: "VH-1045",
+    name: "Mahindra Scorpio-N Cyber Investigation Squad Vehicle (Asset VH-1045)",
+    category_id: "cat-006",
+    category_name: "Vehicles & Automobile Assets",
+    status: "IN_USE",
+    evidence_status: null,
+    condition: "EXCELLENT",
+    current_location: "Special Cell Tactical Base Lodhi Colony",
+    department_station: "Special Cell Police Station, Lodhi Colony",
+    current_custodian_name: "Inspector Vikram Rathore",
+    assigned_officer_name: "Inspector Vikram Rathore",
+    case_number: "BNS/2026/0014",
+    case_title: "State of NCT vs. Aman Sharma & Ors.",
+    fir_number: "FIR No. 28/2026 U/S 111/318 BNS",
+    serial_number: "DL-1CZ-9914",
+    barcode_rfid: "RFID-VEH-VH1045",
+    tamper_seal_number: null,
+    purchase_date: "2025-04-12",
+    purchase_cost: 1850000,
+    vendor_supplier: "Mahindra & Mahindra Government Sales",
+    warranty_expiry: "2028-04-12",
+    created_at: "2025-04-15T09:00:00Z",
+    updated_at: "2026-03-02T10:00:00Z",
+  },
+  {
+    id: "ast-seed-010",
+    asset_code: "BC-2041",
+    name: "Motorola Solutions VideoBadge Body Worn Camera (Asset BC-2041)",
+    category_id: "cat-007",
+    category_name: "Communications & Tactical Gear",
+    status: "IN_USE",
+    evidence_status: null,
+    condition: "GOOD",
+    current_location: "Field Squad Unit - Lodhi Colony",
+    department_station: "Special Cell Police Station, Lodhi Colony",
+    current_custodian_name: "Sub-Inspector Sandeep Nain",
+    assigned_officer_name: "Sub-Inspector Sandeep Nain",
+    case_number: "BNS/2026/0014",
+    case_title: "State of NCT vs. Aman Sharma & Ors.",
+    fir_number: "FIR No. 28/2026 U/S 111/318 BNS",
+    serial_number: "MOT-VB400-88102",
+    barcode_rfid: "RFID-BC-2041",
+    tamper_seal_number: null,
+    purchase_date: "2025-09-01",
+    purchase_cost: 38000,
+    vendor_supplier: "Motorola Solutions India Pvt Ltd",
+    warranty_expiry: "2027-09-01",
+    created_at: "2025-09-05T14:00:00Z",
+    updated_at: "2026-03-01T11:20:00Z",
+  },
 ];
 
 // Local cache key for offline / optimistic updates
@@ -401,7 +485,8 @@ export const policeAssetsQuery = {
     try {
       const { data, error } = await supabase
         .from("police_assets")
-        .select(`
+        .select(
+          `
           id, asset_code, name, category_id, status, evidence_status, condition,
           current_location, department_station, current_custodian_name,
           assigned_officer_name, case_id, fir_number, serial_number,
@@ -409,7 +494,8 @@ export const policeAssetsQuery = {
           vendor_supplier, warranty_expiry, metadata, created_at, updated_at,
           asset_categories (name),
           cases (case_number, parties)
-        `)
+        `,
+        )
         .order("created_at", { ascending: false });
 
       if (!error && data && data.length > 0) {
@@ -496,7 +582,8 @@ export function policeAssetDetailQuery(assetId: string) {
           cost: 1200,
           technician_name: "Head Constable Devender Singh",
           findings: "Functional diagnostic, physical integrity seal verification.",
-          actions_taken: "Serviced, cleaned, barcode label replaced, seal integrity verified intact.",
+          actions_taken:
+            "Serviced, cleaned, barcode label replaced, seal integrity verified intact.",
           status: "COMPLETED",
           next_scheduled_service: "2026-08-15",
         },
@@ -586,7 +673,8 @@ export function policeAssetDetailQuery(assetId: string) {
       }));
 
       const fullTimeline = [...timeline, ...dynamicEvents].sort(
-        (a, b) => new Date(a.transfer_timestamp).getTime() - new Date(b.transfer_timestamp).getTime(),
+        (a, b) =>
+          new Date(a.transfer_timestamp).getTime() - new Date(b.transfer_timestamp).getTime(),
       );
 
       return {

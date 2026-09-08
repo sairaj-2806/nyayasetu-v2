@@ -135,10 +135,13 @@ function Page() {
       setStep(0);
       timers.current = STEPS.map((_, i) => setTimeout(() => setStep(i + 1), 450 * (i + 1)));
       timers.current.push(
-        setTimeout(() => {
-          setResult(runSchedulingEngine(best, engineData.data!));
-          setStep(-1);
-        }, 450 * STEPS.length + 200),
+        setTimeout(
+          () => {
+            setResult(runSchedulingEngine(best, engineData.data!));
+            setStep(-1);
+          },
+          450 * STEPS.length + 200,
+        ),
       );
     }, 50);
   }
@@ -201,13 +204,19 @@ function Page() {
               >
                 <SelectTrigger className="w-full h-10">
                   <SelectValue
-                    placeholder={pending.length === 0 ? "No pending cases in registry" : "Choose a pending case…"}
+                    placeholder={
+                      pending.length === 0
+                        ? "No pending cases in registry"
+                        : "Choose a pending case…"
+                    }
                   />
                 </SelectTrigger>
                 <SelectContent className="max-h-64">
                   {pending.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      <span className="font-semibold">{c.case_number}</span> · {c.case_categories?.name ?? "Uncategorised"} · {c.parties || "Parties on record"}
+                      <span className="font-semibold">{c.case_number}</span> ·{" "}
+                      {c.case_categories?.name ?? "Uncategorised"} ·{" "}
+                      {c.parties || "Parties on record"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -221,9 +230,14 @@ function Page() {
                     {selected.estimated_duration_minutes} min duration
                   </span>
                   <span>·</span>
-                  <span>{selected.previous_adjournments} previous adjournment{selected.previous_adjournments !== 1 ? "s" : ""}</span>
+                  <span>
+                    {selected.previous_adjournments} previous adjournment
+                    {selected.previous_adjournments !== 1 ? "s" : ""}
+                  </span>
                   <span>·</span>
-                  <span className="truncate max-w-md font-medium text-foreground">{selected.parties}</span>
+                  <span className="truncate max-w-md font-medium text-foreground">
+                    {selected.parties}
+                  </span>
                 </div>
               )}
             </div>
@@ -234,7 +248,11 @@ function Page() {
               size="lg"
               className="h-10 sm:w-56 gap-2 shrink-0 font-medium"
             >
-              {running ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4 fill-current" />}
+              {running ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Play className="size-4 fill-current" />
+              )}
               {running ? "Solving Constraints…" : "Run Scheduling Engine"}
             </Button>
           </div>
@@ -248,7 +266,9 @@ function Page() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Sparkles className="size-4 text-primary" />
-                {running ? "Evaluating Combinations against Hard & Soft Constraints…" : "Constraint Solver Analysis Complete"}
+                {running
+                  ? "Evaluating Combinations against Hard & Soft Constraints…"
+                  : "Constraint Solver Analysis Complete"}
               </CardTitle>
               {result && (
                 <Badge variant="secondary" className="text-xs font-mono">
@@ -296,14 +316,18 @@ function Page() {
             {result && ranCase && (
               <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-2">
                 <span>
-                  Evaluated <strong className="text-foreground">{result.evaluated.toLocaleString()}</strong> Judge × Courtroom × Slot combinations for <span className="font-semibold text-foreground">{ranCase.case_number}</span>.
+                  Evaluated{" "}
+                  <strong className="text-foreground">{result.evaluated.toLocaleString()}</strong>{" "}
+                  Judge × Courtroom × Slot combinations for{" "}
+                  <span className="font-semibold text-foreground">{ranCase.case_number}</span>.
                 </span>
                 <div className="flex flex-wrap gap-2 text-[11px]">
                   <span className="bg-background px-2 py-0.5 rounded border border-border">
                     Judge Busy: {result.rejections.judgeUnavailable + result.rejections.judgeBooked}
                   </span>
                   <span className="bg-background px-2 py-0.5 rounded border border-border">
-                    Room Busy: {result.rejections.courtroomUnavailable + result.rejections.courtroomBooked}
+                    Room Busy:{" "}
+                    {result.rejections.courtroomUnavailable + result.rejections.courtroomBooked}
                   </span>
                   <span className="bg-background px-2 py-0.5 rounded border border-border">
                     Slot Clash: {result.rejections.slotOccupied}
@@ -326,7 +350,8 @@ function Page() {
               No valid combination found for this case.
             </p>
             <p className="text-xs text-muted-foreground max-w-md mx-auto">
-              Every combination failed at least one hard constraint. You can add hearing slots, check judge availability, or use Custom / Judge's Directive to manually schedule.
+              Every combination failed at least one hard constraint. You can add hearing slots,
+              check judge availability, or use Custom / Judge's Directive to manually schedule.
             </p>
           </CardContent>
         </Card>
@@ -467,7 +492,9 @@ function CandidateCard({
         </div>
         <div className="text-right">
           <p className="text-2xl font-bold text-foreground tabular-nums">{candidate.score}</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">fit score / 100</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+            fit score / 100
+          </p>
         </div>
       </CardHeader>
       <CardContent className="space-y-4 pt-1">
@@ -476,7 +503,8 @@ function CandidateCard({
           hint="Soft preferences match score plus 15% flat bonus for clearing all hard constraints."
         />
         <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-          ✓ Hard constraints passed — {candidate.judge.name} & {candidate.courtroom.name} free; {caseRow.estimated_duration_minutes} min fits the {slotMinutes(candidate.slot)} min slot.
+          ✓ Hard constraints passed — {candidate.judge.name} & {candidate.courtroom.name} free;{" "}
+          {caseRow.estimated_duration_minutes} min fits the {slotMinutes(candidate.slot)} min slot.
         </div>
         <div className="space-y-2.5">
           {candidate.factors.map((f) => (

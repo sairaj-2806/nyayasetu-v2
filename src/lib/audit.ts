@@ -114,7 +114,17 @@ export type AuditLogRow = {
 export interface DetailedAuditPayload {
   action: string;
   actionCode?: string | CanonicalAuditEventCode;
-  entityType: "case" | "document" | "asset" | "evidence" | "security" | "user" | "schedule" | "registry" | "settings" | "other";
+  entityType:
+    | "case"
+    | "document"
+    | "asset"
+    | "evidence"
+    | "security"
+    | "user"
+    | "schedule"
+    | "registry"
+    | "settings"
+    | "other";
   entityId: string;
   caseId?: string | null;
   previousState?: string | null;
@@ -143,18 +153,66 @@ export type AuditLogEntry = AuditLogRow & {
 };
 
 export const AUDIT_DOMAINS: { value: AuditDomain; label: string; description: string }[] = [
-  { value: "case", label: "Cases & Registry", description: "Case registration, stage progression, CNR lookup" },
-  { value: "document", label: "Secure DMS", description: "Uploads, version creation, digital signatures, hash audits" },
-  { value: "asset", label: "Police Assets", description: "Armory weapons, police vehicles, ballistic body gear lifecycle" },
-  { value: "evidence", label: "Evidence & Custody", description: "BSA-2023 panchnama seizures, malkhana, FSL, and court exhibits" },
-  { value: "security", label: "Security & Integrity Alerts", description: "Integrity mismatches, broken seals, unauthorized access flags" },
-  { value: "user", label: "User Management", description: "Account creation, role elevation, password modifications" },
-  { value: "schedule", label: "Cause Lists & Scheduling", description: "Automated listings, judge room allocations, adjournments" },
-  { value: "recommendation", label: "AI Recommendations", description: "Listing recommendations approved or modified by registrar" },
-  { value: "simulation", label: "What-If Simulations", description: "Backlog stress-testing and courtroom capacity simulations" },
-  { value: "availability", label: "Judge Availability", description: "Bench leaves, courtroom maintenance reservations" },
-  { value: "settings", label: "Priority Settings", description: "System priority weightings and institutional rules" },
-  { value: "other", label: "Other Operations", description: "System level and miscellaneous audit records" },
+  {
+    value: "case",
+    label: "Cases & Registry",
+    description: "Case registration, stage progression, CNR lookup",
+  },
+  {
+    value: "document",
+    label: "Secure DMS",
+    description: "Uploads, version creation, digital signatures, hash audits",
+  },
+  {
+    value: "asset",
+    label: "Police Assets",
+    description: "Armory weapons, police vehicles, ballistic body gear lifecycle",
+  },
+  {
+    value: "evidence",
+    label: "Evidence & Custody",
+    description: "BSA-2023 panchnama seizures, malkhana, FSL, and court exhibits",
+  },
+  {
+    value: "security",
+    label: "Security & Integrity Alerts",
+    description: "Integrity mismatches, broken seals, unauthorized access flags",
+  },
+  {
+    value: "user",
+    label: "User Management",
+    description: "Account creation, role elevation, password modifications",
+  },
+  {
+    value: "schedule",
+    label: "Cause Lists & Scheduling",
+    description: "Automated listings, judge room allocations, adjournments",
+  },
+  {
+    value: "recommendation",
+    label: "AI Recommendations",
+    description: "Listing recommendations approved or modified by registrar",
+  },
+  {
+    value: "simulation",
+    label: "What-If Simulations",
+    description: "Backlog stress-testing and courtroom capacity simulations",
+  },
+  {
+    value: "availability",
+    label: "Judge Availability",
+    description: "Bench leaves, courtroom maintenance reservations",
+  },
+  {
+    value: "settings",
+    label: "Priority Settings",
+    description: "System priority weightings and institutional rules",
+  },
+  {
+    value: "other",
+    label: "Other Operations",
+    description: "System level and miscellaneous audit records",
+  },
 ];
 
 export const AUDIT_ACTION_TYPES: { value: AuditActionType; label: string }[] = [
@@ -302,7 +360,10 @@ export function parseEntityAffected(raw: string): {
 /**
  * Derives a fine-grained action code and domain from the recorded text.
  */
-export function extractActionDetails(action: string, entityType: string): {
+export function extractActionDetails(
+  action: string,
+  entityType: string,
+): {
   domain: AuditDomain;
   actionType: AuditActionType;
   actionCode: string;
@@ -371,20 +432,36 @@ export function extractActionDetails(action: string, entityType: string): {
     upper.includes("EVIDENCE") ||
     upper.includes("MALKHANA") ||
     upper.includes("PANCHNAMA") ||
-    ["SEIZED", "SEALED", "FORENSIC_STARTED", "FORENSIC_COMPLETED", "COURT_SUBMITTED", "DISPOSED"].includes(actionCode)
+    [
+      "SEIZED",
+      "SEALED",
+      "FORENSIC_STARTED",
+      "FORENSIC_COMPLETED",
+      "COURT_SUBMITTED",
+      "DISPOSED",
+    ].includes(actionCode)
   ) {
     domain = "evidence";
   } else if (
     entityType === "document" ||
     upper.includes("DOCUMENT") ||
-    ["UPLOADED", "VERSION_CREATED", "SIGNED", "INTEGRITY_VERIFIED", "VIEWED", "DOWNLOADED"].includes(actionCode)
+    [
+      "UPLOADED",
+      "VERSION_CREATED",
+      "SIGNED",
+      "INTEGRITY_VERIFIED",
+      "VIEWED",
+      "DOWNLOADED",
+    ].includes(actionCode)
   ) {
     domain = "document";
   } else if (
     entityType === "asset" ||
     upper.includes("POLICE ASSET") ||
     upper.includes("ARMORY") ||
-    ["MAINTENANCE_STARTED", "MAINTENANCE_COMPLETED", "RETURNED", "RETIRED", "MARKED_LOST"].includes(actionCode)
+    ["MAINTENANCE_STARTED", "MAINTENANCE_COMPLETED", "RETURNED", "RETIRED", "MARKED_LOST"].includes(
+      actionCode,
+    )
   ) {
     domain = "asset";
   } else if (lower.includes("what-if simulation")) {
@@ -393,9 +470,17 @@ export function extractActionDetails(action: string, entityType: string): {
     domain = "recommendation";
   } else if (lower.includes("availability")) {
     domain = "availability";
-  } else if (lower.includes("schedule") || lower.includes("listing") || lower.includes("reassign")) {
+  } else if (
+    lower.includes("schedule") ||
+    lower.includes("listing") ||
+    lower.includes("reassign")
+  ) {
     domain = "schedule";
-  } else if (entityType === "user" || lower.includes("account") || lower.includes("user_accounts")) {
+  } else if (
+    entityType === "user" ||
+    lower.includes("account") ||
+    lower.includes("user_accounts")
+  ) {
     domain = "user";
   } else if (entityType === "case" || lower.includes("case")) {
     domain = "case";
@@ -549,14 +634,16 @@ export async function recordAudit(
     if (typeof actionOrPayload === "object") {
       const p = actionOrPayload;
       actionText = p.action;
-      actionCode = (p.actionCode as string) || p.action.split(/[:\s]/)[0]?.toUpperCase() || "OPERATION";
+      actionCode =
+        (p.actionCode as string) || p.action.split(/[:\s]/)[0]?.toUpperCase() || "OPERATION";
       entityType = p.entityType;
       entityId = p.entityId;
       caseId = p.caseId ?? null;
       previousState = p.previousState ?? null;
       newState = p.newState ?? null;
       metadata = p.metadata ?? {};
-      isSecurityAlert = !!p.isSecurityAlert || actionCode === "INTEGRITY_MISMATCH" || actionCode === "MARKED_LOST";
+      isSecurityAlert =
+        !!p.isSecurityAlert || actionCode === "INTEGRITY_MISMATCH" || actionCode === "MARKED_LOST";
 
       if (p.userId) uid = p.userId;
       if (p.userName) userName = p.userName;
@@ -587,8 +674,12 @@ export async function recordAudit(
       isSecurityAlert = parsed.isSecurityAlert;
     }
 
-    const { domain, actionType, actionCode: derivedCode, isSecurityAlert: derivedSecurity } =
-      extractActionDetails(actionText, entityType);
+    const {
+      domain,
+      actionType,
+      actionCode: derivedCode,
+      isSecurityAlert: derivedSecurity,
+    } = extractActionDetails(actionText, entityType);
 
     const now = new Date().toISOString();
     const entryId = `audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -651,7 +742,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Automated Integrity Sentry",
       userRole: "system_daemon",
       timestamp: makeTime(12),
-      action: "CRITICAL ALERT: Document INTEGRITY_MISMATCH detected for DOC-2026-0014 (Charge_Sheet.pdf v1). Calculated SHA-256 does not match notarized manifest.",
+      action:
+        "CRITICAL ALERT: Document INTEGRITY_MISMATCH detected for DOC-2026-0014 (Charge_Sheet.pdf v1). Calculated SHA-256 does not match notarized manifest.",
       entity_affected: JSON.stringify({
         entity_type: "security",
         entity_id: "DOC-2026-0014",
@@ -691,7 +783,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Station Armory Custodian",
       userRole: "evidence_custodian",
       timestamp: makeTime(45),
-      action: "INCIDENT FLAGGED: Police Asset AST-009 (Glock 17 9mm #GLK-99210) MARKED_LOST during inter-district security escort duty.",
+      action:
+        "INCIDENT FLAGGED: Police Asset AST-009 (Glock 17 9mm #GLK-99210) MARKED_LOST during inter-district security escort duty.",
       entity_affected: JSON.stringify({
         entity_type: "asset",
         entity_id: "AST-009",
@@ -731,7 +824,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Insp. Rajesh Sharma",
       userRole: "investigating_officer",
       timestamp: makeTime(60),
-      action: "Document UPLOADED: FIR Copy (DOC-2026-0001) registered for Case BNS/2026/0014. Cryptographic SHA-256 seal computed.",
+      action:
+        "Document UPLOADED: FIR Copy (DOC-2026-0001) registered for Case BNS/2026/0014. Cryptographic SHA-256 seal computed.",
       entity_affected: JSON.stringify({
         entity_type: "document",
         entity_id: "DOC-2026-0001",
@@ -768,7 +862,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Judge Ananya Deshmukh",
       userRole: "judge",
       timestamp: makeTime(85),
-      action: "Document VIEWED: In-Camera inspection of Confessional Statement (DOC-2026-0004) under Sealed Cover protocol.",
+      action:
+        "Document VIEWED: In-Camera inspection of Confessional Statement (DOC-2026-0004) under Sealed Cover protocol.",
       entity_affected: JSON.stringify({
         entity_type: "document",
         entity_id: "DOC-2026-0004",
@@ -794,7 +889,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Court Registrar Sairaj Vairage",
       userRole: "registrar",
       timestamp: makeTime(110),
-      action: "Document DOWNLOADED: Certified copy of Interim Bail Order (DOC-2026-0007) exported for advocate on record.",
+      action:
+        "Document DOWNLOADED: Certified copy of Interim Bail Order (DOC-2026-0007) exported for advocate on record.",
       entity_affected: JSON.stringify({
         entity_type: "document",
         entity_id: "DOC-2026-0007",
@@ -820,7 +916,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Insp. Rajesh Sharma",
       userRole: "investigating_officer",
       timestamp: makeTime(140),
-      action: "Document VERSION_CREATED: Supplementary Charge Sheet (DOC-2026-0002 v2) filed with annexed ballistic ballistics report.",
+      action:
+        "Document VERSION_CREATED: Supplementary Charge Sheet (DOC-2026-0002 v2) filed with annexed ballistic ballistics report.",
       entity_affected: JSON.stringify({
         entity_type: "document",
         entity_id: "DOC-2026-0002",
@@ -856,7 +953,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Judge Ananya Deshmukh",
       userRole: "judge",
       timestamp: makeTime(160),
-      action: "Document SIGNED: Digital Judicial Signature affixed to Bail Order DOC-2026-0008. Algorithm SHA256-RSA / CCA Class 3.",
+      action:
+        "Document SIGNED: Digital Judicial Signature affixed to Bail Order DOC-2026-0008. Algorithm SHA256-RSA / CCA Class 3.",
       entity_affected: JSON.stringify({
         entity_type: "document",
         entity_id: "DOC-2026-0008",
@@ -893,7 +991,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Dr. Sunita Rao",
       userRole: "forensic_officer",
       timestamp: makeTime(180),
-      action: "Document INTEGRITY_VERIFIED: Complete SHA-256 match validated for FSL Report (DOC-2026-0010 v1). Document authentic.",
+      action:
+        "Document INTEGRITY_VERIFIED: Complete SHA-256 match validated for FSL Report (DOC-2026-0010 v1). Document authentic.",
       entity_affected: JSON.stringify({
         entity_type: "document",
         entity_id: "DOC-2026-0010",
@@ -919,7 +1018,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
         sha256: "4c902834bc01928340192bc840192834bca01923840129bc840192381290384b",
         verifier: "Dr. Sunita Rao",
       },
-      entityLabel: "Document: DOC-2026-0010 · Case: BNS/2026/0014 · PENDING_VERIFICATION → VERIFIED",
+      entityLabel:
+        "Document: DOC-2026-0010 · Case: BNS/2026/0014 · PENDING_VERIFICATION → VERIFIED",
       isSecurityAlert: false,
     },
 
@@ -930,7 +1030,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Armory Incharge Vikram Singh",
       userRole: "evidence_custodian",
       timestamp: makeTime(210),
-      action: "Police Asset CREATED: Registered Glock 17 Gen 5 (AST-001) in Central Police Station Armory registry.",
+      action:
+        "Police Asset CREATED: Registered Glock 17 Gen 5 (AST-001) in Central Police Station Armory registry.",
       entity_affected: JSON.stringify({
         entity_type: "asset",
         entity_id: "AST-001",
@@ -951,7 +1052,11 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       caseId: null,
       previousState: null,
       newState: "AVAILABLE",
-      metadata: { category: "Firearms & Weapons", serial: "GLK-55420", location: "Central Armory Room A" },
+      metadata: {
+        category: "Firearms & Weapons",
+        serial: "GLK-55420",
+        location: "Central Armory Room A",
+      },
       entityLabel: "Asset: AST-001 · Status: AVAILABLE",
       isSecurityAlert: false,
     },
@@ -961,7 +1066,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Inspector Rajesh Sharma",
       userRole: "investigating_officer",
       timestamp: makeTime(240),
-      action: "Police Asset ASSIGNED: Patrol Interceptor Bolero Neo (AST-004) officially assigned to Sub-Inspector Amit Deshmukh.",
+      action:
+        "Police Asset ASSIGNED: Patrol Interceptor Bolero Neo (AST-004) officially assigned to Sub-Inspector Amit Deshmukh.",
       entity_affected: JSON.stringify({
         entity_type: "asset",
         entity_id: "AST-004",
@@ -992,7 +1098,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Quartermaster Manoj Kulkarni",
       userRole: "evidence_custodian",
       timestamp: makeTime(270),
-      action: "Police Asset UNASSIGNED: Body Worn Camera AX-200 (AST-006) returned to quartermaster pool from patrolling shift.",
+      action:
+        "Police Asset UNASSIGNED: Body Worn Camera AX-200 (AST-006) returned to quartermaster pool from patrolling shift.",
       entity_affected: JSON.stringify({
         entity_type: "asset",
         entity_id: "AST-006",
@@ -1019,14 +1126,19 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Transport Officer Ramesh Rao",
       userRole: "police_officer",
       timestamp: makeTime(310),
-      action: "Police Asset TRANSFERRED: Mobile Command Post Truck (AST-008) dispatched to Taluka Chowki for VIP bandobast.",
+      action:
+        "Police Asset TRANSFERRED: Mobile Command Post Truck (AST-008) dispatched to Taluka Chowki for VIP bandobast.",
       entity_affected: JSON.stringify({
         entity_type: "asset",
         entity_id: "AST-008",
         previous_state: "AVAILABLE",
         new_state: "TRANSFERRED",
         action_code: "TRANSFERRED",
-        metadata: { from_location: "HQ Garage", to_location: "Taluka Chowki", transit_seal: "TR-88192" },
+        metadata: {
+          from_location: "HQ Garage",
+          to_location: "Taluka Chowki",
+          transit_seal: "TR-88192",
+        },
       }),
       domain: "asset",
       actionType: "asset",
@@ -1036,7 +1148,11 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       caseId: null,
       previousState: "AVAILABLE",
       newState: "TRANSFERRED",
-      metadata: { from_location: "HQ Garage", to_location: "Taluka Chowki", transit_seal: "TR-88192" },
+      metadata: {
+        from_location: "HQ Garage",
+        to_location: "Taluka Chowki",
+        transit_seal: "TR-88192",
+      },
       entityLabel: "Asset: AST-008 · AVAILABLE → TRANSFERRED",
       isSecurityAlert: false,
     },
@@ -1046,7 +1162,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Station House Officer K. P. Joshi",
       userRole: "police_officer",
       timestamp: makeTime(340),
-      action: "Police Asset RECEIVED: Mobile Command Post Truck (AST-008) acknowledged and parked at Taluka Chowki.",
+      action:
+        "Police Asset RECEIVED: Mobile Command Post Truck (AST-008) acknowledged and parked at Taluka Chowki.",
       entity_affected: JSON.stringify({
         entity_type: "asset",
         entity_id: "AST-008",
@@ -1073,7 +1190,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Workshop Foreman Nilesh Shinde",
       userRole: "police_officer",
       timestamp: makeTime(380),
-      action: "Police Asset MAINTENANCE_STARTED: Bulletproof Vest Tier IV (AST-011) sent to Ballistic Testing Lab for stress inspection.",
+      action:
+        "Police Asset MAINTENANCE_STARTED: Bulletproof Vest Tier IV (AST-011) sent to Ballistic Testing Lab for stress inspection.",
       entity_affected: JSON.stringify({
         entity_type: "asset",
         entity_id: "AST-011",
@@ -1100,7 +1218,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Workshop Foreman Nilesh Shinde",
       userRole: "police_officer",
       timestamp: makeTime(410),
-      action: "Police Asset MAINTENANCE_COMPLETED: Bulletproof Vest Tier IV (AST-011) certified safe and returned to active armory.",
+      action:
+        "Police Asset MAINTENANCE_COMPLETED: Bulletproof Vest Tier IV (AST-011) certified safe and returned to active armory.",
       entity_affected: JSON.stringify({
         entity_type: "asset",
         entity_id: "AST-011",
@@ -1127,7 +1246,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Sub-Inspector Amit Deshmukh",
       userRole: "police_officer",
       timestamp: makeTime(450),
-      action: "Police Asset RETURNED: Tactical Body Armor #BA-3312 surrendered after special operation conclusion.",
+      action:
+        "Police Asset RETURNED: Tactical Body Armor #BA-3312 surrendered after special operation conclusion.",
       entity_affected: JSON.stringify({
         entity_type: "asset",
         entity_id: "AST-014",
@@ -1154,7 +1274,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "SP Logistics Division",
       userRole: "admin",
       timestamp: makeTime(500),
-      action: "Police Asset RETIRED: Decommissioned Tata Sumo Patrol Vehicle (AST-022) condemned by RTO inspection committee.",
+      action:
+        "Police Asset RETIRED: Decommissioned Tata Sumo Patrol Vehicle (AST-022) condemned by RTO inspection committee.",
       entity_affected: JSON.stringify({
         entity_type: "asset",
         entity_id: "AST-022",
@@ -1183,7 +1304,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Insp. Rajesh Sharma",
       userRole: "investigating_officer",
       timestamp: makeTime(550),
-      action: "Evidence SEIZED: Apple iPhone 15 Pro (EV-1045) seized from suspect residence under Panchnama Memo #44/2026.",
+      action:
+        "Evidence SEIZED: Apple iPhone 15 Pro (EV-1045) seized from suspect residence under Panchnama Memo #44/2026.",
       entity_affected: JSON.stringify({
         entity_type: "evidence",
         entity_id: "EV-1045",
@@ -1219,7 +1341,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Malkhana Moharrir Dilip Sawant",
       userRole: "evidence_custodian",
       timestamp: makeTime(570),
-      action: "Evidence REGISTERED: Exhibit EV-1045 entered into Malkhana Register Muddimall #789/2026 with biometric receipt.",
+      action:
+        "Evidence REGISTERED: Exhibit EV-1045 entered into Malkhana Register Muddimall #789/2026 with biometric receipt.",
       entity_affected: JSON.stringify({
         entity_type: "evidence",
         entity_id: "EV-1045",
@@ -1247,7 +1370,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Insp. Rajesh Sharma",
       userRole: "investigating_officer",
       timestamp: makeTime(600),
-      action: "Evidence SEALED: Tamper-evident lac seal #SEAL-99014 applied in presence of independent witnesses.",
+      action:
+        "Evidence SEALED: Tamper-evident lac seal #SEAL-99014 applied in presence of independent witnesses.",
       entity_affected: JSON.stringify({
         entity_type: "evidence",
         entity_id: "EV-1045",
@@ -1275,7 +1399,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Malkhana Moharrir Dilip Sawant",
       userRole: "evidence_custodian",
       timestamp: makeTime(620),
-      action: "Evidence STORED: Secured in Fireproof Evidence Safe Lockbox #B-4 with biometric access controls.",
+      action:
+        "Evidence STORED: Secured in Fireproof Evidence Safe Lockbox #B-4 with biometric access controls.",
       entity_affected: JSON.stringify({
         entity_type: "evidence",
         entity_id: "EV-1045",
@@ -1303,7 +1428,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Malkhana Moharrir Dilip Sawant",
       userRole: "evidence_custodian",
       timestamp: makeTime(650),
-      action: "Evidence TRANSFERRED: Dispatched via Secure Armed Escort to State Cyber Forensic Science Laboratory (FSL).",
+      action:
+        "Evidence TRANSFERRED: Dispatched via Secure Armed Escort to State Cyber Forensic Science Laboratory (FSL).",
       entity_affected: JSON.stringify({
         entity_type: "evidence",
         entity_id: "EV-1045",
@@ -1340,7 +1466,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Dr. Sunita Rao",
       userRole: "forensic_officer",
       timestamp: makeTime(680),
-      action: "Evidence RECEIVED: FSL Intake Desk acknowledged receipt. Tamper seal verified intact under stereomicroscope.",
+      action:
+        "Evidence RECEIVED: FSL Intake Desk acknowledged receipt. Tamper seal verified intact under stereomicroscope.",
       entity_affected: JSON.stringify({
         entity_type: "evidence",
         entity_id: "EV-1045",
@@ -1377,7 +1504,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Dr. Sunita Rao",
       userRole: "forensic_officer",
       timestamp: makeTime(720),
-      action: "Evidence FORENSIC_STARTED: Full bit-stream forensic disk imaging initiated in Faraday Shielded Chamber.",
+      action:
+        "Evidence FORENSIC_STARTED: Full bit-stream forensic disk imaging initiated in Faraday Shielded Chamber.",
       entity_affected: JSON.stringify({
         entity_type: "evidence",
         entity_id: "EV-1045",
@@ -1412,7 +1540,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Dr. Sunita Rao",
       userRole: "forensic_officer",
       timestamp: makeTime(760),
-      action: "Evidence FORENSIC_COMPLETED: Analysis report completed. SHA-256 hash certificate generated under BSA 2023 Sec 63.",
+      action:
+        "Evidence FORENSIC_COMPLETED: Analysis report completed. SHA-256 hash certificate generated under BSA 2023 Sec 63.",
       entity_affected: JSON.stringify({
         entity_type: "evidence",
         entity_id: "EV-1045",
@@ -1447,7 +1576,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Registrar Sairaj Vairage",
       userRole: "registrar",
       timestamp: makeTime(800),
-      action: "Evidence COURT_SUBMITTED: Exhibit EV-1045 formally produced before Bench 2 and admitted as Prosecution Exhibit P-14.",
+      action:
+        "Evidence COURT_SUBMITTED: Exhibit EV-1045 formally produced before Bench 2 and admitted as Prosecution Exhibit P-14.",
       entity_affected: JSON.stringify({
         entity_type: "evidence",
         entity_id: "EV-1045",
@@ -1483,7 +1613,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Judge Nikit Munjal",
       userRole: "judge",
       timestamp: makeTime(850),
-      action: "Evidence DISPOSED: Heroin Contraband Sample 50g (EV-1089) destroyed by Judicial Incineration Committee under NDPS Sec 52A.",
+      action:
+        "Evidence DISPOSED: Heroin Contraband Sample 50g (EV-1089) destroyed by Judicial Incineration Committee under NDPS Sec 52A.",
       entity_affected: JSON.stringify({
         entity_type: "evidence",
         entity_id: "EV-1089",
@@ -1520,7 +1651,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Registrar Sairaj Vairage",
       userRole: "registrar",
       timestamp: makeTime(900),
-      action: "AI Cause-List recommendation ACCEPTED: Scheduled Case BNS/2026/0014 in Courtroom 2 for Charge Framing.",
+      action:
+        "AI Cause-List recommendation ACCEPTED: Scheduled Case BNS/2026/0014 in Courtroom 2 for Charge Framing.",
       entity_affected: "case:BNS/2026/0014 schedule:sch-bns-001",
       domain: "recommendation",
       actionType: "recommendation",
@@ -1540,7 +1672,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Filing Counter Officer",
       userRole: "registrar",
       timestamp: makeTime(950),
-      action: "Registered case CASE-2026-0001 (State of Maharashtra vs. R. Verma) under e-Courts CIS portal.",
+      action:
+        "Registered case CASE-2026-0001 (State of Maharashtra vs. R. Verma) under e-Courts CIS portal.",
       entity_affected: "case:CASE-2026-0001",
       domain: "case",
       actionType: "case",
@@ -1560,7 +1693,8 @@ export function generateComprehensiveSeedAuditLogs(): AuditLogEntry[] {
       userName: "Lead Administrator",
       userRole: "admin",
       timestamp: makeTime(1020),
-      action: "Created investigating officer account for insp.sharma@police.gov.in with biometric two-factor authentication.",
+      action:
+        "Created investigating officer account for insp.sharma@police.gov.in with biometric two-factor authentication.",
       entity_affected: "user_accounts",
       domain: "user",
       actionType: "other",
@@ -1604,7 +1738,7 @@ export const auditLogQuery = {
 
     // Read users & profiles to resolve names
     let nameById = new Map<string, string>();
-    let roleById = new Map<string, string>();
+    const roleById = new Map<string, string>();
 
     try {
       const [{ data: profiles }, { data: roles }] = await Promise.all([

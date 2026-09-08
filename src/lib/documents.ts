@@ -1,7 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { recordAudit } from "@/lib/audit";
 import { calculateSha256, sha256Sync } from "@/lib/crypto-sha256";
-import { assertPermission, canAccessDocumentRecord, normalizeRole, UnauthorizedException } from "@/lib/rbac";
+import {
+  assertPermission,
+  canAccessDocumentRecord,
+  normalizeRole,
+  UnauthorizedException,
+} from "@/lib/rbac";
 
 export type DocumentCategory =
   | "FIR"
@@ -16,6 +21,8 @@ export type DocumentCategory =
   | "Judgment"
   | "Seizure Memo"
   | "Chain of Custody Document"
+  | "Investigation Photograph"
+  | "Digital Evidence"
   | "Other Legal Document";
 
 export const DOCUMENT_CATEGORIES: DocumentCategory[] = [
@@ -31,14 +38,13 @@ export const DOCUMENT_CATEGORIES: DocumentCategory[] = [
   "Judgment",
   "Seizure Memo",
   "Chain of Custody Document",
+  "Investigation Photograph",
+  "Digital Evidence",
   "Other Legal Document",
 ];
 
 export type DocumentSensitivityTier =
-  | "PUBLIC"
-  | "CONFIDENTIAL"
-  | "RESTRICTED_INVESTIGATION"
-  | "SEALED_COVER_IN_CAMERA";
+  "PUBLIC" | "CONFIDENTIAL" | "RESTRICTED_INVESTIGATION" | "SEALED_COVER_IN_CAMERA";
 
 export const SENSITIVITY_TIERS: {
   tier: DocumentSensitivityTier;
@@ -71,7 +77,7 @@ export const SENSITIVITY_TIERS: {
     badgeClass: "bg-destructive/15 text-destructive border-destructive/30",
   },
 ];
- 
+
 export const MAX_DOCUMENT_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
 export const ALLOWED_DOCUMENT_FORMATS = new Set([
   "PDF",
@@ -94,6 +100,7 @@ export const ALLOWED_DOCUMENT_FORMATS = new Set([
 export function sanitizeStorageFileName(rawName: string): string {
   const baseName = (rawName || "").replace(/^.*[\\/]/, "").trim();
   const sanitized = baseName
+    // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x1F\x7F]/g, "")
     .replace(/\.{2,}/g, ".")
     .replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -539,7 +546,8 @@ function seedInitialDocuments(): SecureDocument[] {
       relationship_type: "PRIMARY_FIR",
       uploaded_by_name: "Inspector Vikram Rathore",
       uploaded_by_role: "police_staff",
-      content_text: "FIRST INFORMATION REPORT\nCase: BNS/2026/0014 | PS: Special Cell Lodhi Colony\nSections: 111 (Organized Crime) & 318 (Cheating) Bharatiya Nyaya Sanhita, 2023.",
+      content_text:
+        "FIRST INFORMATION REPORT\nCase: BNS/2026/0014 | PS: Special Cell Lodhi Colony\nSections: 111 (Organized Crime) & 318 (Cheating) Bharatiya Nyaya Sanhita, 2023.",
       metadata: {
         police_station: "Special Cell Lodhi Colony",
         sections: "111, 318 BNS 2023",
@@ -560,7 +568,9 @@ function seedInitialDocuments(): SecureDocument[] {
       file_format: "PDF/A",
       file_size_bytes: 1890000,
       storage_path: "secure/cases/CS_BNS_2026_0014.pdf",
-      latest_sha256: sha256Sync("FINAL REPORT / CHARGE SHEET UNDER SECTION 193 BNSS 2023 Case BNS/2026/0014 Version 2"),
+      latest_sha256: sha256Sync(
+        "FINAL REPORT / CHARGE SHEET UNDER SECTION 193 BNSS 2023 Case BNS/2026/0014 Version 2",
+      ),
       is_sealed: false,
       is_tampered: false,
       originating_agency: "Special Cell Investigation Branch",
@@ -571,7 +581,8 @@ function seedInitialDocuments(): SecureDocument[] {
       relationship_type: "CHARGE_SHEET",
       uploaded_by_name: "Inspector Vikram Rathore",
       uploaded_by_role: "police_staff",
-      content_text: "FINAL REPORT / CHARGE SHEET UNDER SECTION 193 BNSS, 2023\nIn the Court of Principal District & Sessions Judge, New Delhi\nCase No: BNS/2026/0014 | State vs. Aman Sharma & Ors.\nAccused: Aman Sharma, age 31 yrs.\nSeized Exhibits: Exhibit EV-1045 (Encrypted Samsung Galaxy S24 Ultra).\nCognizance prayed under BNS 111/318.",
+      content_text:
+        "FINAL REPORT / CHARGE SHEET UNDER SECTION 193 BNSS, 2023\nIn the Court of Principal District & Sessions Judge, New Delhi\nCase No: BNS/2026/0014 | State vs. Aman Sharma & Ors.\nAccused: Aman Sharma, age 31 yrs.\nSeized Exhibits: Exhibit EV-1045 (Encrypted Samsung Galaxy S24 Ultra).\nCognizance prayed under BNS 111/318.",
       metadata: {
         court_bench: "Principal District & Sessions Judge",
         sections: "111, 318 BNS",
@@ -603,7 +614,8 @@ function seedInitialDocuments(): SecureDocument[] {
       relationship_type: "FORENSIC_EXAMINATION_REPORT",
       uploaded_by_name: "Dr. Alok Verma (Senior Scientific Officer)",
       uploaded_by_role: "registrar",
-      content_text: "CENTRAL FORENSIC SCIENCE LABORATORY (CFSL), ROHINI\nForensic Extraction and Cryptographic Report on Seized Exhibit EV-1045.\nDevice: Samsung Galaxy S24 Ultra (IMEI: 882910).\nExtracted Call Logs, Telegram chats, and crypto wallet transactions.",
+      content_text:
+        "CENTRAL FORENSIC SCIENCE LABORATORY (CFSL), ROHINI\nForensic Extraction and Cryptographic Report on Seized Exhibit EV-1045.\nDevice: Samsung Galaxy S24 Ultra (IMEI: 882910).\nExtracted Call Logs, Telegram chats, and crypto wallet transactions.",
       metadata: {
         scientific_officer: "Dr. Alok Verma, CFSL Rohini",
         exhibit_reference: "EV-1045",
@@ -635,13 +647,82 @@ function seedInitialDocuments(): SecureDocument[] {
       relationship_type: "SEIZURE_MEMO",
       uploaded_by_name: "Sub-Inspector Sandeep Nain",
       uploaded_by_role: "police_staff",
-      content_text: "Supplementary seizure memorandum recorded on site. Awaiting digital hashing and registrar cryptographic integrity verification.",
+      content_text:
+        "Supplementary seizure memorandum recorded on site. Awaiting digital hashing and registrar cryptographic integrity verification.",
       metadata: {
         officer: "Sub-Inspector Sandeep Nain",
         integrity_verification_due: true,
       },
       created_at: "2026-03-04T12:00:00Z",
       updated_at: "2026-03-04T12:00:00Z",
+    },
+    {
+      id: "doc_bns_ws_01",
+      document_number: "WS-2026-0014",
+      title: "Witness Statement of Cyber Forensics Examiner U/S 180 BNSS",
+      category: "Witness Statement",
+      fir_number: "FIR No. 28/2026",
+      police_station: "Special Cell Police Station, Lodhi Colony",
+      sensitivity_tier: "RESTRICTED_INVESTIGATION",
+      current_version: 1,
+      file_name: "Witness_Statement_Examiner_BNS_0014.pdf",
+      file_format: "PDF/A",
+      file_size_bytes: 520000,
+      storage_path: "secure/witness/WS_BNS_2026_0014.pdf",
+      latest_sha256: sha256Sync("WITNESS STATEMENT CYBER EXAMINER U/S 180 BNSS CASE BNS/2026/0014"),
+      is_sealed: false,
+      is_tampered: false,
+      originating_agency: "Special Cell Investigation Branch",
+      case_id: "case-bns-0014",
+      case_number: "BNS/2026/0014",
+      asset_id: "ast-seed-007",
+      asset_code: "EV-1045",
+      relationship_type: "WITNESS_STATEMENT",
+      uploaded_by_name: "Inspector Vikram Rathore",
+      uploaded_by_role: "police_staff",
+      content_text:
+        "RECORDED STATEMENT OF WITNESS UNDER SECTION 180 BHARATIYA NAGARIK SURAKSHA SANHITA, 2023.\nWitness: Dr. Alok Verma, Senior Scientific Officer, CFSL Rohini.\nRegarding extraction of cryptographic keys and digital evidence from Exhibit EV-1045 (Samsung Galaxy S24 Ultra).",
+      metadata: {
+        witness_name: "Dr. Alok Verma",
+        sections: "180 BNSS",
+      },
+      created_at: "2026-03-01T10:00:00Z",
+      updated_at: "2026-03-01T10:00:00Z",
+    },
+    {
+      id: "doc_bns_photo_01",
+      document_number: "PHOTO-2026-0014",
+      title: "Crime Scene Recovery Photographic Log & Seizure Memo",
+      category: "Investigation Photograph",
+      fir_number: "FIR No. 28/2026",
+      police_station: "Special Cell Police Station, Lodhi Colony",
+      sensitivity_tier: "CONFIDENTIAL",
+      current_version: 1,
+      file_name: "Photographic_Log_Exhibit_EV1045.pdf",
+      file_format: "PDF/A",
+      file_size_bytes: 3100000,
+      storage_path: "secure/photos/Photo_Log_EV1045.pdf",
+      latest_sha256: sha256Sync(
+        "PHOTOGRAPHIC LOG CRIME SCENE RECOVERY EXHIBIT EV1045 BNS 2026 0014",
+      ),
+      is_sealed: false,
+      is_tampered: false,
+      originating_agency: "Special Cell Police Station, Lodhi Colony",
+      case_id: "case-bns-0014",
+      case_number: "BNS/2026/0014",
+      asset_id: "ast-seed-007",
+      asset_code: "EV-1045",
+      relationship_type: "INVESTIGATION_PHOTOGRAPH",
+      uploaded_by_name: "Sub-Inspector Sandeep Nain",
+      uploaded_by_role: "police_staff",
+      content_text:
+        "PHOTOGRAPHIC LOG & PHYSICAL SEIZURE AT SCENE.\nDepicting in-situ location of Exhibit EV-1045, application of tamper-evident seal MHA-EV-1045-A, and witness signatures on panchnama.",
+      metadata: {
+        photographer: "SI Sandeep Nain",
+        panchas: "Rakesh Gupta, Sunita Devi",
+      },
+      created_at: "2026-02-14T11:30:00Z",
+      updated_at: "2026-02-14T11:30:00Z",
     },
   ];
 }
@@ -673,28 +754,27 @@ export function saveStoredDocuments(list: SecureDocument[]) {
 /**
  * Unified query to fetch documents with optional multi-filtering.
  */
-export const secureDocumentsQuery = (filters?: {
-  caseId?: string | undefined;
-  assetId?: string | undefined;
-  category?: DocumentCategory | "ALL" | undefined;
-  sensitivity?: DocumentSensitivityTier | "ALL" | undefined;
-  searchQuery?: string | undefined;
-  userRole?: string | undefined;
-  judgeId?: string | null | undefined;
-  assignedCaseIds?: string[] | undefined;
-} | undefined) => ({
+export const secureDocumentsQuery = (
+  filters?:
+    | {
+        caseId?: string | undefined;
+        assetId?: string | undefined;
+        category?: DocumentCategory | "ALL" | undefined;
+        sensitivity?: DocumentSensitivityTier | "ALL" | undefined;
+        searchQuery?: string | undefined;
+        userRole?: string | undefined;
+        judgeId?: string | null | undefined;
+        assignedCaseIds?: string[] | undefined;
+      }
+    | undefined,
+) => ({
   queryKey: ["secure-documents", filters],
   queryFn: async (): Promise<SecureDocument[]> => {
     let docs = getStoredDocuments();
 
     if (filters?.userRole) {
       docs = docs.filter((d) =>
-        canAccessDocumentRecord(
-          filters.userRole,
-          d,
-          filters?.judgeId,
-          filters?.assignedCaseIds,
-        ),
+        canAccessDocumentRecord(filters.userRole, d, filters?.judgeId, filters?.assignedCaseIds),
       );
     }
 
@@ -748,7 +828,8 @@ function generateInitialVersions(doc: SecureDocument): DocumentVersionRecord[] {
         sha256_hash: v1Hash,
         uploaded_by_name: "ACP Virender Kumar",
         uploaded_by_role: "registrar",
-        change_summary: "Initial filing of Police Charge Sheet U/S 173 CrPC before CMM Patiala House Courts",
+        change_summary:
+          "Initial filing of Police Charge Sheet U/S 173 CrPC before CMM Patiala House Courts",
         digital_signature: `ECDSA_secp256k1_0x${v1Hash.slice(0, 48)}`,
         signer_identity: "ACP Virender Kumar (Spl. Cell Delhi Police)",
         integrity_status: "VERIFIED",
@@ -768,7 +849,8 @@ function generateInitialVersions(doc: SecureDocument): DocumentVersionRecord[] {
         sha256_hash: v2Hash,
         uploaded_by_name: "ACP Virender Kumar",
         uploaded_by_role: "registrar",
-        change_summary: "Supplementary Charge Sheet filing incorporating CFSL Ballistics Report Exhibit P-3 and Section 63 BSA Digital Certificate",
+        change_summary:
+          "Supplementary Charge Sheet filing incorporating CFSL Ballistics Report Exhibit P-3 and Section 63 BSA Digital Certificate",
         digital_signature: `ECDSA_secp256k1_0x${v2Hash.slice(0, 48)}`,
         signer_identity: "ACP Virender Kumar & Forensic Authority",
         integrity_status: "VERIFIED",
@@ -780,7 +862,8 @@ function generateInitialVersions(doc: SecureDocument): DocumentVersionRecord[] {
   }
 
   if (doc.id === "doc_bns_cs_01") {
-    const v1Text = "FINAL POLICE REPORT U/S 193 BNSS (INITIAL DRAFT - VERSION 1)\nCase: BNS/2026/0014\nPS: Special Cell Lodhi Colony\nAccused: Aman Sharma\nCognizance prayed under Sections 111/318 BNS.";
+    const v1Text =
+      "FINAL POLICE REPORT U/S 193 BNSS (INITIAL DRAFT - VERSION 1)\nCase: BNS/2026/0014\nPS: Special Cell Lodhi Colony\nAccused: Aman Sharma\nCognizance prayed under Sections 111/318 BNS.";
     const v1Hash = sha256Sync(v1Text.trim());
     const v2Text = doc.content_text || "";
     const v2Hash = sha256Sync(v2Text.trim());
@@ -818,7 +901,8 @@ function generateInitialVersions(doc: SecureDocument): DocumentVersionRecord[] {
         sha256_hash: v2Hash,
         uploaded_by_name: "Inspector Vikram Rathore",
         uploaded_by_role: "police_staff",
-        change_summary: "Supplementary final report adding CFSL Cyber Analysis Report for Exhibit EV-1045",
+        change_summary:
+          "Supplementary final report adding CFSL Cyber Analysis Report for Exhibit EV-1045",
         digital_signature: `ECDSA_P256_0x${v2Hash.slice(0, 48)}`,
         signer_identity: "Inspector Vikram Rathore (Special Cell)",
         integrity_status: "VERIFIED",
@@ -936,7 +1020,9 @@ export const secureDocumentDetailQuery = (documentId: string) => ({
 
     // Fetch immutable versions from version store
     const versions = getDocumentVersions(doc);
-    const activeVer = versions.find((v) => v.version_number === doc.current_version) || versions[versions.length - 1];
+    const activeVer =
+      versions.find((v) => v.version_number === doc.current_version) ||
+      versions[versions.length - 1];
     const activeHash = activeVer?.sha256_hash || doc.latest_sha256;
 
     // Build ledger anchor architecture metadata
@@ -1187,7 +1273,9 @@ export async function createNewDocumentVersion(payload: {
   const cleanFileName = sanitizeStorageFileName(payload.fileName);
 
   const docs = getStoredDocuments();
-  const index = docs.findIndex((d) => d.id === payload.documentId || d.document_number === payload.documentId);
+  const index = docs.findIndex(
+    (d) => d.id === payload.documentId || d.document_number === payload.documentId,
+  );
   const existing = docs[index];
 
   if (index < 0 || !existing) {
@@ -1344,7 +1432,9 @@ export async function verifyDocumentVersionIntegrity(payload: {
   );
 
   const docs = getStoredDocuments();
-  const docIndex = docs.findIndex((d) => d.id === payload.documentId || d.document_number === payload.documentId);
+  const docIndex = docs.findIndex(
+    (d) => d.id === payload.documentId || d.document_number === payload.documentId,
+  );
   const now = new Date().toISOString();
 
   // If document not found in storage: UNAVAILABLE
@@ -1367,7 +1457,8 @@ export async function verifyDocumentVersionIntegrity(payload: {
       verifiedAt: now,
       verifiedByName: payload.verifierName,
       verifiedByRole: payload.verifierRole,
-      message: "The requested legal document could not be retrieved from the central encrypted storage vault.",
+      message:
+        "The requested legal document could not be retrieved from the central encrypted storage vault.",
       bsaSection63Clause: "Uncertified: Source record missing or unreachable.",
       ledgerAnchor: {
         isAnchored: false,
@@ -1406,7 +1497,8 @@ export async function verifyDocumentVersionIntegrity(payload: {
       verifiedByName: payload.verifierName,
       verifiedByRole: payload.verifierRole,
       message: `Version v${targetVerNum} payload could not be located in the immutable version chain.`,
-      bsaSection63Clause: "Uncertified: Target version payload unavailable for cryptographic inspection.",
+      bsaSection63Clause:
+        "Uncertified: Target version payload unavailable for cryptographic inspection.",
       ledgerAnchor: {
         isAnchored: false,
         targetLedgerName: "National Judicial Consortium Blockchain",
@@ -1672,7 +1764,9 @@ export async function downloadDocumentFile(payload: {
   );
 
   const docs = getStoredDocuments();
-  const doc = docs.find((d) => d.id === payload.documentId || d.document_number === payload.documentId);
+  const doc = docs.find(
+    (d) => d.id === payload.documentId || d.document_number === payload.documentId,
+  );
   if (!doc) throw new Error("Document not found in secure vault.");
 
   if (!canAccessDocumentRecord(payload.userRole, doc)) {
@@ -1716,4 +1810,3 @@ export async function downloadDocumentFile(payload: {
     sha256: ver.sha256_hash,
   };
 }
-

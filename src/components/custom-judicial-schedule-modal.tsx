@@ -32,11 +32,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentStaff, permissionsFor } from "@/hooks/use-current-staff";
-import {
-  formatSlotLabel,
-  schedulingDataQuery,
-  slotMinutes,
-} from "@/lib/scheduling";
+import { formatSlotLabel, schedulingDataQuery, slotMinutes } from "@/lib/scheduling";
 import { conflictDataQuery, detectAssignmentConflicts, type Conflict } from "@/lib/conflicts";
 import { recordAudit } from "@/lib/audit";
 import type { CaseRow } from "@/lib/cases";
@@ -199,7 +195,8 @@ export function CustomJudicialScheduleModal({
             <div>
               <DialogTitle className="text-base">Custom Judicial Listing</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Schedule case according to specific Judge directive, special sitting, or bench order.
+                Schedule case according to specific Judge directive, special sitting, or bench
+                order.
               </DialogDescription>
             </div>
           </div>
@@ -372,7 +369,9 @@ export function CustomJudicialScheduleModal({
           <Button
             size="sm"
             onClick={handleConfirmSchedule}
-            disabled={!selectedJudge || !selectedCourtroom || !selectedSlot || submitting || !canSchedule}
+            disabled={
+              !selectedJudge || !selectedCourtroom || !selectedSlot || submitting || !canSchedule
+            }
             className="gap-1.5"
           >
             {submitting ? (

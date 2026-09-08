@@ -162,7 +162,10 @@ function useCountUp(target: number, duration = 900) {
   const [count, setCount] = useState(0);
   const raf = useRef<number | null>(null);
   useEffect(() => {
-    if (target === 0) { setCount(0); return; }
+    if (target === 0) {
+      setCount(0);
+      return;
+    }
     const start = performance.now();
     function tick(now: number) {
       const progress = Math.min(1, (now - start) / duration);
@@ -172,7 +175,9 @@ function useCountUp(target: number, duration = 900) {
       if (progress < 1) raf.current = requestAnimationFrame(tick);
     }
     raf.current = requestAnimationFrame(tick);
-    return () => { if (raf.current) cancelAnimationFrame(raf.current); };
+    return () => {
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
   }, [target, duration]);
   return count;
 }
@@ -218,13 +223,17 @@ function ImpactBanner({
       <CardContent className="py-4 px-5">
         <div className="flex items-center gap-2 mb-4">
           <Zap className="size-4 text-primary" />
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">NyayaSetu Impact</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">
+            NyayaSetu Impact
+          </p>
           <span className="h-px flex-1 bg-primary/20" />
           <p className="text-[10px] text-muted-foreground">Live data from this registry</p>
         </div>
         {loading ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -621,12 +630,18 @@ function Page() {
                           cursor={{ fill: "var(--muted)/40" }}
                           content={({ active, payload }) => {
                             if (!active || !payload?.length || !payload[0]?.payload) return null;
-                            const item = payload[0].payload as { fullName?: string; hearings?: number };
+                            const item = payload[0].payload as {
+                              fullName?: string;
+                              hearings?: number;
+                            };
                             return (
                               <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs shadow-md">
-                                <p className="font-semibold text-foreground">{item.fullName ?? "Judge"}</p>
+                                <p className="font-semibold text-foreground">
+                                  {item.fullName ?? "Judge"}
+                                </p>
                                 <p className="mt-0.5 text-muted-foreground">
-                                  {item.hearings ?? 0} active hearing{item.hearings !== 1 ? "s" : ""}
+                                  {item.hearings ?? 0} active hearing
+                                  {item.hearings !== 1 ? "s" : ""}
                                 </p>
                               </div>
                             );
@@ -691,7 +706,9 @@ function Page() {
                                   : 0;
                               return (
                                 <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs shadow-md">
-                                  <p className="font-semibold text-foreground">{item.name ?? "Courtroom"}</p>
+                                  <p className="font-semibold text-foreground">
+                                    {item.name ?? "Courtroom"}
+                                  </p>
                                   <p className="mt-0.5 text-muted-foreground">
                                     {val} hearings ({pct}%)
                                   </p>
@@ -720,7 +737,9 @@ function Page() {
                                   className="size-2 shrink-0 rounded-full"
                                   style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
                                 />
-                                <span className="truncate text-foreground font-medium">{c.name}</span>
+                                <span className="truncate text-foreground font-medium">
+                                  {c.name}
+                                </span>
                               </span>
                               <span className="tabular-nums font-mono text-muted-foreground">
                                 {c.hearings}
@@ -756,7 +775,8 @@ function Page() {
                   </h2>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Unified registry status: tamper-evident legal records, equipment lifecycle state machine, and chain of custody tracking.
+                  Unified registry status: tamper-evident legal records, equipment lifecycle state
+                  machine, and chain of custody tracking.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -792,31 +812,48 @@ function Page() {
                     </span>
                     <div>
                       <CardTitle className="text-sm font-semibold">Secure Documents</CardTitle>
-                      <p className="text-[11px] text-muted-foreground">Digital Court & Police DMS</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Digital Court & Police DMS
+                      </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-xs font-mono bg-blue-500/10 text-blue-700 border-blue-500/30 dark:text-blue-400">
+                  <Badge
+                    variant="outline"
+                    className="text-xs font-mono bg-blue-500/10 text-blue-700 border-blue-500/30 dark:text-blue-400"
+                  >
                     {dmsMetrics.documents.total} Total
                   </Badge>
                 </CardHeader>
                 <CardContent className="flex-1 space-y-3 pt-1">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-md border bg-muted/30 p-2.5">
-                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Total Documents</p>
-                      <p className="text-xl font-bold tabular-nums text-foreground mt-0.5">{dmsMetrics.documents.total}</p>
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                        Total Documents
+                      </p>
+                      <p className="text-xl font-bold tabular-nums text-foreground mt-0.5">
+                        {dmsMetrics.documents.total}
+                      </p>
                     </div>
                     <div className="rounded-md border bg-muted/30 p-2.5">
-                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Added Recently</p>
-                      <p className="text-xl font-bold tabular-nums text-foreground mt-0.5">{dmsMetrics.documents.addedRecently}</p>
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                        Added Recently
+                      </p>
+                      <p className="text-xl font-bold tabular-nums text-foreground mt-0.5">
+                        {dmsMetrics.documents.addedRecently}
+                      </p>
                     </div>
                     <div className="rounded-md border bg-muted/30 p-2.5">
-                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Pending Verification</p>
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                        Pending Verification
+                      </p>
                       <p className="text-xl font-bold tabular-nums text-amber-600 dark:text-amber-400 mt-0.5">
                         {dmsMetrics.documents.pendingVerification}
                       </p>
                     </div>
                     <div className="rounded-md border bg-muted/30 p-2.5">
-                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Version Updates</p>
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                        Version Updates
+                      </p>
                       <p className="text-xl font-bold tabular-nums text-purple-600 dark:text-purple-400 mt-0.5">
                         +{dmsMetrics.documents.versionUpdates}
                       </p>
@@ -840,7 +877,12 @@ function Page() {
                     )}
                   </div>
 
-                  <Button variant="ghost" size="sm" asChild className="w-full text-xs h-8 text-primary justify-between hover:bg-primary/5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    className="w-full text-xs h-8 text-primary justify-between hover:bg-primary/5"
+                  >
                     <Link to="/documents">
                       <span>Browse Document Vault</span>
                       <ArrowRight className="size-3.5" />
@@ -858,35 +900,48 @@ function Page() {
                     </span>
                     <div>
                       <CardTitle className="text-sm font-semibold">Police Assets</CardTitle>
-                      <p className="text-[11px] text-muted-foreground">Equipment & Fleet Lifecycle</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Equipment & Fleet Lifecycle
+                      </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-xs font-mono bg-indigo-500/10 text-indigo-700 border-indigo-500/30 dark:text-indigo-400">
+                  <Badge
+                    variant="outline"
+                    className="text-xs font-mono bg-indigo-500/10 text-indigo-700 border-indigo-500/30 dark:text-indigo-400"
+                  >
                     {dmsMetrics.assets.total} Total
                   </Badge>
                 </CardHeader>
                 <CardContent className="flex-1 space-y-3 pt-1">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-md border bg-muted/30 p-2.5">
-                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Active Units</p>
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                        Active Units
+                      </p>
                       <p className="text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">
                         {dmsMetrics.assets.active}
                       </p>
                     </div>
                     <div className="rounded-md border bg-muted/30 p-2.5">
-                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Assigned</p>
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                        Assigned
+                      </p>
                       <p className="text-xl font-bold tabular-nums text-blue-600 dark:text-blue-400 mt-0.5">
                         {dmsMetrics.assets.assigned}
                       </p>
                     </div>
                     <div className="rounded-md border bg-muted/30 p-2.5">
-                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Maintenance</p>
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                        Maintenance
+                      </p>
                       <p className="text-xl font-bold tabular-nums text-amber-600 dark:text-amber-400 mt-0.5">
                         {dmsMetrics.assets.maintenance}
                       </p>
                     </div>
                     <div className="rounded-md border bg-muted/30 p-2.5">
-                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Transfer / Handover</p>
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                        Transfer / Handover
+                      </p>
                       <p className="text-xl font-bold tabular-nums text-indigo-600 dark:text-indigo-400 mt-0.5">
                         {dmsMetrics.assets.transfer}
                       </p>
@@ -900,7 +955,12 @@ function Page() {
                     </span>
                   </div>
 
-                  <Button variant="ghost" size="sm" asChild className="w-full text-xs h-8 text-primary justify-between hover:bg-primary/5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    className="w-full text-xs h-8 text-primary justify-between hover:bg-primary/5"
+                  >
                     <Link to="/assets">
                       <span>Open Asset Inventory</span>
                       <ArrowRight className="size-3.5" />
@@ -918,35 +978,48 @@ function Page() {
                     </span>
                     <div>
                       <CardTitle className="text-sm font-semibold">Evidence & Custody</CardTitle>
-                      <p className="text-[11px] text-muted-foreground">Case Exhibits & Chain of Custody</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Case Exhibits & Chain of Custody
+                      </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-xs font-mono bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+                  <Badge
+                    variant="outline"
+                    className="text-xs font-mono bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
+                  >
                     {dmsMetrics.evidence.total} Exhibits
                   </Badge>
                 </CardHeader>
                 <CardContent className="flex-1 space-y-3 pt-1">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-md border bg-muted/30 p-2.5">
-                      <p className="text-[10px] font-medium uppercase text-muted-foreground">In Custody Vault</p>
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                        In Custody Vault
+                      </p>
                       <p className="text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">
                         {dmsMetrics.evidence.inCustody}
                       </p>
                     </div>
                     <div className="rounded-md border bg-muted/30 p-2.5">
-                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Under Forensic Exam</p>
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                        Under Forensic Exam
+                      </p>
                       <p className="text-xl font-bold tabular-nums text-purple-600 dark:text-purple-400 mt-0.5">
                         {dmsMetrics.evidence.forensicExam}
                       </p>
                     </div>
                     <div className="rounded-md border bg-muted/30 p-2.5">
-                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Court Submission</p>
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                        Court Submission
+                      </p>
                       <p className="text-xl font-bold tabular-nums text-sky-600 dark:text-sky-400 mt-0.5">
                         {dmsMetrics.evidence.awaitingCourtSubmission}
                       </p>
                     </div>
                     <div className="rounded-md border bg-muted/30 p-2.5">
-                      <p className="text-[10px] font-medium uppercase text-muted-foreground">Custody Alerts</p>
+                      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                        Custody Alerts
+                      </p>
                       <p className="text-xl font-bold tabular-nums text-destructive mt-0.5">
                         {dmsMetrics.evidence.custodyAlerts}
                       </p>
@@ -960,7 +1033,12 @@ function Page() {
                     </span>
                   </div>
 
-                  <Button variant="ghost" size="sm" asChild className="w-full text-xs h-8 text-primary justify-between hover:bg-primary/5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    className="w-full text-xs h-8 text-primary justify-between hover:bg-primary/5"
+                  >
                     <Link to="/assets">
                       <span>View Chain of Custody</span>
                       <ArrowRight className="size-3.5" />
@@ -978,27 +1056,40 @@ function Page() {
                     <ShieldAlert className="size-4" />
                   </span>
                   <div>
-                    <CardTitle className="text-sm font-semibold">Security & Integrity Alerts</CardTitle>
+                    <CardTitle className="text-sm font-semibold">
+                      Security & Integrity Alerts
+                    </CardTitle>
                     <p className="text-[11px] text-muted-foreground">
-                      Real-time watchdog: tamper alerts, unauthorized access attempts, overdue transfers, and maintenance alerts.
+                      Real-time watchdog: tamper alerts, unauthorized access attempts, overdue
+                      transfers, and maintenance alerts.
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[11px] bg-rose-500/10 text-rose-700 border-rose-500/30 dark:text-rose-400 font-medium">
-                    {dmsMetrics.alerts.length} Active Notice{dmsMetrics.alerts.length !== 1 ? "s" : ""}
+                  <Badge
+                    variant="outline"
+                    className="text-[11px] bg-rose-500/10 text-rose-700 border-rose-500/30 dark:text-rose-400 font-medium"
+                  >
+                    {dmsMetrics.alerts.length} Active Notice
+                    {dmsMetrics.alerts.length !== 1 ? "s" : ""}
                   </Badge>
-                  <Button variant="ghost" size="sm" asChild className="h-7 text-xs text-muted-foreground hover:text-foreground">
-                    <Link to="/activity-log">
-                      Audit Logs
-                    </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Link to="/activity-log">Audit Logs</Link>
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="pt-1">
                 <div className="divide-y divide-border">
                   {dmsMetrics.alerts.map((alert) => (
-                    <div key={alert.id} className="py-3 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div
+                      key={alert.id}
+                      className="py-3 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
                       <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span
@@ -1007,10 +1098,10 @@ function Page() {
                               alert.severity === "CRITICAL"
                                 ? "bg-destructive/15 text-destructive border-destructive/30"
                                 : alert.severity === "HIGH"
-                                ? "bg-rose-500/15 text-rose-700 border-rose-500/30 dark:text-rose-400"
-                                : alert.severity === "WARNING"
-                                ? "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400"
-                                : "bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400"
+                                  ? "bg-rose-500/15 text-rose-700 border-rose-500/30 dark:text-rose-400"
+                                  : alert.severity === "WARNING"
+                                    ? "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400"
+                                    : "bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400",
                             )}
                           >
                             {alert.severity}
@@ -1018,9 +1109,7 @@ function Page() {
                           <span className="font-mono text-xs font-semibold text-foreground">
                             {alert.targetCode}
                           </span>
-                          <span className="text-xs font-medium text-foreground">
-                            {alert.title}
-                          </span>
+                          <span className="text-xs font-medium text-foreground">{alert.title}</span>
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           {alert.description}

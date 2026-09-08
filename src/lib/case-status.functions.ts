@@ -49,7 +49,9 @@ export const lookupCaseStatus = createServerFn({ method: "POST" })
         windowMs: 60_000,
       });
       if (!rateCheck.allowed) {
-        throw new Error("Too many lookup requests from your location. Please wait a few seconds before trying again.");
+        throw new Error(
+          "Too many lookup requests from your location. Please wait a few seconds before trying again.",
+        );
       }
 
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -113,7 +115,9 @@ export const lookupCaseStatus = createServerFn({ method: "POST" })
           .sort((a, b) => {
             const pa = a.cause_list_position ?? Number.MAX_SAFE_INTEGER;
             const pb = b.cause_list_position ?? Number.MAX_SAFE_INTEGER;
-            return pa - pb || a.hearing_slots!.start_time.localeCompare(b.hearing_slots!.start_time);
+            return (
+              pa - pb || a.hearing_slots!.start_time.localeCompare(b.hearing_slots!.start_time)
+            );
           });
         const idx = sameDay.findIndex((s) => s.id === mine.id);
         nextHearing = {

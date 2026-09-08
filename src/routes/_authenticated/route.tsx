@@ -73,10 +73,11 @@ function AuthenticatedLayout() {
   );
 }
 
+const JUDGE_ALLOWED_PREFIXES = ["/bench", "/search", "/documents", "/evidence", "/case-status"];
+
 /**
- * Bench (judge) accounts only ever work inside /bench. Row-level security is the
- * real boundary — every registry table filters to their own listings — this simply
- * keeps them from landing on a screen that would render empty.
+ * Bench (judge) accounts are scoped to judicial views. Row-level security is the
+ * real boundary — every registry table filters to their own listings.
  */
 function BenchScopeGuard() {
   const staff = useCurrentStaff();
@@ -84,8 +85,11 @@ function BenchScopeGuard() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   useEffect(() => {
-    if (staff.data?.role === "judge" && pathname !== "/bench") {
-      navigate({ to: "/bench", replace: true });
+    if (staff.data?.role === "judge") {
+      const isAllowed = JUDGE_ALLOWED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+      if (!isAllowed) {
+        navigate({ to: "/bench", replace: true });
+      }
     }
   }, [staff.data?.role, pathname, navigate]);
 

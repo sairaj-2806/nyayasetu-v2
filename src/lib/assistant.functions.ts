@@ -22,8 +22,19 @@ type SnapshotData = {
   timestamp: number;
   pendingCasesCount: number;
   tier1CasesCount: number;
-  activeCases: Array<{ case_number: string; cnr_number?: string; priority_score?: number; priority_tier?: string; case_categories?: { name: string } }>;
-  judgesList: Array<{ id: string; name: string; specialisation?: string; current_workload: number }>;
+  activeCases: Array<{
+    case_number: string;
+    cnr_number?: string;
+    priority_score?: number;
+    priority_tier?: string;
+    case_categories?: { name: string };
+  }>;
+  judgesList: Array<{
+    id: string;
+    name: string;
+    specialisation?: string;
+    current_workload: number;
+  }>;
   courtroomsList: Array<{ id: string; name: string; capacity: number }>;
   upcomingSchedules: Array<{
     cases?: { case_number?: string; parties?: string } | null;
@@ -82,7 +93,8 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
     if (!rateCheck.allowed) {
       return {
         intent: "unknown",
-        summary: "You have reached the maximum rate of questions. Please wait a moment before asking again.",
+        summary:
+          "You have reached the maximum rate of questions. Please wait a moment before asking again.",
         source: "Security Guard",
         rows: [],
       };
@@ -94,7 +106,8 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
     if (injectionCheck.isSuspicious) {
       return {
         intent: "unknown",
-        summary: "Your query contained instructions or syntax that violate platform security boundaries. Please ask a standard question regarding judicial scheduling or case status.",
+        summary:
+          "Your query contained instructions or syntax that violate platform security boundaries. Please ask a standard question regarding judicial scheduling or case status.",
         source: "Security Guard",
         rows: [],
       };
@@ -141,7 +154,8 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
     const deterministicPromise = answerQuestion(sanitizedQuestion, supabaseAdmin, effectiveRole);
 
     // 6. Fetch or reuse cached 60-second registry snapshot scoped by clearance tier
-    const cacheTier = effectiveRole === "judge" || effectiveRole === "admin" ? "privileged" : "standard";
+    const cacheTier =
+      effectiveRole === "judge" || effectiveRole === "admin" ? "privileged" : "standard";
     const now = Date.now();
     let snapshot = cachedSnapshots.get(cacheTier);
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -165,8 +179,15 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
           .neq("status", "disposed")
           .order("priority_score", { ascending: false })
           .limit(20),
-        supabaseAdmin.from("cases").select("id", { count: "exact", head: true }).neq("status", "disposed"),
-        supabaseAdmin.from("cases").select("id", { count: "exact", head: true }).eq("priority_tier", "Tier 1").neq("status", "disposed"),
+        supabaseAdmin
+          .from("cases")
+          .select("id", { count: "exact", head: true })
+          .neq("status", "disposed"),
+        supabaseAdmin
+          .from("cases")
+          .select("id", { count: "exact", head: true })
+          .eq("priority_tier", "Tier 1")
+          .neq("status", "disposed"),
         supabaseAdmin.from("judges").select("id, name, specialisation, current_workload"),
         supabaseAdmin.from("courtrooms").select("id, name, capacity"),
         supabaseAdmin
@@ -183,13 +204,15 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
       ]);
 
       const systemConflicts = scanSystemConflicts(conflictsData);
-      const activeCases = (casesRes.data ?? []).map((c: { case_number: string; [key: string]: unknown }) => {
-        const numPart = (c.case_number || "0001").replace(/[^0-9]/g, "");
-        const seq = parseInt(numPart || "1", 10);
-        const prefix = (c.case_number || "").startsWith("CRL") ? "DLCT02" : "DLCT01";
-        const cnr = `${prefix}-${String(seq).padStart(6, "0")}-2026`;
-        return { ...c, cnr_number: cnr } as SnapshotData["activeCases"][number];
-      });
+      const activeCases = (casesRes.data ?? []).map(
+        (c: { case_number: string; [key: string]: unknown }) => {
+          const numPart = (c.case_number || "0001").replace(/[^0-9]/g, "");
+          const seq = parseInt(numPart || "1", 10);
+          const prefix = (c.case_number || "").startsWith("CRL") ? "DLCT02" : "DLCT01";
+          const cnr = `${prefix}-${String(seq).padStart(6, "0")}-2026`;
+          return { ...c, cnr_number: cnr } as SnapshotData["activeCases"][number];
+        },
+      );
 
       // Fetch assets from Supabase or fallback
       let policeAssetsList: SnapshotData["policeAssets"] = [];
@@ -259,7 +282,11 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
         judgesList: judgesRes.data ?? [],
         courtroomsList: courtroomsRes.data ?? [],
         upcomingSchedules: (schedulesRes.data ?? []) as SnapshotData["upcomingSchedules"],
-        systemConflicts: systemConflicts.map((c) => ({ severity: c.severity, title: c.title, message: c.message })),
+        systemConflicts: systemConflicts.map((c) => ({
+          severity: c.severity,
+          title: c.title,
+          message: c.message,
+        })),
         maxWorkload: settingsRes.data?.max_judge_workload ?? 25,
         policeAssets: policeAssetsList,
         documents: documentsList,
@@ -301,7 +328,13 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
       const topCasesSummary = activeCases
         .slice(0, 15)
         .map(
-          (c: { case_number: string; cnr_number?: string; priority_score?: number; priority_tier?: string; case_categories?: { name: string } }) =>
+          (c: {
+            case_number: string;
+            cnr_number?: string;
+            priority_score?: number;
+            priority_tier?: string;
+            case_categories?: { name: string };
+          }) =>
             `- ${c.case_number} [CNR: ${c.cnr_number}] (${c.case_categories?.name || "General"}): Priority Score ${c.priority_score ?? 50} (${c.priority_tier || "Tier 2"})`,
         )
         .join("\n");
@@ -309,7 +342,9 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
       const upcomingSchedulesSummary = upcomingSchedules
         .map((s) => {
           const slot = s.hearing_slots;
-          const timeStr = slot ? `(${slot.start_time.slice(0, 5)}–${slot.end_time.slice(0, 5)})` : "";
+          const timeStr = slot
+            ? `(${slot.start_time.slice(0, 5)}–${slot.end_time.slice(0, 5)})`
+            : "";
           const dateStr = slot?.date ?? "Upcoming";
           const judgeStr = s.judges?.name ?? "Unassigned Bench";
           const roomStr = s.courtrooms?.name ?? "Courtroom";
@@ -322,24 +357,25 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
         .map((c) => `- [${c.severity.toUpperCase()}] ${c.title}: ${c.message}`)
         .join("\n");
 
-      const holidaysSummary = DEFAULT_COURT_HOLIDAYS_2026
-        .slice(0, 8)
+      const holidaysSummary = DEFAULT_COURT_HOLIDAYS_2026.slice(0, 8)
         .map((h) => `- ${h.date}: ${h.name} (${h.type})`)
         .join("\n");
 
       // Police Assets & Malkhana Overview
       const assetsUnderMaintenance = policeAssets.filter((a) => a.status === "MAINTENANCE");
-      const assignedAssets = policeAssets.filter((a) => a.status === "ASSIGNED" || a.status === "IN_USE");
+      const assignedAssets = policeAssets.filter(
+        (a) => a.status === "ASSIGNED" || a.status === "IN_USE",
+      );
       const evidenceExhibits = policeAssets.filter((a) => a.evidence_status != null);
       const unexaminedEvidence = evidenceExhibits.filter((a) =>
-        ["SEIZED", "REGISTERED", "SEALED", "STORED"].includes(a.evidence_status || "")
+        ["SEIZED", "REGISTERED", "SEALED", "STORED"].includes(a.evidence_status || ""),
       );
 
       const assetsSummaryText = policeAssets
         .slice(0, 15)
         .map(
           (a) =>
-            `- [${a.asset_code}] "${a.name}" | Status: ${a.status} (${a.condition}) | Location: ${a.current_location} | Custodian: ${a.current_custodian_name} | Assigned Officer: ${a.assigned_officer_name || "None"}${a.case_number ? ` | Linked Case: ${a.case_number}` : ""}${a.evidence_status ? ` | Custody Stage: ${a.evidence_status}` : ""}`
+            `- [${a.asset_code}] "${a.name}" | Status: ${a.status} (${a.condition}) | Location: ${a.current_location} | Custodian: ${a.current_custodian_name} | Assigned Officer: ${a.assigned_officer_name || "None"}${a.case_number ? ` | Linked Case: ${a.case_number}` : ""}${a.evidence_status ? ` | Custody Stage: ${a.evidence_status}` : ""}`,
         )
         .join("\n");
 
@@ -349,18 +385,23 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
         (d) =>
           d.id === "doc_pending_01" ||
           d.latest_sha256.includes("unverified") ||
-          d.latest_sha256.includes("placeholder")
+          d.latest_sha256.includes("placeholder"),
       );
 
       const docsSummaryText = documents
         .slice(0, 15)
         .map(
           (d) =>
-            `- [${d.document_number}] "${d.title}" (${d.category}, Version v${d.current_version}) | Tier: ${d.sensitivity_tier} | Linked Case: ${d.case_number || "Unlinked"} | Uploaded By: ${d.uploaded_by_name} | SHA-256 Digest: ${d.latest_sha256.slice(0, 16)}...`
+            `- [${d.document_number}] "${d.title}" (${d.category}, Version v${d.current_version}) | Tier: ${d.sensitivity_tier} | Linked Case: ${d.case_number || "Unlinked"} | Uploaded By: ${d.uploaded_by_name} | SHA-256 Digest: ${d.latest_sha256.slice(0, 16)}...`,
         )
         .join("\n");
 
-      const canViewVaultDetail = ["admin", "evidence_custodian", "investigating_officer", "judge"].includes(effectiveRole);
+      const canViewVaultDetail = [
+        "admin",
+        "evidence_custodian",
+        "investigating_officer",
+        "judge",
+      ].includes(effectiveRole);
       const evidenceVaultText = canViewVaultDetail
         ? `Evidence Exhibit EV-1045 Full Chain of Custody Record:
 - Current Location: District Court Central Malkhana Vault B, High-Security Locker #12
@@ -466,7 +507,10 @@ ${holidaysSummary}
         return {
           intent: deterministicAnswer.intent !== "unknown" ? deterministicAnswer.intent : "unknown",
           summary: aiResponse,
-          source: deterministicAnswer.source !== "No query was run." ? deterministicAnswer.source : "AI Judicial Copilot (Gemini/Groq)",
+          source:
+            deterministicAnswer.source !== "No query was run."
+              ? deterministicAnswer.source
+              : "AI Judicial Copilot (Gemini/Groq)",
           rows: deterministicAnswer.intent !== "unknown" ? (deterministicAnswer.rows ?? []) : [],
         };
       }

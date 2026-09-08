@@ -113,9 +113,7 @@ function Page() {
   const holidayInfo = useMemo(() => checkCourtHoliday(date), [date]);
 
   const pendingCases = useMemo(() => {
-    return (allCases.data ?? []).filter(
-      (c) => c.status === "filed" || c.status === "adjourned",
-    );
+    return (allCases.data ?? []).filter((c) => c.status === "filed" || c.status === "adjourned");
   }, [allCases.data]);
 
   const batchResult = useMemo(() => {
@@ -139,10 +137,7 @@ function Page() {
         );
         if (error) throw error;
 
-        await supabase
-          .from("cases")
-          .update({ status: "scheduled" })
-          .eq("id", item.caseId);
+        await supabase.from("cases").update({ status: "scheduled" }).eq("id", item.caseId);
       }
 
       await recordAudit(

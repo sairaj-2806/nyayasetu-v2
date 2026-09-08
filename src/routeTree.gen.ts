@@ -38,6 +38,7 @@ import { Route as AuthenticatedCourtroomsIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedCourtroomsCourtroomIdRouteImport } from './routes/_authenticated/courtrooms/$courtroomId'
 import { Route as AuthenticatedDocumentsIndexRouteImport } from './routes/_authenticated/documents/index'
 import { Route as AuthenticatedDocumentsDocumentIdRouteImport } from './routes/_authenticated/documents/$documentId'
+import { Route as AuthenticatedEvidenceIndexRouteImport } from './routes/_authenticated/evidence/index'
 import { Route as AuthenticatedJudgesIndexRouteImport } from './routes/_authenticated/judges/index'
 import { Route as AuthenticatedJudgesJudgeIdRouteImport } from './routes/_authenticated/judges/$judgeId'
 
@@ -197,6 +198,12 @@ const AuthenticatedDocumentsDocumentIdRoute =
     path: '/documents/$documentId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedEvidenceIndexRoute =
+  AuthenticatedEvidenceIndexRouteImport.update({
+    id: '/evidence/',
+    path: '/evidence/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedJudgesIndexRoute =
   AuthenticatedJudgesIndexRouteImport.update({
     id: '/judges/',
@@ -240,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/cases/': typeof AuthenticatedCasesIndexRoute
   '/courtrooms/': typeof AuthenticatedCourtroomsIndexRoute
   '/documents/': typeof AuthenticatedDocumentsIndexRoute
+  '/evidence/': typeof AuthenticatedEvidenceIndexRoute
   '/judges/': typeof AuthenticatedJudgesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -272,6 +280,7 @@ export interface FileRoutesByTo {
   '/cases': typeof AuthenticatedCasesIndexRoute
   '/courtrooms': typeof AuthenticatedCourtroomsIndexRoute
   '/documents': typeof AuthenticatedDocumentsIndexRoute
+  '/evidence': typeof AuthenticatedEvidenceIndexRoute
   '/judges': typeof AuthenticatedJudgesIndexRoute
 }
 export interface FileRoutesById {
@@ -306,6 +315,7 @@ export interface FileRoutesById {
   '/_authenticated/cases/': typeof AuthenticatedCasesIndexRoute
   '/_authenticated/courtrooms/': typeof AuthenticatedCourtroomsIndexRoute
   '/_authenticated/documents/': typeof AuthenticatedDocumentsIndexRoute
+  '/_authenticated/evidence/': typeof AuthenticatedEvidenceIndexRoute
   '/_authenticated/judges/': typeof AuthenticatedJudgesIndexRoute
 }
 export interface FileRouteTypes {
@@ -340,6 +350,7 @@ export interface FileRouteTypes {
     | '/cases/'
     | '/courtrooms/'
     | '/documents/'
+    | '/evidence/'
     | '/judges/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -372,6 +383,7 @@ export interface FileRouteTypes {
     | '/cases'
     | '/courtrooms'
     | '/documents'
+    | '/evidence'
     | '/judges'
   id:
     | '__root__'
@@ -405,6 +417,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cases/'
     | '/_authenticated/courtrooms/'
     | '/_authenticated/documents/'
+    | '/_authenticated/evidence/'
     | '/_authenticated/judges/'
   fileRoutesById: FileRoutesById
 }
@@ -621,6 +634,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDocumentsDocumentIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/evidence/': {
+      id: '/_authenticated/evidence/'
+      path: '/evidence'
+      fullPath: '/evidence/'
+      preLoaderRoute: typeof AuthenticatedEvidenceIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/judges/': {
       id: '/_authenticated/judges/'
       path: '/judges'
@@ -664,6 +684,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCasesIndexRoute: typeof AuthenticatedCasesIndexRoute
   AuthenticatedCourtroomsIndexRoute: typeof AuthenticatedCourtroomsIndexRoute
   AuthenticatedDocumentsIndexRoute: typeof AuthenticatedDocumentsIndexRoute
+  AuthenticatedEvidenceIndexRoute: typeof AuthenticatedEvidenceIndexRoute
   AuthenticatedJudgesIndexRoute: typeof AuthenticatedJudgesIndexRoute
 }
 
@@ -694,6 +715,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCasesIndexRoute: AuthenticatedCasesIndexRoute,
   AuthenticatedCourtroomsIndexRoute: AuthenticatedCourtroomsIndexRoute,
   AuthenticatedDocumentsIndexRoute: AuthenticatedDocumentsIndexRoute,
+  AuthenticatedEvidenceIndexRoute: AuthenticatedEvidenceIndexRoute,
   AuthenticatedJudgesIndexRoute: AuthenticatedJudgesIndexRoute,
 }
 

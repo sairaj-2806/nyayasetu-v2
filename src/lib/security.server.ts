@@ -35,7 +35,10 @@ const INJECTION_PATTERNS = [
 /**
  * Scans input for obvious malicious injection patterns.
  */
-export function detectPromptInjection(input: string): { isSuspicious: boolean; matchedPattern?: string } {
+export function detectPromptInjection(input: string): {
+  isSuspicious: boolean;
+  matchedPattern?: string;
+} {
   for (const pattern of INJECTION_PATTERNS) {
     if (pattern.test(input)) {
       return { isSuspicious: true, matchedPattern: pattern.source };

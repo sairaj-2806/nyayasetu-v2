@@ -7,14 +7,7 @@
  * 3. React DOM reconciliation guard (prevents removeChild/insertBefore crashes)
  * 4. Zero external dependencies (No invasive Google Translate script injections)
  */
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useRef,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
 
 export type Language = "en" | "hi";
 
@@ -39,7 +32,11 @@ if (typeof window !== "undefined" && typeof Node !== "undefined" && Node.prototy
 
   const origInsertBefore = nodeProto["insertBefore"];
   if (typeof origInsertBefore === "function") {
-    nodeProto["insertBefore"] = function (this: Node, newNode: Node, referenceNode: Node | null): Node {
+    nodeProto["insertBefore"] = function (
+      this: Node,
+      newNode: Node,
+      referenceNode: Node | null,
+    ): Node {
       if (referenceNode && referenceNode.parentNode !== this) {
         return newNode;
       }
@@ -513,9 +510,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
-      {children}
-    </LanguageContext.Provider>
+    <LanguageContext.Provider value={{ lang, setLang, t }}>{children}</LanguageContext.Provider>
   );
 }
 

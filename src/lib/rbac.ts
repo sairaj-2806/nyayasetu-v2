@@ -217,9 +217,12 @@ export function normalizeRole(rawRole: string | null | undefined): AppRole {
   if (clean === "registrar") return "registrar";
   if (clean === "judge" || clean === "bench") return "judge";
   if (clean === "investigating_officer" || clean === "io") return "investigating_officer";
-  if (clean === "forensic_officer" || clean === "fsl" || clean === "cfsl") return "forensic_officer";
-  if (clean === "evidence_custodian" || clean === "malkhana" || clean === "custodian") return "evidence_custodian";
-  if (clean === "police_officer" || clean === "officer" || clean === "constable") return "police_officer";
+  if (clean === "forensic_officer" || clean === "fsl" || clean === "cfsl")
+    return "forensic_officer";
+  if (clean === "evidence_custodian" || clean === "malkhana" || clean === "custodian")
+    return "evidence_custodian";
+  if (clean === "police_officer" || clean === "officer" || clean === "constable")
+    return "police_officer";
   return "police_officer";
 }
 
@@ -271,10 +274,7 @@ export const ROLE_METADATA: Record<
 /**
  * Checks if a specific role possesses a permission.
  */
-export function hasPermission(
-  role: AppRole | null | undefined,
-  permission: Permission,
-): boolean {
+export function hasPermission(role: AppRole | null | undefined, permission: Permission): boolean {
   if (!role) return false;
   const perms = ROLE_PERMISSIONS[role];
   return perms ? perms.has(permission) : false;

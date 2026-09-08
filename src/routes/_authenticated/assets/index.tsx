@@ -56,7 +56,8 @@ export const Route = createFileRoute("/_authenticated/assets/")({
       { title: "Police Assets & Evidence — NyayaSetu" },
       {
         name: "description",
-        content: "Police asset custody tracking, malkhana evidence register, and chain-of-custody lifecycle.",
+        content:
+          "Police asset custody tracking, malkhana evidence register, and chain-of-custody lifecycle.",
       },
     ],
   }),
@@ -66,16 +67,36 @@ export const Route = createFileRoute("/_authenticated/assets/")({
 function getStatusBadge(status: AssetLifecycleStatus) {
   switch (status) {
     case "AVAILABLE":
-      return <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-500/30 dark:text-emerald-400">Available</Badge>;
+      return (
+        <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-500/30 dark:text-emerald-400">
+          Available
+        </Badge>
+      );
     case "ASSIGNED":
     case "IN_USE":
-      return <Badge className="bg-blue-500/15 text-blue-700 hover:bg-blue-500/25 border-blue-500/30 dark:text-blue-400">{status === "IN_USE" ? "In Use" : "Assigned"}</Badge>;
+      return (
+        <Badge className="bg-blue-500/15 text-blue-700 hover:bg-blue-500/25 border-blue-500/30 dark:text-blue-400">
+          {status === "IN_USE" ? "In Use" : "Assigned"}
+        </Badge>
+      );
     case "TRANSFERRED":
-      return <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-amber-500/30 dark:text-amber-400">In Transfer</Badge>;
+      return (
+        <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-amber-500/30 dark:text-amber-400">
+          In Transfer
+        </Badge>
+      );
     case "MAINTENANCE":
-      return <Badge className="bg-purple-500/15 text-purple-700 hover:bg-purple-500/25 border-purple-500/30 dark:text-purple-400">Maintenance</Badge>;
+      return (
+        <Badge className="bg-purple-500/15 text-purple-700 hover:bg-purple-500/25 border-purple-500/30 dark:text-purple-400">
+          Maintenance
+        </Badge>
+      );
     case "RETURNED":
-      return <Badge className="bg-cyan-500/15 text-cyan-700 hover:bg-cyan-500/25 border-cyan-500/30 dark:text-cyan-400">Returned</Badge>;
+      return (
+        <Badge className="bg-cyan-500/15 text-cyan-700 hover:bg-cyan-500/25 border-cyan-500/30 dark:text-cyan-400">
+          Returned
+        </Badge>
+      );
     case "RETIRED":
     case "LOST":
       return <Badge variant="destructive">{status}</Badge>;
@@ -89,16 +110,32 @@ function getConditionBadge(condition: AssetCondition) {
   switch (condition) {
     case "NEW":
     case "EXCELLENT":
-      return <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400"><CheckCircle2 className="size-3" /> {condition}</span>;
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          <CheckCircle2 className="size-3" /> {condition}
+        </span>
+      );
     case "GOOD":
     case "FAIR":
-      return <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">{condition}</span>;
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">
+          {condition}
+        </span>
+      );
     case "DAMAGED":
     case "NEEDS_REPAIR":
-      return <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400"><Wrench className="size-3" /> {condition.replace("_", " ")}</span>;
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+          <Wrench className="size-3" /> {condition.replace("_", " ")}
+        </span>
+      );
     case "DECOMMISSIONED":
     default:
-      return <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">{condition}</span>;
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+          {condition}
+        </span>
+      );
   }
 }
 
@@ -161,7 +198,15 @@ function PoliceAssetsPage() {
         const matchCase = (item.case_number ?? "").toLowerCase().includes(q);
         const matchCustodian = item.current_custodian_name.toLowerCase().includes(q);
         const matchOfficer = item.assigned_officer_name.toLowerCase().includes(q);
-        if (!matchCode && !matchName && !matchSerial && !matchFir && !matchCase && !matchCustodian && !matchOfficer) {
+        if (
+          !matchCode &&
+          !matchName &&
+          !matchSerial &&
+          !matchFir &&
+          !matchCase &&
+          !matchCustodian &&
+          !matchOfficer
+        ) {
           return false;
         }
       }
@@ -182,14 +227,20 @@ function PoliceAssetsPage() {
 
       // 4. Location / Station Filter
       if (locationFilter !== "all") {
-        if (item.department_station !== locationFilter && item.current_location !== locationFilter) {
+        if (
+          item.department_station !== locationFilter &&
+          item.current_location !== locationFilter
+        ) {
           return false;
         }
       }
 
       // 5. Custodian / Officer Filter
       if (custodianFilter !== "all") {
-        if (item.current_custodian_name !== custodianFilter && item.assigned_officer_name !== custodianFilter) {
+        if (
+          item.current_custodian_name !== custodianFilter &&
+          item.assigned_officer_name !== custodianFilter
+        ) {
           return false;
         }
       }
@@ -204,7 +255,15 @@ function PoliceAssetsPage() {
 
       return true;
     });
-  }, [assets.data, search, categoryFilter, statusFilter, locationFilter, custodianFilter, caseFilter]);
+  }, [
+    assets.data,
+    search,
+    categoryFilter,
+    statusFilter,
+    locationFilter,
+    custodianFilter,
+    caseFilter,
+  ]);
 
   const hasActiveFilters =
     search ||
@@ -279,7 +338,9 @@ function PoliceAssetsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.available}</div>
+            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+              {stats.available}
+            </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">Ready for deployment</p>
           </CardContent>
         </Card>
@@ -292,7 +353,9 @@ function PoliceAssetsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.assigned}</div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {stats.assigned}
+            </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">Active duty / custody</p>
           </CardContent>
         </Card>
@@ -305,7 +368,9 @@ function PoliceAssetsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.maintenance}</div>
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {stats.maintenance}
+            </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">Service & calibration</p>
           </CardContent>
         </Card>
@@ -318,7 +383,9 @@ function PoliceAssetsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.transfer}</div>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+              {stats.transfer}
+            </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">Inter-station / Court</p>
           </CardContent>
         </Card>
@@ -392,7 +459,10 @@ function PoliceAssetsPage() {
           {/* Location / Station Filter */}
           <div>
             <Select value={locationFilter} onValueChange={setLocationFilter}>
-              <SelectTrigger className="w-full" aria-label="Filter assets by storage location or police station">
+              <SelectTrigger
+                className="w-full"
+                aria-label="Filter assets by storage location or police station"
+              >
                 <SelectValue placeholder="Location / Station" />
               </SelectTrigger>
               <SelectContent>
@@ -463,14 +533,30 @@ function PoliceAssetsPage() {
               {assets.isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-44" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-36" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-28" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-44" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-36" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-32" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="h-8 w-16 ml-auto" />
+                    </TableCell>
                   </TableRow>
                 ))
               ) : filteredRows.length === 0 ? (
@@ -544,17 +630,21 @@ function PoliceAssetsPage() {
                       <div className="text-xs font-medium text-foreground">
                         {asset.current_custodian_name}
                       </div>
-                      {asset.assigned_officer_name && asset.assigned_officer_name !== asset.current_custodian_name && (
-                        <div className="text-[11px] text-muted-foreground">
-                          Officer: {asset.assigned_officer_name}
-                        </div>
-                      )}
+                      {asset.assigned_officer_name &&
+                        asset.assigned_officer_name !== asset.current_custodian_name && (
+                          <div className="text-[11px] text-muted-foreground">
+                            Officer: {asset.assigned_officer_name}
+                          </div>
+                        )}
                     </TableCell>
 
                     <TableCell>
                       {asset.case_number ? (
                         <div>
-                          <Badge variant="outline" className="text-[11px] font-mono border-primary/30 text-primary">
+                          <Badge
+                            variant="outline"
+                            className="text-[11px] font-mono border-primary/30 text-primary"
+                          >
                             {asset.case_number}
                           </Badge>
                           {asset.fir_number && (

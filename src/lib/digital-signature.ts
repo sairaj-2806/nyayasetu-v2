@@ -166,7 +166,8 @@ function seedInitialSignatures(): DigitalSignatureRecord[] {
       },
       signed_content_hash: "78809ff44b6f6daaa556637e72251a34e565ca64731b57497d3ca82bb83fc003",
       signature_payload: "MEUCIQCH8192K...[ECDSA-P256-SHA256-SIG-BLOCK]...V09218F==",
-      purpose_or_reason: "Supplementary Charge Sheet Endorsement incorporating CFSL Report Exhibit P-3",
+      purpose_or_reason:
+        "Supplementary Charge Sheet Endorsement incorporating CFSL Report Exhibit P-3",
       created_at: "2024-09-10T14:45:00.000Z",
       updated_at: "2024-09-10T14:45:00.000Z",
     },
@@ -192,7 +193,8 @@ function seedInitialSignatures(): DigitalSignatureRecord[] {
       },
       signed_content_hash: "818fbb904e0e271015f8a2bcbe4ef4a675f92ff488e0b6b559779df344e18320",
       signature_payload: "MEQCIDK918F91...[ECDSA-P256-SHA256-SIG-BLOCK]...L9028F==",
-      purpose_or_reason: "Forensic Ballistics Striation Report & BSA 2023 §63 Admissibility Certificate",
+      purpose_or_reason:
+        "Forensic Ballistics Striation Report & BSA 2023 §63 Admissibility Certificate",
       created_at: "2024-08-20T16:30:00.000Z",
       updated_at: "2024-08-20T16:30:00.000Z",
     },
@@ -348,7 +350,8 @@ export async function getDocumentVersionSignature(params: {
 
   if (params.currentContentHash && params.currentContentHash.trim().length > 0) {
     isHashMatch =
-      params.currentContentHash.trim().toLowerCase() === sig.signed_content_hash.trim().toLowerCase();
+      params.currentContentHash.trim().toLowerCase() ===
+      sig.signed_content_hash.trim().toLowerCase();
     tamperDetected = !isHashMatch;
   }
 
@@ -358,7 +361,8 @@ export async function getDocumentVersionSignature(params: {
         ...sig,
         signature_status: "INVALID",
         invalidation_reason:
-          sig.invalidation_reason || "Cryptographic SHA-256 integrity mismatch between stored file and signed digest.",
+          sig.invalidation_reason ||
+          "Cryptographic SHA-256 integrity mismatch between stored file and signed digest.",
       },
       status: "INVALID",
       effectiveHash,
@@ -407,7 +411,9 @@ export async function signDocumentVersion(payload: {
   );
 
   if (!payload.contentHash || payload.contentHash.length < 16) {
-    throw new Error("Cannot execute Digital Signature / Approval without a verified SHA-256 content digest.");
+    throw new Error(
+      "Cannot execute Digital Signature / Approval without a verified SHA-256 content digest.",
+    );
   }
 
   const allSigs = getAllDigitalSignatures();
@@ -436,7 +442,9 @@ export async function signDocumentVersion(payload: {
     signer_user: payload.signerUser.trim(),
     signer_role: payload.signerRole.trim(),
     signer_department: payload.signerDepartment?.trim() || "District Judicial Registry",
-    signer_identifier: payload.signerIdentifier?.trim() || `UID-${payload.signerRole.toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+    signer_identifier:
+      payload.signerIdentifier?.trim() ||
+      `UID-${payload.signerRole.toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
     signed_at: now,
     signature_status: "SIGNED",
     signature_algorithm: "ECDSA-P256-SHA256",

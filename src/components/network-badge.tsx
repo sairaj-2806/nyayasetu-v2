@@ -38,7 +38,8 @@ export function NetworkBadge() {
         queryClient.invalidateQueries();
       } else {
         toast.warning("Offline Mode Active", {
-          description: "Internet disconnected. You can browse cached cause lists and save drafts safely.",
+          description:
+            "Internet disconnected. You can browse cached cause lists and save drafts safely.",
           icon: <AlertTriangle className="size-4 text-amber-500" />,
         });
       }
@@ -110,7 +111,9 @@ export function NetworkBadge() {
           </span>
 
           <span className="hidden sm:inline">
-            {isOnline ? "Cloud Synced" : `Offline Cache ${pendingCount > 0 ? `(${pendingCount})` : ""}`}
+            {isOnline
+              ? "Cloud Synced"
+              : `Offline Cache ${pendingCount > 0 ? `(${pendingCount})` : ""}`}
           </span>
           <span className="sm:hidden">{isOnline ? "Online" : "Offline"}</span>
         </button>
@@ -159,7 +162,9 @@ export function NetworkBadge() {
           <div className="bg-amber-500/10 border-b border-amber-500/20 p-2.5 text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-2">
             <ShieldCheck className="size-4 shrink-0 text-amber-600 mt-0.5" />
             <div>
-              <strong>Double-Booking Protection:</strong> You can read cause lists and draft changes. Direct publishing is held until internet returns to ensure no schedule collisions.
+              <strong>Double-Booking Protection:</strong> You can read cause lists and draft
+              changes. Direct publishing is held until internet returns to ensure no schedule
+              collisions.
             </div>
           </div>
         )}
@@ -226,11 +231,7 @@ export function NetworkBadge() {
           )}
 
           {drafts.length > 0 && isOnline && (
-            <Button
-              className="mt-3 w-full text-xs h-8"
-              size="sm"
-              onClick={handleSyncDrafts}
-            >
+            <Button className="mt-3 w-full text-xs h-8" size="sm" onClick={handleSyncDrafts}>
               Verify & Sync {drafts.length} Draft{drafts.length > 1 ? "s" : ""}
             </Button>
           )}

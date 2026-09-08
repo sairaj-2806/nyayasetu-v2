@@ -112,38 +112,76 @@ export function classifyQuestion(question: string): AssistantIntent {
   const q = question.toLowerCase();
 
   // 1. Evidence & Chain of Custody queries
-  if (/(chain\s*of\s*custody|custody\s*chain|custody\s*history|custody\s*timeline|custody\s*record)/i.test(q)) {
+  if (
+    /(chain\s*of\s*custody|custody\s*chain|custody\s*history|custody\s*timeline|custody\s*record)/i.test(
+      q,
+    )
+  ) {
     return "evidence_chain_of_custody";
   }
-  if (/(where\s*is\s*evidence|location\s*of\s*evidence|evidence.*located|where.*ev[-_ ]?1045)/i.test(q)) {
+  if (
+    /(where\s*is\s*evidence|location\s*of\s*evidence|evidence.*located|where.*ev[-_ ]?1045)/i.test(
+      q,
+    )
+  ) {
     return "evidence_location";
   }
-  if (/(not\s*undergone\s*forensic|without\s*forensic|awaiting\s*forensic|unexamined\s*evidence|evidence.*unexamined)/i.test(q)) {
+  if (
+    /(not\s*undergone\s*forensic|without\s*forensic|awaiting\s*forensic|unexamined\s*evidence|evidence.*unexamined)/i.test(
+      q,
+    )
+  ) {
     return "evidence_unexamined";
   }
 
   // 2. Police Assets queries
-  if (/(under\s*maintenance|in\s*maintenance|assets?\s*maintenance|maintenance\s*assets?)/i.test(q)) {
+  if (
+    /(under\s*maintenance|in\s*maintenance|assets?\s*maintenance|maintenance\s*assets?)/i.test(q)
+  ) {
     return "assets_maintenance";
   }
-  if (/(assigned\s*to\s*officer|assets?\s*assigned|which\s*assets.*assigned|officer\s*x|officer\s*amit)/i.test(q)) {
+  if (
+    /(assigned\s*to\s*officer|assets?\s*assigned|which\s*assets.*assigned|officer\s*x|officer\s*amit)/i.test(
+      q,
+    )
+  ) {
     return "assets_by_officer";
   }
-  if (/(recent\s*asset\s*transfers?|asset\s*movements?|recent\s*transfers?|transfers?\s*of\s*assets?)/i.test(q)) {
+  if (
+    /(recent\s*asset\s*transfers?|asset\s*movements?|recent\s*transfers?|transfers?\s*of\s*assets?)/i.test(
+      q,
+    )
+  ) {
     return "recent_asset_transfers";
   }
-  if (/(assets?\s*associated|assets?\s*linked|assets?\s*for\s*case|case\s*assets?|which\s*assets.*this\s*case)/i.test(q)) {
+  if (
+    /(assets?\s*associated|assets?\s*linked|assets?\s*for\s*case|case\s*assets?|which\s*assets.*this\s*case)/i.test(
+      q,
+    )
+  ) {
     return "assets_by_case";
   }
 
   // 3. Document Management & Integrity queries
-  if (/(multiple\s*versions?|more\s*than\s*one\s*version|version\s*history|multi[- ]?version)/i.test(q)) {
+  if (
+    /(multiple\s*versions?|more\s*than\s*one\s*version|version\s*history|multi[- ]?version)/i.test(
+      q,
+    )
+  ) {
     return "documents_multi_version";
   }
-  if (/(not\s*been\s*verified|unverified\s*integrity|integrity\s*not\s*verified|integrity\s*pending|pending\s*verification|integrity.*unverified|integrity.*not.*verified)/i.test(q)) {
+  if (
+    /(not\s*been\s*verified|unverified\s*integrity|integrity\s*not\s*verified|integrity\s*pending|pending\s*verification|integrity.*unverified|integrity.*not.*verified)/i.test(
+      q,
+    )
+  ) {
     return "documents_unverified_integrity";
   }
-  if (/(summarize.*documents?|documents?\s*attached|case\s*documents?|docs?\s*for\s*case|documents?\s*in\s*case|documents?\s*associated)/i.test(q)) {
+  if (
+    /(summarize.*documents?|documents?\s*attached|case\s*documents?|docs?\s*for\s*case|documents?\s*in\s*case|documents?\s*associated)/i.test(
+      q,
+    )
+  ) {
     return "case_documents_summary";
   }
 
@@ -187,10 +225,7 @@ async function answerAvailability(question: string, db = supabase): Promise<Assi
     wantsCourtrooms
       ? db.from("courtrooms").select("*").order("name")
       : db.from("judges").select("*").order("name"),
-    db
-      .from("availability")
-      .select("entity_type, entity_id, slot_id, status")
-      .eq("date", date),
+    db.from("availability").select("entity_type, entity_id, slot_id, status").eq("date", date),
     db.from("schedules").select("id, status, judge_id, courtroom_id, slot_id"),
   ]);
   if (slotsRes.error) throw slotsRes.error;
@@ -469,7 +504,9 @@ async function answerAssetsByOfficer(question: string, db = supabase): Promise<A
   const assets = await getAssetsData(db);
   const q = question.toLowerCase();
 
-  let matchedAssets = assets.filter((a) => a.assigned_officer_name && a.assigned_officer_name.trim().length > 0);
+  let matchedAssets = assets.filter(
+    (a) => a.assigned_officer_name && a.assigned_officer_name.trim().length > 0,
+  );
 
   if (/amit|yadav/i.test(q)) {
     matchedAssets = matchedAssets.filter((a) => /amit|yadav/i.test(a.assigned_officer_name));
@@ -529,13 +566,16 @@ async function answerEvidenceLocation(question: string, db = supabase): Promise<
   if (!targetAsset) {
     return {
       intent: "evidence_location",
-      summary: "The requested evidence item could not be located in the Malkhana or Court Property Register.",
+      summary:
+        "The requested evidence item could not be located in the Malkhana or Court Property Register.",
       source: "police_assets where category is evidence",
       rows: [],
     };
   }
 
-  const sealStr = targetAsset.tamper_seal_number ? ` under Tamper Seal #${targetAsset.tamper_seal_number}` : "";
+  const sealStr = targetAsset.tamper_seal_number
+    ? ` under Tamper Seal #${targetAsset.tamper_seal_number}`
+    : "";
   const summary = `Evidence Exhibit ${targetAsset.asset_code} (${targetAsset.name}) is currently located at: ${targetAsset.current_location}. Current Custodian: ${targetAsset.current_custodian_name}. Status: ${targetAsset.evidence_status || targetAsset.status}${sealStr}.`;
 
   return {
@@ -554,11 +594,21 @@ async function answerEvidenceLocation(question: string, db = supabase): Promise<
   };
 }
 
-async function answerEvidenceChainOfCustody(question: string, db = supabase): Promise<AssistantAnswer> {
+async function answerEvidenceChainOfCustody(
+  question: string,
+  db = supabase,
+): Promise<AssistantAnswer> {
   const assets = await getAssetsData(db);
   const targetAsset = assets.find((a) => a.asset_code === "EV-1045") || assets[0];
 
-  const milestones: Array<{ id: string; step: string; timestamp: string; from: string; to: string; reason: string }> = [
+  const milestones: Array<{
+    id: string;
+    step: string;
+    timestamp: string;
+    from: string;
+    to: string;
+    reason: string;
+  }> = [
     {
       id: "coc-1",
       step: "1. SEIZED",
@@ -659,7 +709,11 @@ async function answerEvidenceUnexamined(db = supabase): Promise<AssistantAnswer>
   };
 }
 
-async function answerCaseDocuments(question: string, db = supabase, userRole?: string): Promise<AssistantAnswer> {
+async function answerCaseDocuments(
+  question: string,
+  db = supabase,
+  userRole?: string,
+): Promise<AssistantAnswer> {
   const docs = await getDocumentsData(db, userRole);
   const q = question.toLowerCase();
 
@@ -692,7 +746,10 @@ async function answerCaseDocuments(question: string, db = supabase, userRole?: s
   };
 }
 
-async function answerDocumentsMultiVersion(db = supabase, userRole?: string): Promise<AssistantAnswer> {
+async function answerDocumentsMultiVersion(
+  db = supabase,
+  userRole?: string,
+): Promise<AssistantAnswer> {
   const docs = await getDocumentsData(db, userRole);
   const multiVersionDocs = docs.filter((d) => d.current_version > 1);
 
@@ -717,7 +774,10 @@ async function answerDocumentsMultiVersion(db = supabase, userRole?: string): Pr
   };
 }
 
-async function answerDocumentsUnverifiedIntegrity(db = supabase, userRole?: string): Promise<AssistantAnswer> {
+async function answerDocumentsUnverifiedIntegrity(
+  db = supabase,
+  userRole?: string,
+): Promise<AssistantAnswer> {
   const docs = await getDocumentsData(db, userRole);
   const unverifiedDocs = docs.filter(
     (d) =>

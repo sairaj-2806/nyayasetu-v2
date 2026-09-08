@@ -79,13 +79,20 @@ export function TopBar() {
       <div className="mx-2 flex-1 max-w-sm">
         <button
           type="button"
-          onClick={() => setSearchOpen(true)}
+          onClick={() => navigate({ to: "/search" })}
           className="group flex w-full items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted/60 hover:text-foreground"
           title="Search registry (Ctrl+K or ⌘K)"
         >
           <Search className="size-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
           <span className="truncate">Search cases, exhibits, documents...</span>
-          <kbd className="ml-auto hidden rounded border bg-background px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground sm:inline-block">
+          <kbd
+            onClick={(e) => {
+              e.stopPropagation();
+              setSearchOpen(true);
+            }}
+            className="ml-auto hidden rounded border bg-background px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground sm:inline-block hover:bg-muted cursor-pointer"
+            title="Open quick command search"
+          >
             Ctrl+K
           </kbd>
         </button>
@@ -158,7 +165,9 @@ export function TopBar() {
                         <div className="flex flex-col gap-0.5">
                           <span className="flex items-center gap-1.5">
                             {meta.label}
-                            {isCurrent && <span className="text-[10px] text-primary">✓ Active</span>}
+                            {isCurrent && (
+                              <span className="text-[10px] text-primary">✓ Active</span>
+                            )}
                           </span>
                           <span className="text-[10px] text-muted-foreground line-clamp-1">
                             {meta.description}
@@ -172,7 +181,10 @@ export function TopBar() {
             </DropdownMenuSub>
 
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleSignOut} className="text-destructive focus:text-destructive">
+            <DropdownMenuItem
+              onSelect={handleSignOut}
+              className="text-destructive focus:text-destructive"
+            >
               <LogOut className="size-4" />
               Sign out
             </DropdownMenuItem>
@@ -182,4 +194,3 @@ export function TopBar() {
     </header>
   );
 }
-

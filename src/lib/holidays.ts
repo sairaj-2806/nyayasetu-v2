@@ -1,11 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type HolidayType =
-  | "gazetted"
-  | "court_vacation"
-  | "restricted"
-  | "second_saturday"
-  | "sunday";
+  "gazetted" | "court_vacation" | "restricted" | "second_saturday" | "sunday";
 
 export type CourtHoliday = {
   id?: string;

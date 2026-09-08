@@ -112,16 +112,36 @@ export const Route = createFileRoute("/_authenticated/assets/$assetId")({
 function getStatusBadge(status: AssetLifecycleStatus) {
   switch (status) {
     case "AVAILABLE":
-      return <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-500/30 dark:text-emerald-400">Available</Badge>;
+      return (
+        <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-500/30 dark:text-emerald-400">
+          Available
+        </Badge>
+      );
     case "ASSIGNED":
     case "IN_USE":
-      return <Badge className="bg-blue-500/15 text-blue-700 hover:bg-blue-500/25 border-blue-500/30 dark:text-blue-400">{status === "IN_USE" ? "In Use" : "Assigned"}</Badge>;
+      return (
+        <Badge className="bg-blue-500/15 text-blue-700 hover:bg-blue-500/25 border-blue-500/30 dark:text-blue-400">
+          {status === "IN_USE" ? "In Use" : "Assigned"}
+        </Badge>
+      );
     case "TRANSFERRED":
-      return <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-amber-500/30 dark:text-amber-400">In Transfer</Badge>;
+      return (
+        <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-amber-500/30 dark:text-amber-400">
+          In Transfer
+        </Badge>
+      );
     case "MAINTENANCE":
-      return <Badge className="bg-purple-500/15 text-purple-700 hover:bg-purple-500/25 border-purple-500/30 dark:text-purple-400">Maintenance</Badge>;
+      return (
+        <Badge className="bg-purple-500/15 text-purple-700 hover:bg-purple-500/25 border-purple-500/30 dark:text-purple-400">
+          Maintenance
+        </Badge>
+      );
     case "RETURNED":
-      return <Badge className="bg-cyan-500/15 text-cyan-700 hover:bg-cyan-500/25 border-cyan-500/30 dark:text-cyan-400">Returned</Badge>;
+      return (
+        <Badge className="bg-cyan-500/15 text-cyan-700 hover:bg-cyan-500/25 border-cyan-500/30 dark:text-cyan-400">
+          Returned
+        </Badge>
+      );
     case "RETIRED":
     case "LOST":
       return <Badge variant="destructive">{status}</Badge>;
@@ -135,26 +155,47 @@ function getConditionBadge(condition: AssetCondition) {
   switch (condition) {
     case "NEW":
     case "EXCELLENT":
-      return <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"><CheckCircle2 className="size-3.5" /> {condition}</span>;
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+          <CheckCircle2 className="size-3.5" /> {condition}
+        </span>
+      );
     case "GOOD":
     case "FAIR":
-      return <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400">{condition}</span>;
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400">
+          {condition}
+        </span>
+      );
     case "DAMAGED":
     case "NEEDS_REPAIR":
-      return <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400"><Wrench className="size-3.5" /> {condition.replace("_", " ")}</span>;
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+          <Wrench className="size-3.5" /> {condition.replace("_", " ")}
+        </span>
+      );
     case "DECOMMISSIONED":
     default:
-      return <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">{condition}</span>;
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+          {condition}
+        </span>
+      );
   }
 }
 
 function getActionIcon(actionId: string) {
   if (actionId.includes("ASSIGN")) return <UserPlus className="size-3.5" />;
-  if (actionId.includes("IN_USE") || actionId.includes("DEPLOY")) return <Play className="size-3.5" />;
+  if (actionId.includes("IN_USE") || actionId.includes("DEPLOY"))
+    return <Play className="size-3.5" />;
   if (actionId.includes("TRANSFER")) return <Truck className="size-3.5" />;
   if (actionId.includes("MAINTENANCE")) return <Wrench className="size-3.5" />;
   if (actionId.includes("RETURN")) return <CornerDownLeft className="size-3.5" />;
-  if (actionId.includes("RETIRE") || actionId.includes("REJECT") || actionId.includes("DECOMMISSION"))
+  if (
+    actionId.includes("RETIRE") ||
+    actionId.includes("REJECT") ||
+    actionId.includes("DECOMMISSION")
+  )
     return <Archive className="size-3.5" />;
   if (actionId.includes("LOST")) return <AlertTriangle className="size-3.5" />;
   if (actionId.includes("STOCK") || actionId.includes("COMPLETE") || actionId.includes("RESTOCK"))
@@ -162,10 +203,20 @@ function getActionIcon(actionId: string) {
   return <RotateCcw className="size-3.5" />;
 }
 
-function FieldItem({ label, value, children }: { label: string; value?: string | number | null | undefined; children?: React.ReactNode }) {
+function FieldItem({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value?: string | number | null | undefined;
+  children?: React.ReactNode;
+}) {
   return (
     <div className="space-y-1">
-      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+        {label}
+      </p>
       {children || <p className="text-sm font-medium text-foreground">{value || "—"}</p>}
     </div>
   );
@@ -192,10 +243,12 @@ function AssetDetailPage() {
   const [destructiveConfirmed, setDestructiveConfirmed] = useState(false);
 
   // Evidence Custody & Verification State
-  const [verificationReport, setVerificationReport] = useState<ChainOfCustodyVerificationReport | null>(null);
+  const [verificationReport, setVerificationReport] =
+    useState<ChainOfCustodyVerificationReport | null>(null);
   const [isTransferEvidenceOpen, setIsTransferEvidenceOpen] = useState(false);
   const [isAcknowledgeReceiptOpen, setIsAcknowledgeReceiptOpen] = useState(false);
-  const [selectedPendingTransfer, setSelectedPendingTransfer] = useState<PendingEvidenceTransfer | null>(null);
+  const [selectedPendingTransfer, setSelectedPendingTransfer] =
+    useState<PendingEvidenceTransfer | null>(null);
 
   // Transfer Evidence Form State
   const [evidenceDestination, setEvidenceDestination] = useState("");
@@ -211,8 +264,10 @@ function AssetDetailPage() {
   const dispatchEvidenceMutation = useMutation({
     mutationFn: async () => {
       if (!detailQuery.data?.asset) return;
-      if (!evidenceDestination.trim()) throw new Error("Destination facility / location is required.");
-      if (!evidenceRecipientName.trim()) throw new Error("Designated receiving officer is required.");
+      if (!evidenceDestination.trim())
+        throw new Error("Destination facility / location is required.");
+      if (!evidenceRecipientName.trim())
+        throw new Error("Designated receiving officer is required.");
       if (!evidenceTransitSeal.trim()) throw new Error("Transit seal number is required.");
       if (!evidenceTransferReason.trim()) throw new Error("Transfer reason is required.");
 
@@ -229,7 +284,9 @@ function AssetDetailPage() {
     },
     onSuccess: (transfer) => {
       if (transfer) {
-        toast.success(`Evidence dispatched under transit seal ${transfer.transitSealNumber}. Awaiting recipient acknowledgment.`);
+        toast.success(
+          `Evidence dispatched under transit seal ${transfer.transitSealNumber}. Awaiting recipient acknowledgment.`,
+        );
         queryClient.invalidateQueries({ queryKey: ["police-asset-detail", assetId] });
       }
       setIsTransferEvidenceOpen(false);
@@ -244,7 +301,8 @@ function AssetDetailPage() {
   const acknowledgeReceiptMutation = useMutation({
     mutationFn: async () => {
       if (!selectedPendingTransfer) return;
-      if (!receiptSealVerified) throw new Error("Cannot acknowledge custody when tamper seal is not verified intact.");
+      if (!receiptSealVerified)
+        throw new Error("Cannot acknowledge custody when tamper seal is not verified intact.");
 
       return acknowledgeEvidenceReceipt({
         transferId: selectedPendingTransfer.id,
@@ -338,7 +396,10 @@ function AssetDetailPage() {
         </Button>
         <ErrorState
           title="Could not load asset or evidence record"
-          error={detailQuery.error || `The requested police asset ID "${assetId}" could not be located in the registry.`}
+          error={
+            detailQuery.error ||
+            `The requested police asset ID "${assetId}" could not be located in the registry.`
+          }
           onRetry={() => detailQuery.refetch()}
         />
       </div>
@@ -362,7 +423,10 @@ function AssetDetailPage() {
           Access Denied: Judicial Bench Scoping Clearance Required
         </h2>
         <p className="mt-2 max-w-md mx-auto text-sm text-muted-foreground">
-          Your current authenticated role (<strong className="text-foreground">{staffRole}</strong>) lacks statutory security clearance to inspect this asset or evidence exhibit. Under High Court Bench Scoping Rules, judicial officers may only inspect trial exhibits attached to cases actively scheduled before their bench.
+          Your current authenticated role (<strong className="text-foreground">{staffRole}</strong>)
+          lacks statutory security clearance to inspect this asset or evidence exhibit. Under High
+          Court Bench Scoping Rules, judicial officers may only inspect trial exhibits attached to
+          cases actively scheduled before their bench.
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <Button asChild variant="outline">
@@ -416,9 +480,14 @@ function AssetDetailPage() {
                     Evidence In Transit — Awaiting Physical Receipt Acknowledgment
                   </h4>
                   <p className="text-xs text-amber-700/90 dark:text-amber-300/90 mt-0.5">
-                    Dispatched from <strong>{firstPending.fromLocation}</strong> by {firstPending.releasingOfficerName} under Transit Seal #{firstPending.transitSealNumber}.
-                    Designated recipient: <strong className="text-foreground">{firstPending.designatedRecipientName}</strong>.
-                    The custody transfer will not finalize until the recipient verifies the seal and explicitly acknowledges receipt.
+                    Dispatched from <strong>{firstPending.fromLocation}</strong> by{" "}
+                    {firstPending.releasingOfficerName} under Transit Seal #
+                    {firstPending.transitSealNumber}. Designated recipient:{" "}
+                    <strong className="text-foreground">
+                      {firstPending.designatedRecipientName}
+                    </strong>
+                    . The custody transfer will not finalize until the recipient verifies the seal
+                    and explicitly acknowledges receipt.
                   </p>
                 </div>
               </div>
@@ -465,7 +534,9 @@ function AssetDetailPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setVerificationReport(verifyChainOfCustody(timeline, asset, staffName))}
+              onClick={() =>
+                setVerificationReport(verifyChainOfCustody(timeline, asset, staffName))
+              }
               className="gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/15"
             >
               <ShieldCheck className="size-3.5" />
@@ -506,9 +577,26 @@ function AssetDetailPage() {
         {/* Quick Particulars Grid */}
         <div className="mt-6 grid grid-cols-2 gap-4 border-t border-border/80 pt-4 sm:grid-cols-4">
           <FieldItem label="Current Custodian" value={asset.current_custodian_name} />
-          <FieldItem label="Assigned Officer" value={asset.assigned_officer_name || "Not assigned"} />
-          <FieldItem label="Registered Date" value={new Date(asset.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} />
-          <FieldItem label="Last Audit Update" value={new Date(asset.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} />
+          <FieldItem
+            label="Assigned Officer"
+            value={asset.assigned_officer_name || "Not assigned"}
+          />
+          <FieldItem
+            label="Registered Date"
+            value={new Date(asset.created_at).toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          />
+          <FieldItem
+            label="Last Audit Update"
+            value={new Date(asset.updated_at).toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          />
         </div>
 
         {/* Deterministic Lifecycle Engine Actions Ribbon */}
@@ -520,12 +608,16 @@ function AssetDetailPage() {
                 Police Asset Lifecycle State Machine Actions
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                State machine controls available transitions for state <strong className="text-foreground">{asset.status}</strong> under your role ({staffRole}).
+                State machine controls available transitions for state{" "}
+                <strong className="text-foreground">{asset.status}</strong> under your role (
+                {staffRole}).
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {allowedActions.length === 0 ? (
-                <span className="text-xs text-muted-foreground italic">No further actions available for this state/role.</span>
+                <span className="text-xs text-muted-foreground italic">
+                  No further actions available for this state/role.
+                </span>
               ) : (
                 allowedActions.map((action) => (
                   <Button
@@ -548,16 +640,36 @@ function AssetDetailPage() {
       {/* Tabs Layout Covering All 10 Required Sections */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8 space-y-6">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 h-auto p-1 bg-muted/60">
-          <TabsTrigger value="overview" className="text-xs py-2">Overview</TabsTrigger>
-          <TabsTrigger value="status" className="text-xs py-2">Status</TabsTrigger>
-          <TabsTrigger value="custodian" className="text-xs py-2">Custodian</TabsTrigger>
-          <TabsTrigger value="location" className="text-xs py-2">Location</TabsTrigger>
-          <TabsTrigger value="case" className="text-xs py-2">Case</TabsTrigger>
-          <TabsTrigger value="documents" className="text-xs py-2">Docs ({documents.length})</TabsTrigger>
-          <TabsTrigger value="timeline" className="text-xs py-2">Lifecycle</TabsTrigger>
-          <TabsTrigger value="transfers" className="text-xs py-2">Transfers ({transfers.length})</TabsTrigger>
-          <TabsTrigger value="maintenance" className="text-xs py-2">Maintenance</TabsTrigger>
-          <TabsTrigger value="audit" className="text-xs py-2">Audit</TabsTrigger>
+          <TabsTrigger value="overview" className="text-xs py-2">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="status" className="text-xs py-2">
+            Status
+          </TabsTrigger>
+          <TabsTrigger value="custodian" className="text-xs py-2">
+            Custodian
+          </TabsTrigger>
+          <TabsTrigger value="location" className="text-xs py-2">
+            Location
+          </TabsTrigger>
+          <TabsTrigger value="case" className="text-xs py-2">
+            Case
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="text-xs py-2">
+            Docs ({documents.length})
+          </TabsTrigger>
+          <TabsTrigger value="timeline" className="text-xs py-2">
+            Lifecycle
+          </TabsTrigger>
+          <TabsTrigger value="transfers" className="text-xs py-2">
+            Transfers ({transfers.length})
+          </TabsTrigger>
+          <TabsTrigger value="maintenance" className="text-xs py-2">
+            Maintenance
+          </TabsTrigger>
+          <TabsTrigger value="audit" className="text-xs py-2">
+            Audit
+          </TabsTrigger>
         </TabsList>
 
         {/* 1. OVERVIEW TAB */}
@@ -575,8 +687,14 @@ function AssetDetailPage() {
                 <FieldItem label="Official Name / Description" value={asset.name} />
                 <FieldItem label="Category Classification" value={asset.category_name} />
                 <FieldItem label="Serial Number" value={asset.serial_number || "None recorded"} />
-                <FieldItem label="Barcode / RFID Identifier" value={asset.barcode_rfid || "Not tagged"} />
-                <FieldItem label="Tamper Seal ID" value={asset.tamper_seal_number || "Unsealed departmental item"} />
+                <FieldItem
+                  label="Barcode / RFID Identifier"
+                  value={asset.barcode_rfid || "Not tagged"}
+                />
+                <FieldItem
+                  label="Tamper Seal ID"
+                  value={asset.tamper_seal_number || "Unsealed departmental item"}
+                />
               </CardContent>
             </Card>
 
@@ -590,19 +708,40 @@ function AssetDetailPage() {
               <CardContent className="space-y-4 text-sm">
                 <FieldItem
                   label="Purchase / Seizure Date"
-                  value={asset.purchase_date ? new Date(asset.purchase_date).toLocaleDateString("en-IN") : "Not recorded"}
+                  value={
+                    asset.purchase_date
+                      ? new Date(asset.purchase_date).toLocaleDateString("en-IN")
+                      : "Not recorded"
+                  }
                 />
                 <FieldItem
                   label="Procurement Value / Seized Estimation"
-                  value={asset.purchase_cost ? `₹ ${asset.purchase_cost.toLocaleString("en-IN")}` : "Non-commercial article"}
+                  value={
+                    asset.purchase_cost
+                      ? `₹ ${asset.purchase_cost.toLocaleString("en-IN")}`
+                      : "Non-commercial article"
+                  }
                 />
-                <FieldItem label="Vendor / Source Supplier" value={asset.vendor_supplier || "Official Seizure / Panchnama"} />
+                <FieldItem
+                  label="Vendor / Source Supplier"
+                  value={asset.vendor_supplier || "Official Seizure / Panchnama"}
+                />
                 <FieldItem
                   label="Warranty / Recertification Expiry"
-                  value={asset.warranty_expiry ? new Date(asset.warranty_expiry).toLocaleDateString("en-IN") : "Permanent Custody"}
+                  value={
+                    asset.warranty_expiry
+                      ? new Date(asset.warranty_expiry).toLocaleDateString("en-IN")
+                      : "Permanent Custody"
+                  }
                 />
-                <FieldItem label="Enrolled At" value={new Date(asset.created_at).toLocaleString("en-IN")} />
-                <FieldItem label="Last Modified" value={new Date(asset.updated_at).toLocaleString("en-IN")} />
+                <FieldItem
+                  label="Enrolled At"
+                  value={new Date(asset.created_at).toLocaleString("en-IN")}
+                />
+                <FieldItem
+                  label="Last Modified"
+                  value={new Date(asset.updated_at).toLocaleString("en-IN")}
+                />
               </CardContent>
             </Card>
           </div>
@@ -623,15 +762,20 @@ function AssetDetailPage() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                 <div className="rounded-lg border border-border p-4 bg-muted/20">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Asset Lifecycle</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">
+                    Asset Lifecycle
+                  </p>
                   <div className="mt-2">{getStatusBadge(asset.status)}</div>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Governed by the deterministic lifecycle engine. Transitions require authorized verification.
+                    Governed by the deterministic lifecycle engine. Transitions require authorized
+                    verification.
                   </p>
                 </div>
 
                 <div className="rounded-lg border border-border p-4 bg-muted/20">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Evidence Legal Status</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">
+                    Evidence Legal Status
+                  </p>
                   <div className="mt-2">
                     {asset.evidence_status ? (
                       <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400">
@@ -647,7 +791,9 @@ function AssetDetailPage() {
                 </div>
 
                 <div className="rounded-lg border border-border p-4 bg-muted/20">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Physical Condition</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">
+                    Physical Condition
+                  </p>
                   <div className="mt-2">{getConditionBadge(asset.condition)}</div>
                   <p className="mt-2 text-xs text-muted-foreground">
                     Certified during last inspection by malkhana custody officers.
@@ -673,9 +819,15 @@ function AssetDetailPage() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="rounded-lg border border-border p-4">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">Primary Custodian / Moharrir</h4>
-                  <p className="mt-2 text-base font-bold text-foreground">{asset.current_custodian_name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Holding Officer (Malkhana Section)</p>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">
+                    Primary Custodian / Moharrir
+                  </h4>
+                  <p className="mt-2 text-base font-bold text-foreground">
+                    {asset.current_custodian_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Holding Officer (Malkhana Section)
+                  </p>
                   <div className="mt-4 pt-3 border-t border-border/60 text-xs text-muted-foreground space-y-1">
                     <p>• Responsible for physical safekeeping and environmental protection.</p>
                     <p>• Authorized to verify tamper seals and sign dispatch manifests.</p>
@@ -683,11 +835,17 @@ function AssetDetailPage() {
                 </div>
 
                 <div className="rounded-lg border border-border p-4">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">Assigned Investigating Officer</h4>
-                  <p className="mt-2 text-base font-bold text-foreground">{asset.assigned_officer_name || "None Assigned"}</p>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">
+                    Assigned Investigating Officer
+                  </h4>
+                  <p className="mt-2 text-base font-bold text-foreground">
+                    {asset.assigned_officer_name || "None Assigned"}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-0.5">Field / Case Officer</p>
                   <div className="mt-4 pt-3 border-t border-border/60 text-xs text-muted-foreground space-y-1">
-                    <p>• Authorized for court production, forensic dispatch, or field inspection.</p>
+                    <p>
+                      • Authorized for court production, forensic dispatch, or field inspection.
+                    </p>
                     <p>• Must return to malkhana custody upon completion of scheduled hearing.</p>
                   </div>
                 </div>
@@ -708,13 +866,18 @@ function AssetDetailPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FieldItem label="Police Station / Department" value={asset.department_station} />
-                <FieldItem label="Designated Facility / Storage Room" value={asset.current_location} />
+                <FieldItem
+                  label="Designated Facility / Storage Room"
+                  value={asset.current_location}
+                />
               </div>
               <div className="rounded-lg bg-muted/40 p-4 text-xs text-muted-foreground space-y-2">
                 <p className="font-semibold text-foreground">Storage Protocol Checklist:</p>
                 <p>✓ Biometric access control logged for Malkhana Room entry.</p>
                 <p>✓ Physical seal numbers audited every 14 days against district registry.</p>
-                <p>✓ Fire suppression and climate regulation maintained within prescribed standards.</p>
+                <p>
+                  ✓ Fire suppression and climate regulation maintained within prescribed standards.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -729,7 +892,8 @@ function AssetDetailPage() {
                 Linked Judicial Case & Criminal Proceedings
               </CardTitle>
               <CardDescription>
-                Integration with NyayaSetu court scheduling and automated cause-list exhibit notification.
+                Integration with NyayaSetu court scheduling and automated cause-list exhibit
+                notification.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -737,7 +901,10 @@ function AssetDetailPage() {
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-5">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <Badge variant="outline" className="font-mono text-xs border-primary text-primary">
+                      <Badge
+                        variant="outline"
+                        className="font-mono text-xs border-primary text-primary"
+                      >
                         {asset.case_number}
                       </Badge>
                       <h4 className="mt-2 text-base font-bold text-foreground">
@@ -745,7 +912,8 @@ function AssetDetailPage() {
                       </h4>
                       {asset.fir_number && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Police FIR: <span className="font-medium text-foreground">{asset.fir_number}</span>
+                          Police FIR:{" "}
+                          <span className="font-medium text-foreground">{asset.fir_number}</span>
                         </p>
                       )}
                     </div>
@@ -758,16 +926,20 @@ function AssetDetailPage() {
                   </div>
                   <div className="mt-4 pt-3 border-t border-primary/20 text-xs text-muted-foreground">
                     <p>
-                      When this case is listed for hearing, this asset will automatically be flagged on the judge's cause-list for exhibit production.
+                      When this case is listed for hearing, this asset will automatically be flagged
+                      on the judge's cause-list for exhibit production.
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="py-8 text-center text-muted-foreground">
                   <Gavel className="mx-auto size-8 text-muted-foreground/60" />
-                  <p className="mt-2 text-sm font-medium text-foreground">No Judicial Case Linked</p>
+                  <p className="mt-2 text-sm font-medium text-foreground">
+                    No Judicial Case Linked
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    This item is currently registered as general departmental property or unlinked seized property.
+                    This item is currently registered as general departmental property or unlinked
+                    seized property.
                   </p>
                 </div>
               )}
@@ -825,7 +997,11 @@ function AssetDetailPage() {
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs gap-1"
-                          onClick={() => alert(`Document ${doc.document_number}\nHash: ${doc.latest_sha256}\nCertified under Bharatiya Sakshya Adhiniyam, 2023.`)}
+                          onClick={() =>
+                            alert(
+                              `Document ${doc.document_number}\nHash: ${doc.latest_sha256}\nCertified under Bharatiya Sakshya Adhiniyam, 2023.`,
+                            )
+                          }
                         >
                           <FileCheck className="size-3.5 text-emerald-600" />
                           Verify
@@ -851,7 +1027,8 @@ function AssetDetailPage() {
                     Statutory Evidence Chain of Custody Milestones
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Standard 9-stage evidentiary lifecycle (Panchnama to Court Disposal) under Bharatiya Sakshya Adhiniyam, 2023.
+                    Standard 9-stage evidentiary lifecycle (Panchnama to Court Disposal) under
+                    Bharatiya Sakshya Adhiniyam, 2023.
                   </CardDescription>
                 </div>
                 <Button
@@ -925,7 +1102,8 @@ function AssetDetailPage() {
                 Custody Lifecycle Stepper & Audit Log
               </CardTitle>
               <CardDescription>
-                Chronological chain-of-custody milestones and state transitions recorded by the lifecycle engine.
+                Chronological chain-of-custody milestones and state transitions recorded by the
+                lifecycle engine.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -949,9 +1127,11 @@ function AssetDetailPage() {
                       </div>
 
                       <div className="mt-2 text-xs text-foreground flex items-center gap-2">
-                        <span className="font-semibold text-muted-foreground">From:</span> {evt.from_custodian}
+                        <span className="font-semibold text-muted-foreground">From:</span>{" "}
+                        {evt.from_custodian}
                         <span className="text-muted-foreground">→</span>
-                        <span className="font-semibold text-muted-foreground">To:</span> {evt.to_custodian}
+                        <span className="font-semibold text-muted-foreground">To:</span>{" "}
+                        {evt.to_custodian}
                       </div>
 
                       <p className="mt-1.5 text-xs text-muted-foreground">{evt.purpose_reason}</p>
@@ -961,14 +1141,19 @@ function AssetDetailPage() {
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5">
                             <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-semibold flex items-center gap-1">
-                              <CheckCircle2 className="size-3" /> Digital Signature / Approval: SIGNED
+                              <CheckCircle2 className="size-3" /> Digital Signature / Approval:
+                              SIGNED
                             </Badge>
                             <span className="text-muted-foreground text-[11px]">
-                              Signed By: <strong className="text-foreground">{evt.to_custodian.replace(/\s*\(.*\)/, "")}</strong>
+                              Signed By:{" "}
+                              <strong className="text-foreground">
+                                {evt.to_custodian.replace(/\s*\(.*\)/, "")}
+                              </strong>
                             </span>
                           </div>
                           <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1 text-[11px]">
-                            <ShieldCheck className="size-3.5" /> Seal #{evt.tamper_seal_number} Intact
+                            <ShieldCheck className="size-3.5" /> Seal #{evt.tamper_seal_number}{" "}
+                            Intact
                           </span>
                         </div>
 
@@ -978,7 +1163,9 @@ function AssetDetailPage() {
                               Signed Content Hash (SHA-256):
                             </span>
                             <span className="text-foreground">
-                              {evt.verification_hash.startsWith("0x") ? `sha256_${evt.verification_hash.slice(2)}f4901b` : evt.verification_hash}
+                              {evt.verification_hash.startsWith("0x")
+                                ? `sha256_${evt.verification_hash.slice(2)}f4901b`
+                                : evt.verification_hash}
                             </span>
                           </div>
                           <span className="text-[9px] font-sans text-muted-foreground shrink-0 border-t sm:border-t-0 sm:border-l border-border/60 sm:pl-2 pt-1 sm:pt-0">
@@ -1003,7 +1190,8 @@ function AssetDetailPage() {
                 Inter-Station & Court Transfer Log
               </CardTitle>
               <CardDescription>
-                Official manifests recording movements between stations, forensic labs, and courtrooms.
+                Official manifests recording movements between stations, forensic labs, and
+                courtrooms.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1077,8 +1265,12 @@ function AssetDetailPage() {
                           {mnt.maintenance_type.replace(/_/g, " ")}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-foreground">{mnt.service_provider}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{mnt.technician_name}</TableCell>
+                      <TableCell className="text-xs text-foreground">
+                        {mnt.service_provider}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {mnt.technician_name}
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(mnt.scheduled_date).toLocaleDateString("en-IN")}
                       </TableCell>
@@ -1107,7 +1299,8 @@ function AssetDetailPage() {
                 Immutable Integrity Audit & Verification Log
               </CardTitle>
               <CardDescription>
-                Cryptographic tamper verification compliant with Section 63 of Bharatiya Sakshya Adhiniyam, 2023.
+                Cryptographic tamper verification compliant with Section 63 of Bharatiya Sakshya
+                Adhiniyam, 2023.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1117,12 +1310,18 @@ function AssetDetailPage() {
                   Tamper Verification Status: PASSED / UNCOMPROMISED
                 </div>
                 <p className="text-muted-foreground">
-                  All digital certificates, physical seal numbers, and custodian transfer receipts match the central cryptographic integrity ledger.
+                  All digital certificates, physical seal numbers, and custodian transfer receipts
+                  match the central cryptographic integrity ledger.
                 </p>
                 <div className="pt-2 font-mono text-[11px] text-muted-foreground space-y-1">
-                  <p>SHA-256 Digest: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</p>
+                  <p>
+                    SHA-256 Digest: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+                  </p>
                   <p>Merkle Root: 0x9f82ab41097c234a123f8762e5b01889dcba2145</p>
-                  <p>Digital Signature Algorithm: ECDSA-secp256k1 (Government of NCT Forensic Authority)</p>
+                  <p>
+                    Digital Signature Algorithm: ECDSA-secp256k1 (Government of NCT Forensic
+                    Authority)
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -1138,9 +1337,7 @@ function AssetDetailPage() {
               {selectedAction && getActionIcon(selectedAction.actionId)}
               {selectedAction?.label}
             </DialogTitle>
-            <DialogDescription className="text-xs">
-              {selectedAction?.description}
-            </DialogDescription>
+            <DialogDescription className="text-xs">{selectedAction?.description}</DialogDescription>
           </DialogHeader>
 
           {selectedAction && (
@@ -1148,12 +1345,16 @@ function AssetDetailPage() {
               {/* Status Transition Badges */}
               <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3 border border-border/80">
                 <div className="text-center">
-                  <p className="text-[10px] text-muted-foreground font-semibold uppercase">Current State</p>
+                  <p className="text-[10px] text-muted-foreground font-semibold uppercase">
+                    Current State
+                  </p>
                   <div className="mt-1">{getStatusBadge(asset.status)}</div>
                 </div>
                 <ArrowRight className="size-4 text-muted-foreground" />
                 <div className="text-center">
-                  <p className="text-[10px] text-muted-foreground font-semibold uppercase">Target State</p>
+                  <p className="text-[10px] text-muted-foreground font-semibold uppercase">
+                    Target State
+                  </p>
                   <div className="mt-1">{getStatusBadge(selectedAction.targetStatus)}</div>
                 </div>
               </div>
@@ -1233,7 +1434,10 @@ function AssetDetailPage() {
 
               {/* Mandatory Reason */}
               <div className="space-y-1.5">
-                <Label htmlFor="reason" className="text-xs font-semibold flex items-center justify-between">
+                <Label
+                  htmlFor="reason"
+                  className="text-xs font-semibold flex items-center justify-between"
+                >
                   <span>Justification & Authorization Reason *</span>
                   <span className="text-[10px] text-muted-foreground">(Min 4 chars)</span>
                 </Label>
@@ -1248,33 +1452,36 @@ function AssetDetailPage() {
               </div>
 
               {/* Destructive Action Warning & Confirmation Checkbox */}
-              {selectedAction && (selectedAction.targetStatus === "RETIRED" || selectedAction.targetStatus === "LOST") && (
-                <div className="space-y-2.5 rounded-lg border border-destructive/40 bg-destructive/10 p-3.5 text-xs text-destructive">
-                  <div className="flex items-center gap-2 font-bold">
-                    <AlertTriangle className="size-4 shrink-0 text-destructive" />
-                    <span>Permanent / High-Impact State Transition Warning</span>
+              {selectedAction &&
+                (selectedAction.targetStatus === "RETIRED" ||
+                  selectedAction.targetStatus === "LOST") && (
+                  <div className="space-y-2.5 rounded-lg border border-destructive/40 bg-destructive/10 p-3.5 text-xs text-destructive">
+                    <div className="flex items-center gap-2 font-bold">
+                      <AlertTriangle className="size-4 shrink-0 text-destructive" />
+                      <span>Permanent / High-Impact State Transition Warning</span>
+                    </div>
+                    <p className="leading-relaxed opacity-95 text-[11px]">
+                      {selectedAction.targetStatus === "LOST"
+                        ? "Marking an item as LOST initiates an immediate vigilance inquiry, alerts the Court Registrar and Malkhana Supervisor, and logs an immutable audit alert under Section 63 BSA 2023."
+                        : "Retiring this asset will permanently decommission it from active police service and judicial custody allocation pools."}
+                    </p>
+                    <div className="flex items-start gap-2 pt-2 border-t border-destructive/20">
+                      <Checkbox
+                        id="confirmDestructive"
+                        checked={destructiveConfirmed}
+                        onCheckedChange={(c) => setDestructiveConfirmed(!!c)}
+                        className="mt-0.5"
+                      />
+                      <Label
+                        htmlFor="confirmDestructive"
+                        className="text-[11px] font-semibold text-destructive leading-tight cursor-pointer"
+                      >
+                        I confirm this action is officially authorized under Court / Police Rules
+                        and understand it cannot be undone.
+                      </Label>
+                    </div>
                   </div>
-                  <p className="leading-relaxed opacity-95 text-[11px]">
-                    {selectedAction.targetStatus === "LOST"
-                      ? "Marking an item as LOST initiates an immediate vigilance inquiry, alerts the Court Registrar and Malkhana Supervisor, and logs an immutable audit alert under Section 63 BSA 2023."
-                      : "Retiring this asset will permanently decommission it from active police service and judicial custody allocation pools."}
-                  </p>
-                  <div className="flex items-start gap-2 pt-2 border-t border-destructive/20">
-                    <Checkbox
-                      id="confirmDestructive"
-                      checked={destructiveConfirmed}
-                      onCheckedChange={(c) => setDestructiveConfirmed(!!c)}
-                      className="mt-0.5"
-                    />
-                    <Label
-                      htmlFor="confirmDestructive"
-                      className="text-[11px] font-semibold text-destructive leading-tight cursor-pointer"
-                    >
-                      I confirm this action is officially authorized under Court / Police Rules and understand it cannot be undone.
-                    </Label>
-                  </div>
-                </div>
-              )}
+                )}
 
               <div className="text-[11px] text-muted-foreground">
                 Recorded by: <strong className="text-foreground">{staffName}</strong> ({staffRole})
@@ -1294,7 +1501,8 @@ function AssetDetailPage() {
             <Button
               size="sm"
               variant={
-                selectedAction?.targetStatus === "RETIRED" || selectedAction?.targetStatus === "LOST"
+                selectedAction?.targetStatus === "RETIRED" ||
+                selectedAction?.targetStatus === "LOST"
                   ? "destructive"
                   : selectedAction?.variant || "default"
               }
@@ -1302,7 +1510,9 @@ function AssetDetailPage() {
               disabled={
                 transitionMutation.isPending ||
                 reason.trim().length < 4 ||
-                ((selectedAction?.targetStatus === "RETIRED" || selectedAction?.targetStatus === "LOST") && !destructiveConfirmed)
+                ((selectedAction?.targetStatus === "RETIRED" ||
+                  selectedAction?.targetStatus === "LOST") &&
+                  !destructiveConfirmed)
               }
               className="gap-1.5"
             >
@@ -1327,7 +1537,10 @@ function AssetDetailPage() {
       </Dialog>
 
       {/* Verify Chain of Custody Report Dialog */}
-      <Dialog open={!!verificationReport} onOpenChange={(open) => !open && setVerificationReport(null)}>
+      <Dialog
+        open={!!verificationReport}
+        onOpenChange={(open) => !open && setVerificationReport(null)}
+      >
         <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
@@ -1335,7 +1548,8 @@ function AssetDetailPage() {
               Evidence Chain of Custody Statutory Verification
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Algorithmic verification of custody chronological monotonicity, unbroken continuity, seal integrity, and BSA 2023 Section 63 compliance.
+              Algorithmic verification of custody chronological monotonicity, unbroken continuity,
+              seal integrity, and BSA 2023 Section 63 compliance.
             </DialogDescription>
           </DialogHeader>
 
@@ -1347,7 +1561,7 @@ function AssetDetailPage() {
                   "rounded-lg p-4 border flex items-start gap-3",
                   verificationReport.status === "VALID_AND_COMPLETE"
                     ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-950 dark:text-emerald-100"
-                    : "bg-destructive/10 border-destructive/30 text-destructive dark:text-red-300"
+                    : "bg-destructive/10 border-destructive/30 text-destructive dark:text-red-300",
                 )}
               >
                 {verificationReport.status === "VALID_AND_COMPLETE" ? (
@@ -1367,14 +1581,15 @@ function AssetDetailPage() {
                         "text-[10px]",
                         verificationReport.status === "VALID_AND_COMPLETE"
                           ? "bg-emerald-500/20 text-emerald-700 border-emerald-500/30 dark:text-emerald-300"
-                          : "bg-destructive/20 text-destructive border-destructive/30"
+                          : "bg-destructive/20 text-destructive border-destructive/30",
                       )}
                     >
                       {verificationReport.status}
                     </Badge>
                   </div>
                   <p className="mt-1 text-xs opacity-90">
-                    Verified on {new Date(verificationReport.verifiedAt).toLocaleString("en-IN")} by {verificationReport.verifiedBy}.
+                    Verified on {new Date(verificationReport.verifiedAt).toLocaleString("en-IN")} by{" "}
+                    {verificationReport.verifiedBy}.
                   </p>
                 </div>
               </div>
@@ -1382,16 +1597,28 @@ function AssetDetailPage() {
               {/* Custody Statistics */}
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg border border-border/80 bg-muted/30 p-2.5">
-                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">Handover Events</p>
-                  <p className="text-base font-bold text-foreground mt-0.5">{verificationReport.movementCount}</p>
+                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">
+                    Handover Events
+                  </p>
+                  <p className="text-base font-bold text-foreground mt-0.5">
+                    {verificationReport.movementCount}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/80 bg-muted/30 p-2.5">
-                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">Days in Custody</p>
-                  <p className="text-base font-bold text-foreground mt-0.5">{verificationReport.totalDaysInCustody} Days</p>
+                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">
+                    Days in Custody
+                  </p>
+                  <p className="text-base font-bold text-foreground mt-0.5">
+                    {verificationReport.totalDaysInCustody} Days
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/80 bg-muted/30 p-2.5">
-                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">Legal Standard</p>
-                  <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">BSA 2023 Sec 63</p>
+                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">
+                    Legal Standard
+                  </p>
+                  <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                    BSA 2023 Sec 63
+                  </p>
                 </div>
               </div>
 
@@ -1422,7 +1649,9 @@ function AssetDetailPage() {
                       )}
                       Unbroken Custodian Continuity
                     </span>
-                    <span className="text-[11px] text-muted-foreground">Explicit bilateral handovers</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      Explicit bilateral handovers
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -1434,7 +1663,9 @@ function AssetDetailPage() {
                       )}
                       Physical Tamper Seals Verified
                     </span>
-                    <span className="text-[11px] text-muted-foreground">Seal # checked at receipt</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      Seal # checked at receipt
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -1446,7 +1677,9 @@ function AssetDetailPage() {
                       )}
                       Cryptographic Hashes & Signatures Valid
                     </span>
-                    <span className="text-[11px] text-muted-foreground">SHA-256 digital integrity</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      SHA-256 digital integrity
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -1458,7 +1691,9 @@ function AssetDetailPage() {
                       )}
                       Bharatiya Sakshya Adhiniyam, 2023 §63 Compliance
                     </span>
-                    <span className="text-[11px] text-muted-foreground">Admissible in evidence</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      Admissible in evidence
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1466,12 +1701,20 @@ function AssetDetailPage() {
               {/* Current Custodian & Location */}
               <div className="grid grid-cols-2 gap-3 text-xs bg-muted/20 p-3 rounded-lg border border-border/80">
                 <div>
-                  <span className="text-muted-foreground font-medium">Verified Current Custodian:</span>
-                  <p className="font-semibold text-foreground mt-0.5">{verificationReport.currentCustodian}</p>
+                  <span className="text-muted-foreground font-medium">
+                    Verified Current Custodian:
+                  </span>
+                  <p className="font-semibold text-foreground mt-0.5">
+                    {verificationReport.currentCustodian}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground font-medium">Verified Current Location:</span>
-                  <p className="font-semibold text-foreground mt-0.5">{verificationReport.currentLocation}</p>
+                  <span className="text-muted-foreground font-medium">
+                    Verified Current Location:
+                  </span>
+                  <p className="font-semibold text-foreground mt-0.5">
+                    {verificationReport.currentLocation}
+                  </p>
                 </div>
               </div>
 
@@ -1491,7 +1734,8 @@ function AssetDetailPage() {
               )}
 
               <div className="text-[11px] text-muted-foreground font-mono">
-                Verification Fingerprint: {verificationReport.sha256VerificationHash.slice(0, 32)}...
+                Verification Fingerprint: {verificationReport.sha256VerificationHash.slice(0, 32)}
+                ...
               </div>
             </div>
           )}
@@ -1513,7 +1757,8 @@ function AssetDetailPage() {
               Transfer Evidence (Initiate Transit)
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Dispatch evidence to another police station, forensic lab, or court. The receiving officer must explicitly acknowledge receipt before custody transfers.
+              Dispatch evidence to another police station, forensic lab, or court. The receiving
+              officer must explicitly acknowledge receipt before custody transfers.
             </DialogDescription>
           </DialogHeader>
 
@@ -1524,7 +1769,9 @@ function AssetDetailPage() {
                 Anti-Silent Custody Protection
               </p>
               <p className="mt-1 opacity-90">
-                This exhibit will be marked <strong>IN_TRANSIT</strong>. Custody does not shift to the recipient until they physically examine the package and confirm receipt with tamper seal verification.
+                This exhibit will be marked <strong>IN_TRANSIT</strong>. Custody does not shift to
+                the recipient until they physically examine the package and confirm receipt with
+                tamper seal verification.
               </p>
             </div>
 
@@ -1582,7 +1829,8 @@ function AssetDetailPage() {
             </div>
 
             <div className="text-[11px] text-muted-foreground">
-              Releasing Custodian: <strong className="text-foreground">{staffName}</strong> ({staffRole})
+              Releasing Custodian: <strong className="text-foreground">{staffName}</strong> (
+              {staffRole})
             </div>
           </div>
 
@@ -1632,7 +1880,8 @@ function AssetDetailPage() {
               Acknowledge Custody Receipt
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Verify the physical tamper seal and confirm receipt into your custody. This permanently updates the Chain of Custody ledger.
+              Verify the physical tamper seal and confirm receipt into your custody. This
+              permanently updates the Chain of Custody ledger.
             </DialogDescription>
           </DialogHeader>
 
@@ -1641,11 +1890,15 @@ function AssetDetailPage() {
               <div className="rounded-lg bg-muted/40 border border-border/80 p-3 space-y-1.5 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Dispatched By:</span>
-                  <span className="font-semibold text-foreground">{selectedPendingTransfer.releasingOfficerName}</span>
+                  <span className="font-semibold text-foreground">
+                    {selectedPendingTransfer.releasingOfficerName}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Origin:</span>
-                  <span className="font-medium text-foreground">{selectedPendingTransfer.fromLocation}</span>
+                  <span className="font-medium text-foreground">
+                    {selectedPendingTransfer.fromLocation}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Expected Transit Seal:</span>
@@ -1670,10 +1923,12 @@ function AssetDetailPage() {
                     htmlFor="sealVerifyCheck"
                     className="text-xs font-semibold cursor-pointer text-emerald-950 dark:text-emerald-100"
                   >
-                    I certify that transit seal #{selectedPendingTransfer.transitSealNumber} is fully intact and unbroken.
+                    I certify that transit seal #{selectedPendingTransfer.transitSealNumber} is
+                    fully intact and unbroken.
                   </label>
                   <p className="text-[11px] text-muted-foreground">
-                    Required under §63 BSA 2023. If the seal has been compromised, do not accept custody.
+                    Required under §63 BSA 2023. If the seal has been compromised, do not accept
+                    custody.
                   </p>
                 </div>
               </div>
@@ -1689,7 +1944,9 @@ function AssetDetailPage() {
                   <SelectContent>
                     <SelectItem value="Intact / Undamaged">Intact / Undamaged</SelectItem>
                     <SelectItem value="Good / Normal">Good / Normal</SelectItem>
-                    <SelectItem value="Minor Outer Wear (Seal Intact)">Minor Outer Wear (Seal Intact)</SelectItem>
+                    <SelectItem value="Minor Outer Wear (Seal Intact)">
+                      Minor Outer Wear (Seal Intact)
+                    </SelectItem>
                     <SelectItem value="Compromised / Damaged">Compromised / Damaged</SelectItem>
                   </SelectContent>
                 </Select>
@@ -1719,15 +1976,19 @@ function AssetDetailPage() {
                   </Badge>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Submitting will bind an immutable cryptographic signature and SHA-256 custody receipt digest signed by <strong className="text-foreground">{staffName}</strong> ({staffRole}) under Bharatiya Sakshya Adhiniyam, 2023 §63.
+                  Submitting will bind an immutable cryptographic signature and SHA-256 custody
+                  receipt digest signed by <strong className="text-foreground">{staffName}</strong>{" "}
+                  ({staffRole}) under Bharatiya Sakshya Adhiniyam, 2023 §63.
                 </p>
                 <p className="text-[10px] text-muted-foreground opacity-80">
-                  * Architecture ready for Controller of Certifying Authorities (CCA) Class 3 DSC tokens and NIC eSign Gateway. (Not a government-certified DSC).
+                  * Architecture ready for Controller of Certifying Authorities (CCA) Class 3 DSC
+                  tokens and NIC eSign Gateway. (Not a government-certified DSC).
                 </p>
               </div>
 
               <div className="text-[11px] text-muted-foreground">
-                Receiving Custodian: <strong className="text-foreground">{staffName}</strong> ({staffRole})
+                Receiving Custodian: <strong className="text-foreground">{staffName}</strong> (
+                {staffRole})
               </div>
             </div>
           )}

@@ -253,10 +253,7 @@ export function runSchedulingEngine(target: CaseRow, data: EngineData): EngineRe
   const judgeWorkloadRatios = new Map<string, number>();
   for (const judge of data.judges) {
     judgeMatches.set(judge.id, specialisationMatch(judge, categoryName));
-    judgeWorkloadRatios.set(
-      judge.id,
-      1 - Math.min(1, judge.current_workload / MAX_JUDGE_WORKLOAD),
-    );
+    judgeWorkloadRatios.set(judge.id, 1 - Math.min(1, judge.current_workload / MAX_JUDGE_WORKLOAD));
   }
 
   // 5. Precompute courtroom utilisation
@@ -283,8 +280,7 @@ export function runSchedulingEngine(target: CaseRow, data: EngineData): EngineRe
       1 - Math.min(1, judge.current_workload / MAX_JUDGE_WORKLOAD);
     const earliness = 1 - slotIndex / lastIndex;
     const roomLoad = roomBookings.get(courtroom.id) ?? 0;
-    const utilisation =
-      courtroomUtilisations.get(courtroom.id) ?? (1 - roomLoad / busiestRoom);
+    const utilisation = courtroomUtilisations.get(courtroom.id) ?? 1 - roomLoad / busiestRoom;
 
     return [
       {

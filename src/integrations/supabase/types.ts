@@ -1321,13 +1321,32 @@ export type Database = {
     };
     Enums: {
       app_role: "admin" | "registrar" | "judge";
-      asset_condition: "NEW" | "EXCELLENT" | "GOOD" | "FAIR" | "DAMAGED" | "NEEDS_REPAIR" | "DECOMMISSIONED";
-      asset_lifecycle_status: "REGISTERED" | "AVAILABLE" | "ASSIGNED" | "IN_USE" | "TRANSFERRED" | "MAINTENANCE" | "RETURNED" | "RETIRED" | "LOST";
+      asset_condition:
+        "NEW" | "EXCELLENT" | "GOOD" | "FAIR" | "DAMAGED" | "NEEDS_REPAIR" | "DECOMMISSIONED";
+      asset_lifecycle_status:
+        | "REGISTERED"
+        | "AVAILABLE"
+        | "ASSIGNED"
+        | "IN_USE"
+        | "TRANSFERRED"
+        | "MAINTENANCE"
+        | "RETURNED"
+        | "RETIRED"
+        | "LOST";
       availability_status: "available" | "unavailable";
       case_status: "filed" | "scheduled" | "in_progress" | "adjourned" | "disposed";
       document_sensitivity_tier: "PUBLIC" | "RESTRICTED" | "SEALED_COVER_IN_CAMERA";
       entity_type: "judge" | "courtroom";
-      evidence_lifecycle_status: "SEIZED" | "REGISTERED" | "SEALED" | "STORED" | "TRANSFERRED" | "FORENSIC_EXAMINATION" | "RETURNED" | "COURT_SUBMISSION" | "DISPOSED";
+      evidence_lifecycle_status:
+        | "SEIZED"
+        | "REGISTERED"
+        | "SEALED"
+        | "STORED"
+        | "TRANSFERRED"
+        | "FORENSIC_EXAMINATION"
+        | "RETURNED"
+        | "COURT_SUBMISSION"
+        | "DISPOSED";
       recommendation_status: "accepted" | "modified" | "rejected";
       schedule_status: "proposed" | "confirmed" | "completed" | "cancelled";
     };

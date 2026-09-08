@@ -25,7 +25,8 @@ export const LIFECYCLE_TRANSITIONS: Record<AssetLifecycleStatus, LifecycleAction
       actionId: "STOCK_AVAILABLE",
       targetStatus: "AVAILABLE",
       label: "Verify & Stock (Available)",
-      description: "Perform initial inspection, verify serial/tamper seal, and place into available armory/malkhana inventory.",
+      description:
+        "Perform initial inspection, verify serial/tamper seal, and place into available armory/malkhana inventory.",
       variant: "default",
     },
     {
@@ -43,7 +44,8 @@ export const LIFECYCLE_TRANSITIONS: Record<AssetLifecycleStatus, LifecycleAction
       actionId: "ASSIGN_OFFICER",
       targetStatus: "ASSIGNED",
       label: "Assign to Officer",
-      description: "Issue asset or evidence to an investigating officer or duty staff for authorized duty.",
+      description:
+        "Issue asset or evidence to an investigating officer or duty staff for authorized duty.",
       variant: "default",
     },
     {
@@ -64,7 +66,8 @@ export const LIFECYCLE_TRANSITIONS: Record<AssetLifecycleStatus, LifecycleAction
       actionId: "RETIRE_ASSET",
       targetStatus: "RETIRED",
       label: "Retire Asset",
-      description: "Formally decommission, dispose of evidence, or release to rightful owner under superdari.",
+      description:
+        "Formally decommission, dispose of evidence, or release to rightful owner under superdari.",
       variant: "destructive",
       requiresAdmin: true,
     },
@@ -83,7 +86,8 @@ export const LIFECYCLE_TRANSITIONS: Record<AssetLifecycleStatus, LifecycleAction
       actionId: "DEPLOY_IN_USE",
       targetStatus: "IN_USE",
       label: "Mark In Use",
-      description: "Deploy asset on active investigation, crime scene duty, or court exhibit presentation.",
+      description:
+        "Deploy asset on active investigation, crime scene duty, or court exhibit presentation.",
       variant: "default",
     },
     {
@@ -154,7 +158,8 @@ export const LIFECYCLE_TRANSITIONS: Record<AssetLifecycleStatus, LifecycleAction
       actionId: "RECEIVE_ASSIGN",
       targetStatus: "ASSIGNED",
       label: "Receive & Assign to Custodian",
-      description: "Destination facility receives transit package, inspects seal, and signs custody receipt.",
+      description:
+        "Destination facility receives transit package, inspects seal, and signs custody receipt.",
       variant: "default",
     },
     {
@@ -186,7 +191,8 @@ export const LIFECYCLE_TRANSITIONS: Record<AssetLifecycleStatus, LifecycleAction
       actionId: "MAINTENANCE_COMPLETE",
       targetStatus: "AVAILABLE",
       label: "Service Completed (Available)",
-      description: "Maintenance, calibration, or decontamination completed and certified operational.",
+      description:
+        "Maintenance, calibration, or decontamination completed and certified operational.",
       variant: "default",
     },
     {
@@ -229,7 +235,8 @@ export const LIFECYCLE_TRANSITIONS: Record<AssetLifecycleStatus, LifecycleAction
       actionId: "REACTIVE_MAINTENANCE",
       targetStatus: "MAINTENANCE",
       label: "Re-commission via Overhaul",
-      description: "Admin override: Re-admit decommissioned item for comprehensive testing and recertification.",
+      description:
+        "Admin override: Re-admit decommissioned item for comprehensive testing and recertification.",
       variant: "outline",
       requiresAdmin: true,
     },
@@ -240,7 +247,8 @@ export const LIFECYCLE_TRANSITIONS: Record<AssetLifecycleStatus, LifecycleAction
       actionId: "RECOVER_ASSET",
       targetStatus: "RETURNED",
       label: "Mark Recovered (Checkin)",
-      description: "Previously lost/stolen article recovered by police; admitted for physical audit.",
+      description:
+        "Previously lost/stolen article recovered by police; admitted for physical audit.",
       variant: "default",
       requiresAdmin: true,
     },
@@ -280,7 +288,8 @@ export function canTransition(
   if (userRole === "judge") {
     return {
       allowed: false,
-      reason: "Judicial bench accounts have read-only exhibit access and cannot execute custody state transitions.",
+      reason:
+        "Judicial bench accounts have read-only exhibit access and cannot execute custody state transitions.",
     };
   }
 
@@ -297,7 +306,8 @@ export function canTransition(
   const matchingAction = allowedActions.find((a) => a.targetStatus === toStatus);
 
   if (!matchingAction) {
-    const validTargets = allowedActions.map((a) => a.targetStatus).join(", ") || "None (Terminal State)";
+    const validTargets =
+      allowedActions.map((a) => a.targetStatus).join(", ") || "None (Terminal State)";
     return {
       allowed: false,
       reason: `Invalid transition: Cannot transition asset from '${fromStatus}' to '${toStatus}'. Permitted transitions from '${fromStatus}' are: [${validTargets}].`,
@@ -426,7 +436,9 @@ export async function executeAssetLifecycleTransition(
   } = payload;
 
   if (!reason || reason.trim().length < 4) {
-    throw new Error("A valid explanation/reason (minimum 4 characters) is required to execute a custody state transition.");
+    throw new Error(
+      "A valid explanation/reason (minimum 4 characters) is required to execute a custody state transition.",
+    );
   }
 
   // 1. Fetch current asset particulars from local store or server
@@ -523,7 +535,9 @@ export async function executeAssetLifecycleTransition(
   try {
     const raw = localStorage.getItem(ASSETS_STORAGE_KEY);
     const list: PoliceAsset[] = raw ? JSON.parse(raw) : [];
-    const index = list.findIndex((a) => a.id === currentAsset.id || a.asset_code === currentAsset.asset_code);
+    const index = list.findIndex(
+      (a) => a.id === currentAsset.id || a.asset_code === currentAsset.asset_code,
+    );
     if (index >= 0) {
       list[index] = updatedAsset;
     } else {

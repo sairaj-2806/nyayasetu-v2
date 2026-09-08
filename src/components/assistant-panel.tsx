@@ -139,7 +139,8 @@ export function AssistantPanel() {
             AI Judicial Copilot
           </SheetTitle>
           <SheetDescription className="text-xs text-muted-foreground leading-normal">
-            Ask questions about court cases, schedules, police assets, evidence custody, or secure DMS documents.
+            Ask questions about court cases, schedules, police assets, evidence custody, or secure
+            DMS documents.
           </SheetDescription>
         </SheetHeader>
 
@@ -210,7 +211,10 @@ export function AssistantPanel() {
                             </span>
                           </span>
                           {row.badge && (
-                            <Badge variant="outline" className="shrink-0 text-[10px] font-normal px-2 py-0.5">
+                            <Badge
+                              variant="outline"
+                              className="shrink-0 text-[10px] font-normal px-2 py-0.5"
+                            >
                               {row.badge}
                             </Badge>
                           )}
@@ -225,7 +229,8 @@ export function AssistantPanel() {
 
           {busy && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground py-2 px-1">
-              <Loader2 className="size-4 animate-spin text-primary shrink-0" /> Querying the legal engine & registry…
+              <Loader2 className="size-4 animate-spin text-primary shrink-0" /> Querying the legal
+              engine & registry…
             </p>
           )}
         </div>

@@ -473,12 +473,7 @@ function SchedulingWeightsCard({
   // Sync if incoming weights change externally (e.g. initial fetch)
   useEffect(() => {
     setLocalWeights(weights);
-  }, [
-    weights.specialisation,
-    weights.workload,
-    weights.priority,
-    weights.utilisation,
-  ]);
+  }, [weights.specialisation, weights.workload, weights.priority, weights.utilisation]);
 
   // Debounce notification to parent form so dragging doesn't re-render the entire settings page on every frame
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -517,10 +512,7 @@ function SchedulingWeightsCard({
   const isRecalculating = deferredWeights !== localWeights;
 
   const pending = useMemo(
-    () =>
-      (cases.data ?? []).filter((c: CaseRow) =>
-        ["filed", "adjourned"].includes(c.status),
-      ),
+    () => (cases.data ?? []).filter((c: CaseRow) => ["filed", "adjourned"].includes(c.status)),
     [cases.data],
   );
 

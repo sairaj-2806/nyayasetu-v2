@@ -15,15 +15,11 @@ export function getEnvVar(key: string): string | undefined {
   }
 
   if (key === "GEMINI_MODEL") {
-    return (
-      envObj?.["GEMINI_MODEL"] || procEnv?.["GEMINI_MODEL"] || process.env["GEMINI_MODEL"]
-    );
+    return envObj?.["GEMINI_MODEL"] || procEnv?.["GEMINI_MODEL"] || process.env["GEMINI_MODEL"];
   }
 
   if (key === "GROQ_API_KEY") {
-    return (
-      envObj?.["GROQ_API_KEY"] || procEnv?.["GROQ_API_KEY"] || process.env["GROQ_API_KEY"]
-    );
+    return envObj?.["GROQ_API_KEY"] || procEnv?.["GROQ_API_KEY"] || process.env["GROQ_API_KEY"];
   }
 
   if (key === "OPENAI_API_KEY") {

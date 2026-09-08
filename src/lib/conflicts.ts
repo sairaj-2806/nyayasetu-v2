@@ -340,17 +340,13 @@ type OccupancyRaw = {
 
 export async function fetchConflictData(dbOrContext?: any) {
   const db = dbOrContext && typeof dbOrContext.from === "function" ? dbOrContext : supabase;
-  const [schedulesRes, availabilityRes, judgesRes, settingsRes, holidaysRes] =
-    await Promise.all([
-      db.from("schedules").select(OCCUPANCY_SELECT),
-      db.from("availability").select("entity_type, entity_id, date, slot_id, status"),
-      db.from("judges").select("*").order("name"),
-      db.from("priority_settings").select("max_judge_workload").limit(1).maybeSingle(),
-      (db as any)
-        .from("court_holidays")
-        .select("id, date, name, type, jurisdiction")
-        .order("date"),
-    ]);
+  const [schedulesRes, availabilityRes, judgesRes, settingsRes, holidaysRes] = await Promise.all([
+    db.from("schedules").select(OCCUPANCY_SELECT),
+    db.from("availability").select("entity_type, entity_id, date, slot_id, status"),
+    db.from("judges").select("*").order("name"),
+    db.from("priority_settings").select("max_judge_workload").limit(1).maybeSingle(),
+    (db as any).from("court_holidays").select("id, date, name, type, jurisdiction").order("date"),
+  ]);
   if (schedulesRes.error) throw schedulesRes.error;
   if (availabilityRes.error) throw availabilityRes.error;
   if (judgesRes.error) throw judgesRes.error;

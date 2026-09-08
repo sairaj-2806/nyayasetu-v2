@@ -80,14 +80,16 @@ export function computeDmsAndAssetMetrics(
 
     // Pending verification
     const hasUnverified =
-      versions.some((v) => v.integrity_status === "PENDING" || v.integrity_status === "UNAVAILABLE") ||
-      !versions.some((v) => v.integrity_status === "VERIFIED");
+      versions.some(
+        (v) => v.integrity_status === "PENDING" || v.integrity_status === "UNAVAILABLE",
+      ) || !versions.some((v) => v.integrity_status === "VERIFIED");
     if (hasUnverified) {
       docPendingVerification++;
     }
 
     // Integrity alerts (tamper detected or integrity mismatch)
-    const hasMismatch = doc.is_tampered || versions.some((v) => v.integrity_status === "INTEGRITY_MISMATCH");
+    const hasMismatch =
+      doc.is_tampered || versions.some((v) => v.integrity_status === "INTEGRITY_MISMATCH");
     if (hasMismatch) {
       docIntegrityAlerts++;
     }
@@ -153,7 +155,12 @@ export function computeDmsAndAssetMetrics(
 
   for (const ev of evidenceItems) {
     const stage = ev.evidence_status;
-    if (stage === "STORED" || stage === "SEALED" || stage === "REGISTERED" || ev.status === "AVAILABLE") {
+    if (
+      stage === "STORED" ||
+      stage === "SEALED" ||
+      stage === "REGISTERED" ||
+      ev.status === "AVAILABLE"
+    ) {
       evInCustody++;
     }
     if (stage === "FORENSIC_EXAMINATION") {
@@ -170,7 +177,8 @@ export function computeDmsAndAssetMetrics(
 
   // Ensure minimum realistic count if filtered array is empty
   const totalEvidenceCount = Math.max(evidenceItems.length, 1);
-  if (evInCustody === 0 && totalEvidenceCount > 0) evInCustody = Math.max(1, totalEvidenceCount - evForensicExam - evAwaitingCourt);
+  if (evInCustody === 0 && totalEvidenceCount > 0)
+    evInCustody = Math.max(1, totalEvidenceCount - evForensicExam - evAwaitingCourt);
 
   // -------------------------------------------------------------
   // 4. SECURITY & INTEGRITY ALERTS GENERATOR
@@ -200,7 +208,8 @@ export function computeDmsAndAssetMetrics(
       category: "INTEGRITY_MISMATCH",
       severity: "HIGH",
       title: "Active Hash Verification Watchdog",
-      description: "Document repository integrity check: 3 documents verified against Section 63 BSA deposit ledger. 1 awaiting verification sign-off.",
+      description:
+        "Document repository integrity check: 3 documents verified against Section 63 BSA deposit ledger. 1 awaiting verification sign-off.",
       targetId: documents[0]?.id || "doc-fir-0014",
       targetCode: documents[0]?.document_number || "FIR-2026-0014",
       route: "/documents/$documentId",
@@ -216,7 +225,8 @@ export function computeDmsAndAssetMetrics(
     category: "UNAUTHORIZED_ACCESS",
     severity: "CRITICAL",
     title: "Unauthorized Access Attempt Blocked by RLS",
-    description: "External terminal IP 192.168.1.144 attempted to query Sealed In-Camera Pleading (DOC-POCSO-0042). Access denied by Supabase RLS Policy.",
+    description:
+      "External terminal IP 192.168.1.144 attempted to query Sealed In-Camera Pleading (DOC-POCSO-0042). Access denied by Supabase RLS Policy.",
     targetId: "doc-pocso-0042",
     targetCode: "DOC-POCSO-0042",
     route: "/activity-log",
@@ -225,7 +235,9 @@ export function computeDmsAndAssetMetrics(
   });
 
   // 3) Overdue Evidence Transfer Alert
-  const inTransitEv = evidenceItems.find((e) => e.status === "TRANSFERRED" || e.evidence_status === "TRANSFERRED");
+  const inTransitEv = evidenceItems.find(
+    (e) => e.status === "TRANSFERRED" || e.evidence_status === "TRANSFERRED",
+  );
   alerts.push({
     id: "alt-ev-01",
     category: "OVERDUE_TRANSFER",
@@ -241,7 +253,9 @@ export function computeDmsAndAssetMetrics(
   });
 
   // 4) Asset Transfer Awaiting Acknowledgement
-  const transferredAsset = assets.find((a) => a.status === "TRANSFERRED" && a.asset_code !== "EV-1045");
+  const transferredAsset = assets.find(
+    (a) => a.status === "TRANSFERRED" && a.asset_code !== "EV-1045",
+  );
   alerts.push({
     id: "alt-trans-01",
     category: "AWAITING_ACKNOWLEDGEMENT",

@@ -1,5 +1,5 @@
 import { useEffect, useState, useTransition } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Search,
@@ -59,6 +59,17 @@ const ENTITY_LABELS: Record<SearchEntityType, string> = {
   audit_event: "Audit Events",
 };
 
+const ENTITY_STYLE: Record<SearchEntityType, { text: string; bg: string }> = {
+  case: { text: "text-sky-600 dark:text-sky-400", bg: "bg-sky-500/15" },
+  document: { text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/15" },
+  document_version: { text: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/15" },
+  police_asset: { text: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-500/15" },
+  evidence: { text: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/15" },
+  officer_custodian: { text: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/15" },
+  location: { text: "text-orange-600 dark:text-orange-400", bg: "bg-orange-500/15" },
+  audit_event: { text: "text-rose-600 dark:text-rose-400", bg: "bg-rose-500/15" },
+};
+
 export function GlobalSearchDialog({
   open,
   onOpenChange,
@@ -67,6 +78,7 @@ export function GlobalSearchDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { data: staff } = useCurrentStaff();
   const searchFn = useServerFn(searchGlobalRegistry);
 
@@ -74,6 +86,21 @@ export function GlobalSearchDialog({
   const [activeType, setActiveType] = useState<SearchEntityType | "all">("all");
   const [results, setResults] = useState<UnifiedSearchResult | null>(null);
   const [isSearching, startSearchTransition] = useTransition();
+
+  // Close immediately on route changes so users are never trapped
+  useEffect(() => {
+    if (open) {
+      onOpenChange(false);
+    }
+  }, [pathname, open, onOpenChange]);
+
+  // Ensure scroll lock and pointer-events lock are cleared whenever dialog closes
+  useEffect(() => {
+    if (!open && typeof document !== "undefined") {
+      document.body.style.pointerEvents = "";
+      document.body.removeAttribute("data-scroll-locked");
+    }
+  }, [open]);
 
   // Keyboard shortcut listener: Cmd+K / Ctrl+K
   useEffect(() => {
@@ -175,27 +202,78 @@ export function GlobalSearchDialog({
     },
   );
 
+  function renderGroup(heading: string, groupItems: SearchResultItem[], type: SearchEntityType) {
+    if (groupItems.length === 0) return null;
+    const Icon = ENTITY_ICONS[type];
+    const style = ENTITY_STYLE[type];
+    return (
+      <CommandGroup heading={heading}>
+        {groupItems.slice(0, 4).map((item) => (
+          <CommandItem
+            key={item.id}
+            value={`${item.title} ${item.subtitle} ${item.caseNumber || ""} ${item.description || ""}`}
+            onSelect={() => handleSelect(item)}
+            className="flex items-center justify-between gap-3 px-3 py-2 rounded-md cursor-pointer hover:bg-accent/60 my-0.5"
+          >
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div
+                className={`size-7 rounded-md ${style.bg} flex items-center justify-center shrink-0`}
+              >
+                <Icon className={`size-3.5 ${style.text}`} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-xs text-foreground truncate">{item.title}</p>
+                  {item.caseNumber && (
+                    <span className="font-mono text-[10px] text-muted-foreground hidden sm:inline truncate">
+                      {item.caseNumber}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground truncate">{item.subtitle}</p>
+              </div>
+            </div>
+            {item.status && (
+              <Badge
+                variant="outline"
+                className={`text-[10px] shrink-0 font-mono ${item.statusBadgeClass || ""}`}
+              >
+                {item.status}
+              </Badge>
+            )}
+          </CommandItem>
+        ))}
+      </CommandGroup>
+    );
+  }
+
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <div className="flex flex-col border-b border-border bg-card/60 px-3 py-2">
-        <div className="flex items-center gap-2">
-          <CommandInput
-            placeholder="Search cases, CNR, documents, versions, evidence EV-1045, assets, officers..."
-            value={query}
-            onValueChange={setQuery}
-            className="text-sm font-medium"
-          />
-          <Badge variant="outline" className="text-[10px] uppercase font-mono tracking-wider shrink-0">
+      <div className="flex flex-col border-b border-border bg-card/60">
+        <div className="flex items-center pr-14 pl-1">
+          <div className="flex-1 min-w-0">
+            <CommandInput
+              placeholder="Search cases, CNR, documents, versions, evidence EV-1045, assets, officers..."
+              value={query}
+              onValueChange={setQuery}
+              wrapperClassName="border-b-0 px-3.5"
+              className="text-sm font-medium h-12"
+            />
+          </div>
+          <Badge
+            variant="outline"
+            className="text-[10px] uppercase font-mono tracking-wider shrink-0 bg-muted/60 text-muted-foreground mr-1"
+          >
             RLS Active
           </Badge>
         </div>
 
         {/* Quick Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pt-2 pb-1 no-scrollbar text-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto px-4 py-2 border-t border-border/50 no-scrollbar text-xs bg-muted/20">
           <button
             type="button"
             onClick={() => setActiveType("all")}
-            className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
+            className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors shrink-0 ${
               activeType === "all"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "bg-muted text-muted-foreground hover:text-foreground"
@@ -223,255 +301,54 @@ export function GlobalSearchDialog({
         </div>
       </div>
 
-      <CommandList className="max-h-[380px] p-2">
+      <CommandList className="max-h-[380px] p-2 overflow-y-auto">
         {items.length === 0 && (
           <CommandEmpty className="py-8 text-center text-sm text-muted-foreground">
-            No authorized records match &ldquo;{query}&rdquo;. Try searching for &ldquo;BNS/2026/0014&rdquo;, &ldquo;EV-1045&rdquo;, &ldquo;forensic report&rdquo;, or &ldquo;mobile phone&rdquo;.
+            No authorized records match &ldquo;{query}&rdquo;. Try searching for
+            &ldquo;BNS/2026/0014&rdquo;, &ldquo;EV-1045&rdquo;, &ldquo;forensic report&rdquo;, or
+            &ldquo;mobile phone&rdquo;.
           </CommandEmpty>
         )}
 
-        {/* Cases Group */}
-        {groupedItems.case.length > 0 && (
-          <CommandGroup heading={`Cases (${groupedItems.case.length})`}>
-            {groupedItems.case.slice(0, 4).map((item) => {
-              const Icon = ENTITY_ICONS.case;
-              return (
-                <CommandItem
-                  key={item.id}
-                  value={`${item.title} ${item.subtitle} ${item.caseNumber}`}
-                  onSelect={() => handleSelect(item)}
-                  className="flex items-start justify-between gap-3 py-2 cursor-pointer"
-                >
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <Icon className="size-4 text-blue-500 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-xs text-foreground truncate">{item.title}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{item.subtitle}</p>
-                    </div>
-                  </div>
-                  {item.status && (
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${item.statusBadgeClass}`}>
-                      {item.status}
-                    </Badge>
-                  )}
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
+        {renderGroup(`Cases (${groupedItems.case.length})`, groupedItems.case, "case")}
+        {renderGroup(
+          `Documents (${groupedItems.document.length})`,
+          groupedItems.document,
+          "document",
         )}
-
-        {/* Documents Group */}
-        {groupedItems.document.length > 0 && (
-          <CommandGroup heading={`Documents (${groupedItems.document.length})`}>
-            {groupedItems.document.slice(0, 4).map((item) => {
-              const Icon = ENTITY_ICONS.document;
-              return (
-                <CommandItem
-                  key={item.id}
-                  value={`${item.title} ${item.subtitle} ${item.description}`}
-                  onSelect={() => handleSelect(item)}
-                  className="flex items-start justify-between gap-3 py-2 cursor-pointer"
-                >
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <Icon className="size-4 text-indigo-500 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-xs text-foreground truncate">{item.title}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{item.subtitle}</p>
-                    </div>
-                  </div>
-                  {item.status && (
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${item.statusBadgeClass}`}>
-                      {item.status}
-                    </Badge>
-                  )}
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
+        {renderGroup(
+          `Evidence Exhibits (${groupedItems.evidence.length})`,
+          groupedItems.evidence,
+          "evidence",
         )}
-
-        {/* Evidence Exhibits Group */}
-        {groupedItems.evidence.length > 0 && (
-          <CommandGroup heading={`Evidence Exhibits (${groupedItems.evidence.length})`}>
-            {groupedItems.evidence.slice(0, 4).map((item) => {
-              const Icon = ENTITY_ICONS.evidence;
-              return (
-                <CommandItem
-                  key={item.id}
-                  value={`${item.title} ${item.subtitle} ${item.description}`}
-                  onSelect={() => handleSelect(item)}
-                  className="flex items-start justify-between gap-3 py-2 cursor-pointer"
-                >
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <Icon className="size-4 text-amber-500 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-xs text-foreground truncate">{item.title}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{item.subtitle}</p>
-                    </div>
-                  </div>
-                  {item.status && (
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${item.statusBadgeClass}`}>
-                      {item.status}
-                    </Badge>
-                  )}
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
+        {renderGroup(
+          `Police Assets (${groupedItems.police_asset.length})`,
+          groupedItems.police_asset,
+          "police_asset",
         )}
-
-        {/* Police Assets Group */}
-        {groupedItems.police_asset.length > 0 && (
-          <CommandGroup heading={`Police Assets (${groupedItems.police_asset.length})`}>
-            {groupedItems.police_asset.slice(0, 4).map((item) => {
-              const Icon = ENTITY_ICONS.police_asset;
-              return (
-                <CommandItem
-                  key={item.id}
-                  value={`${item.title} ${item.subtitle} ${item.description}`}
-                  onSelect={() => handleSelect(item)}
-                  className="flex items-start justify-between gap-3 py-2 cursor-pointer"
-                >
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <Icon className="size-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-xs text-foreground truncate">{item.title}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{item.subtitle}</p>
-                    </div>
-                  </div>
-                  {item.status && (
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${item.statusBadgeClass}`}>
-                      {item.status}
-                    </Badge>
-                  )}
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
+        {renderGroup(
+          `Document Versions (${groupedItems.document_version.length})`,
+          groupedItems.document_version,
+          "document_version",
         )}
-
-        {/* Document Versions Group */}
-        {groupedItems.document_version.length > 0 && (
-          <CommandGroup heading={`Document Versions (${groupedItems.document_version.length})`}>
-            {groupedItems.document_version.slice(0, 3).map((item) => {
-              const Icon = ENTITY_ICONS.document_version;
-              return (
-                <CommandItem
-                  key={item.id}
-                  value={`${item.title} ${item.subtitle} ${item.description}`}
-                  onSelect={() => handleSelect(item)}
-                  className="flex items-start justify-between gap-3 py-2 cursor-pointer"
-                >
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <Icon className="size-4 text-violet-500 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-xs text-foreground truncate">{item.title}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{item.subtitle}</p>
-                    </div>
-                  </div>
-                  {item.status && (
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${item.statusBadgeClass}`}>
-                      {item.status}
-                    </Badge>
-                  )}
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
+        {renderGroup(
+          `Officers & Custodians (${groupedItems.officer_custodian.length})`,
+          groupedItems.officer_custodian,
+          "officer_custodian",
         )}
-
-        {/* Officers & Custodians Group */}
-        {groupedItems.officer_custodian.length > 0 && (
-          <CommandGroup heading={`Officers & Custodians (${groupedItems.officer_custodian.length})`}>
-            {groupedItems.officer_custodian.slice(0, 3).map((item) => {
-              const Icon = ENTITY_ICONS.officer_custodian;
-              return (
-                <CommandItem
-                  key={item.id}
-                  value={`${item.title} ${item.subtitle} ${item.description}`}
-                  onSelect={() => handleSelect(item)}
-                  className="flex items-start justify-between gap-3 py-2 cursor-pointer"
-                >
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <Icon className="size-4 text-cyan-500 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-xs text-foreground truncate">{item.title}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{item.subtitle}</p>
-                    </div>
-                  </div>
-                  {item.status && (
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${item.statusBadgeClass}`}>
-                      {item.status}
-                    </Badge>
-                  )}
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
+        {renderGroup(
+          `Locations & Malkhanas (${groupedItems.location.length})`,
+          groupedItems.location,
+          "location",
         )}
-
-        {/* Locations Group */}
-        {groupedItems.location.length > 0 && (
-          <CommandGroup heading={`Locations & Malkhanas (${groupedItems.location.length})`}>
-            {groupedItems.location.slice(0, 3).map((item) => {
-              const Icon = ENTITY_ICONS.location;
-              return (
-                <CommandItem
-                  key={item.id}
-                  value={`${item.title} ${item.subtitle} ${item.description}`}
-                  onSelect={() => handleSelect(item)}
-                  className="flex items-start justify-between gap-3 py-2 cursor-pointer"
-                >
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <Icon className="size-4 text-rose-500 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-xs text-foreground truncate">{item.title}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{item.subtitle}</p>
-                    </div>
-                  </div>
-                  {item.status && (
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${item.statusBadgeClass}`}>
-                      {item.status}
-                    </Badge>
-                  )}
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
-        )}
-
-        {/* Audit Events Group */}
-        {groupedItems.audit_event.length > 0 && (
-          <CommandGroup heading={`Audit Events (${groupedItems.audit_event.length})`}>
-            {groupedItems.audit_event.slice(0, 3).map((item) => {
-              const Icon = ENTITY_ICONS.audit_event;
-              return (
-                <CommandItem
-                  key={item.id}
-                  value={`${item.title} ${item.subtitle} ${item.description}`}
-                  onSelect={() => handleSelect(item)}
-                  className="flex items-start justify-between gap-3 py-2 cursor-pointer"
-                >
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <Icon className="size-4 text-teal-500 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-xs text-foreground truncate">{item.title}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{item.subtitle}</p>
-                    </div>
-                  </div>
-                  {item.status && (
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${item.statusBadgeClass}`}>
-                      {item.status}
-                    </Badge>
-                  )}
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
+        {renderGroup(
+          `Audit Events (${groupedItems.audit_event.length})`,
+          groupedItems.audit_event,
+          "audit_event",
         )}
       </CommandList>
 
-      <div className="flex items-center justify-between border-t border-border bg-card/80 px-3 py-2 text-xs text-muted-foreground">
+      <div className="flex items-center justify-between border-t border-border bg-card/80 px-4 py-2.5 text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
           <span>
             {results?.totalMatches ?? 0} matches in {results?.executionTimeMs ?? 0}ms

@@ -28,11 +28,7 @@ import { getPendingEvidenceTransfers, type PendingEvidenceTransfer } from "@/lib
 import type { CaseRow } from "@/lib/cases";
 
 export type PoliceAssetSimulationScenarioType =
-  | "vehicle-unavailable"
-  | "locker-unavailable"
-  | "officer-on-leave"
-  | "transfer-delayed"
-  | "custom";
+  "vehicle-unavailable" | "locker-unavailable" | "officer-on-leave" | "transfer-delayed" | "custom";
 
 export interface PoliceAssetSimulationInput {
   scenarioType: PoliceAssetSimulationScenarioType;
@@ -107,7 +103,12 @@ export interface AffectedDocumentItem {
 
 export interface RecommendedAlternative {
   id: string;
-  category: "ASSET_SUBSTITUTION" | "VAULT_REALLOCATION" | "OFFICER_REASSIGNMENT" | "HEARING_MITIGATION" | "CHAIN_SAFEGUARD";
+  category:
+    | "ASSET_SUBSTITUTION"
+    | "VAULT_REALLOCATION"
+    | "OFFICER_REASSIGNMENT"
+    | "HEARING_MITIGATION"
+    | "CHAIN_SAFEGUARD";
   title: string;
   description: string;
   actionSteps: string[];
@@ -156,28 +157,32 @@ export const PRESET_SIMULATION_SCENARIOS: {
     id: "vehicle-unavailable",
     label: "Vehicle Unavailable",
     tagline: 'e.g. "What if vehicle VH-1045 becomes unavailable?"',
-    description: "Simulate mechanical failure or unexpected repair of an emergency mobile forensic or prisoner escort van.",
+    description:
+      "Simulate mechanical failure or unexpected repair of an emergency mobile forensic or prisoner escort van.",
     defaultTarget: "VH-1045 (Mahindra Bolero Mobile Crime Van)",
   },
   {
     id: "locker-unavailable",
     label: "Evidence Locker Unavailable",
     tagline: 'e.g. "What if Evidence Locker L-12 becomes unavailable?"',
-    description: "Model electronic lock failure, biometric scanner glitch, or fumigation quarantine of a malkhana safe locker.",
+    description:
+      "Model electronic lock failure, biometric scanner glitch, or fumigation quarantine of a malkhana safe locker.",
     defaultTarget: "Locker L-12 (Central Malkhana High-Security Vault)",
   },
   {
     id: "officer-on-leave",
     label: "Officer On Leave",
     tagline: 'e.g. "What if Officer X goes on leave?"',
-    description: "Analyze the ripple effect if an Investigating Officer or Malkhana Custodian goes on sudden emergency leave.",
+    description:
+      "Analyze the ripple effect if an Investigating Officer or Malkhana Custodian goes on sudden emergency leave.",
     defaultTarget: "Insp. Rajesh Sharma (Senior Investigating Officer)",
   },
   {
     id: "transfer-delayed",
     label: "Evidence Transfer Delayed",
     tagline: 'e.g. "What if an evidence transfer is delayed?"',
-    description: "Examine chain-of-custody exposure and trial hearing jeopardy when inter-station transit is held up by 48-72 hours.",
+    description:
+      "Examine chain-of-custody exposure and trial hearing jeopardy when inter-station transit is held up by 48-72 hours.",
     defaultTarget: "TRF-NDPS-89 (Malkhana to Forensic Science Laboratory)",
   },
 ];
@@ -204,7 +209,8 @@ export function runPoliceAssetSimulation(params: {
   const assets: PoliceAsset[] = params.liveAssets || getStoredLocalAssets();
   const docs: SecureDocument[] = params.liveDocuments || getStoredDocuments();
   const cases: CaseRow[] = params.liveCases || [];
-  const transfers: PendingEvidenceTransfer[] = params.liveTransfers || getPendingEvidenceTransfers();
+  const transfers: PendingEvidenceTransfer[] =
+    params.liveTransfers || getPendingEvidenceTransfers();
 
   const affectedAssets: AffectedAssetItem[] = [];
   const affectedOfficers: AffectedOfficerItem[] = [];
@@ -231,7 +237,8 @@ export function runPoliceAssetSimulation(params: {
         evidenceStatus: null,
         location: "District Police Lines Workshop (Simulated Breakdown)",
         custodian: "Sub-Inspector Kuldeep Malik (Workshop Incharge)",
-        impactReason: "Engine clutch assembly failure; unscheduled 48-hour mechanical overhaul required.",
+        impactReason:
+          "Engine clutch assembly failure; unscheduled 48-hour mechanical overhaul required.",
         severity: "CRITICAL",
       });
 
@@ -245,7 +252,8 @@ export function runPoliceAssetSimulation(params: {
         evidenceStatus: null,
         location: `Inside Vehicle ${vehicleCode}`,
         custodian: "Constable Amit Yadav",
-        impactReason: "Equipment locked inside secured vehicular locker during maintenance transit.",
+        impactReason:
+          "Equipment locked inside secured vehicular locker during maintenance transit.",
         severity: "HIGH",
       });
 
@@ -258,7 +266,8 @@ export function runPoliceAssetSimulation(params: {
           station: "Kotwali Police Station",
           assignedAssetsCount: 3,
           activeCasesCount: 4,
-          dutyImpact: "Cannot transport ballistic physical exhibit to District Courtroom 4 for scheduled 11:30 AM trial.",
+          dutyImpact:
+            "Cannot transport ballistic physical exhibit to District Courtroom 4 for scheduled 11:30 AM trial.",
           recommendedSubstitute: "Sub-Inspector Deepak Sharma (Designated Link Officer)",
         },
         {
@@ -285,7 +294,8 @@ export function runPoliceAssetSimulation(params: {
           hearingCourtroom: "Courtroom 4 (Additional Sessions Judge)",
           judgeName: "Hon'ble Judge Ananya Deshmukh",
           adjournmentRisk: "HIGH_RISK_OF_ADJOURNMENT",
-          riskRationale: "Primary weapon exhibit cannot reach courtroom before hearing commencement. Defence counsel likely to press for dismissal or adjournment.",
+          riskRationale:
+            "Primary weapon exhibit cannot reach courtroom before hearing commencement. Defence counsel likely to press for dismissal or adjournment.",
         },
         {
           caseId: "sim-case-02",
@@ -297,7 +307,8 @@ export function runPoliceAssetSimulation(params: {
           hearingCourtroom: "Courtroom 2 (Special NDPS Court)",
           judgeName: "Hon'ble Judge Vikramaditya Sen",
           adjournmentRisk: "MODERATE_DELAY",
-          riskRationale: "Delayed delivery of chemical lab certificate; witness testimony may need to be rescheduled to afternoon roll.",
+          riskRationale:
+            "Delayed delivery of chemical lab certificate; witness testimony may need to be rescheduled to afternoon roll.",
         },
       );
 
@@ -309,8 +320,10 @@ export function runPoliceAssetSimulation(params: {
         tamperSealNumber: "COURT-EV-8841-B",
         currentStatus: "STRANDED_IN_TRANSIT",
         storageLocation: `Vehicle ${vehicleCode} Secure Transit Box`,
-        chainOfCustodyRisk: "Chain of custody continuity interrupted due to unscheduled transport breakdown.",
-        admissibilityConcern: "Defence may challenge Section 63 BSA transit integrity if delay exceeds scheduled delivery manifest.",
+        chainOfCustodyRisk:
+          "Chain of custody continuity interrupted due to unscheduled transport breakdown.",
+        admissibilityConcern:
+          "Defence may challenge Section 63 BSA transit integrity if delay exceeds scheduled delivery manifest.",
       });
 
       // 5. Affected Documents
@@ -322,7 +335,8 @@ export function runPoliceAssetSimulation(params: {
           category: "Seizure Memo",
           caseNumber: "BNS/2026/0014",
           sha256: "8e23b094f2910ba45a6c78e129304cbe65109b841a0293ec9481bcae0192384a",
-          documentImpact: "Original paper panchnama memo physically tied to transit escort envelope.",
+          documentImpact:
+            "Original paper panchnama memo physically tied to transit escort envelope.",
         },
         {
           id: "sim-doc-02",
@@ -331,7 +345,8 @@ export function runPoliceAssetSimulation(params: {
           category: "Forensic Report",
           caseNumber: "BNS/2026/0014",
           sha256: "4c902834bc01928340192bc840192834bca01923840129bc840192381290384b",
-          documentImpact: "Physical copy pending delivery; digital certified copy exists in NyayaSetu Secure DMS.",
+          documentImpact:
+            "Physical copy pending delivery; digital certified copy exists in NyayaSetu Secure DMS.",
         },
       );
 
@@ -341,7 +356,8 @@ export function runPoliceAssetSimulation(params: {
           id: "rec-alt-01",
           category: "ASSET_SUBSTITUTION",
           title: "Dispatch Reserve Pool Vehicle VH-1048 (Mahindra Scorpio)",
-          description: "Immediately re-route reserve escort vehicle VH-1048 stationed at Central Police Lines to take over transit duties.",
+          description:
+            "Immediately re-route reserve escort vehicle VH-1048 stationed at Central Police Lines to take over transit duties.",
           actionSteps: [
             "Log into Police Asset Fleet and assign Reserve Unit VH-1048 to ASI Vinod Kumar.",
             "Inspect and document intact tamper seal #COURT-EV-8841-B before transferring to new vehicle.",
@@ -350,13 +366,15 @@ export function runPoliceAssetSimulation(params: {
           feasibilityScore: 95,
           priority: "CRITICAL",
           resourceAssigned: "Vehicle VH-1048 (Driver: ASI Vinod Kumar)",
-          complianceNotes: "Complies with Standing Order 24/2025 on emergency inter-district police transport.",
+          complianceNotes:
+            "Complies with Standing Order 24/2025 on emergency inter-district police transport.",
         },
         {
           id: "rec-alt-02",
           category: "HEARING_MITIGATION",
           title: "Submit Cryptographically Certified Electronic Copy to Courtroom 4",
-          description: "To prevent adjournment under Section 63 BSA, electronically submit the SHA-256 verified digital exhibit document directly to the presiding judge's bench portal.",
+          description:
+            "To prevent adjournment under Section 63 BSA, electronically submit the SHA-256 verified digital exhibit document directly to the presiding judge's bench portal.",
           actionSteps: [
             "Registrar uploads signed Section 63 BSA certificate for DOC-2026-0010.",
             "Transmit digital exhibit to Courtroom 4 Bench Screen before 11:30 AM roll call.",
@@ -372,7 +390,8 @@ export function runPoliceAssetSimulation(params: {
     }
 
     case "locker-unavailable": {
-      const lockerLocation = input.targetLockerLocation || "Locker L-12 (Central Malkhana High-Security Vault)";
+      const lockerLocation =
+        input.targetLockerLocation || "Locker L-12 (Central Malkhana High-Security Vault)";
       summary = `Simulation: ${lockerLocation} is unavailable due to an electronic biometric lock mechanism failure. 4 physical exhibits (weapons & cash) cannot be accessed, stalling 3 criminal proceedings.`;
 
       // 1. Affected Assets
@@ -386,7 +405,8 @@ export function runPoliceAssetSimulation(params: {
           evidenceStatus: "STORED",
           location: "Central Malkhana Wing A, District Courts Complex",
           custodian: "Head Constable Ramesh Chand (Malkhana Moharrir)",
-          impactReason: "Electronic solenoid sensor failure; biometric authorization terminal offline.",
+          impactReason:
+            "Electronic solenoid sensor failure; biometric authorization terminal offline.",
           severity: "CRITICAL",
         },
         {
@@ -398,7 +418,8 @@ export function runPoliceAssetSimulation(params: {
           evidenceStatus: "STORED",
           location: lockerLocation,
           custodian: "Head Constable Ramesh Chand",
-          impactReason: "Trapped inside locked compartment; cannot be produced for witness identification.",
+          impactReason:
+            "Trapped inside locked compartment; cannot be produced for witness identification.",
           severity: "CRITICAL",
         },
         {
@@ -424,7 +445,8 @@ export function runPoliceAssetSimulation(params: {
           station: "Central District Malkhana",
           assignedAssetsCount: 14,
           activeCasesCount: 12,
-          dutyImpact: "Cannot open vault door to retrieve case property for morning court schedule.",
+          dutyImpact:
+            "Cannot open vault door to retrieve case property for morning court schedule.",
           recommendedSubstitute: "Inspector Harish Chander (Station House Custody Supervisor)",
         },
         {
@@ -451,7 +473,8 @@ export function runPoliceAssetSimulation(params: {
           hearingCourtroom: "Courtroom 3 (Chief Judicial Magistrate)",
           judgeName: "Hon'ble Judge Rajiv Nanda",
           adjournmentRisk: "HIGH_RISK_OF_ADJOURNMENT",
-          riskRationale: "Charge framing requires judicial inspection of weapon serial IOF-9MM-2021-994. Inability to produce exhibit forces hearing adjournment.",
+          riskRationale:
+            "Charge framing requires judicial inspection of weapon serial IOF-9MM-2021-994. Inability to produce exhibit forces hearing adjournment.",
         },
         {
           caseId: "sim-case-lock-02",
@@ -463,7 +486,8 @@ export function runPoliceAssetSimulation(params: {
           hearingCourtroom: "Courtroom 1 (Special Sessions Judge)",
           judgeName: "Hon'ble Judge Meenakshi Sundaram",
           adjournmentRisk: "MODERATE_DELAY",
-          riskRationale: "Magistrate verification of cash bundles will be postponed if locker remains sealed past 24 hours.",
+          riskRationale:
+            "Magistrate verification of cash bundles will be postponed if locker remains sealed past 24 hours.",
         },
       );
 
@@ -476,8 +500,10 @@ export function runPoliceAssetSimulation(params: {
           tamperSealNumber: "COURT-EV-8841-B",
           currentStatus: "STORED",
           storageLocation: lockerLocation,
-          chainOfCustodyRisk: "Vault inaccessible; custody cannot be verified physically without manual override.",
-          admissibilityConcern: "None as seal remains intact, but availability at trial is impeded.",
+          chainOfCustodyRisk:
+            "Vault inaccessible; custody cannot be verified physically without manual override.",
+          admissibilityConcern:
+            "None as seal remains intact, but availability at trial is impeded.",
         },
         {
           id: "sim-evid-lock-02",
@@ -499,7 +525,8 @@ export function runPoliceAssetSimulation(params: {
         category: "Witness Statement",
         caseNumber: "CRL-0002/2026",
         sha256: "7820ba94c1209384bc01928340129bc840192834bca01923840129bc84019238",
-        documentImpact: "Reference annexure list points to exhibit currently locked in Locker L-12.",
+        documentImpact:
+          "Reference annexure list points to exhibit currently locked in Locker L-12.",
       });
 
       // 6. Recommended Alternatives
@@ -508,7 +535,8 @@ export function runPoliceAssetSimulation(params: {
           id: "rec-alt-lock-01",
           category: "VAULT_REALLOCATION",
           title: "Execute Dual-Key Manual Override & Re-locate to Locker L-14 (Wing B)",
-          description: "Initiate emergency dual-custodian manual mechanical key protocol in the presence of SDM/Judicial Magistrate and CCTV recording.",
+          description:
+            "Initiate emergency dual-custodian manual mechanical key protocol in the presence of SDM/Judicial Magistrate and CCTV recording.",
           actionSteps: [
             "Summon Dual-Key holders (Malkhana Moharrir + Station ACP).",
             "Engage mechanical override under continuous high-definition video recording.",
@@ -518,13 +546,15 @@ export function runPoliceAssetSimulation(params: {
           feasibilityScore: 92,
           priority: "CRITICAL",
           resourceAssigned: "Locker L-14 (Dual Key: Insp. Chander & HC Chand)",
-          complianceNotes: "In accordance with Delhi High Court Malkhana Rules Rule 14(b) on emergency vault access.",
+          complianceNotes:
+            "In accordance with Delhi High Court Malkhana Rules Rule 14(b) on emergency vault access.",
         },
         {
           id: "rec-alt-lock-02",
           category: "HEARING_MITIGATION",
           title: "Formal Registrar Memo & Hearing Passover to 02:00 PM",
-          description: "Issue an automated verified memo to Chief Judicial Magistrate Rajiv Nanda requesting hearing passover to afternoon session.",
+          description:
+            "Issue an automated verified memo to Chief Judicial Magistrate Rajiv Nanda requesting hearing passover to afternoon session.",
           actionSteps: [
             "Auto-generate Digital Twin Locker Downtime Certificate.",
             "Submit to CJM Courtroom 3 Reader before 10:30 AM roll call.",
@@ -554,7 +584,8 @@ export function runPoliceAssetSimulation(params: {
           evidenceStatus: null,
           location: "Personal Duty Armory Holster",
           custodian: officerName,
-          impactReason: "Service weapon must be returned to armory before officer proceeds on leave.",
+          impactReason:
+            "Service weapon must be returned to armory before officer proceeds on leave.",
           severity: "HIGH",
         },
         {
@@ -580,7 +611,8 @@ export function runPoliceAssetSimulation(params: {
           station: "Kotwali Police Station",
           assignedAssetsCount: 4,
           activeCasesCount: 5,
-          dutyImpact: "Unavailable to tender sworn deposition as prosecution witness in Sessions Court.",
+          dutyImpact:
+            "Unavailable to tender sworn deposition as prosecution witness in Sessions Court.",
           recommendedSubstitute: "Sub-Inspector Deepak Sharma (Designated Link Officer)",
         },
         {
@@ -607,7 +639,8 @@ export function runPoliceAssetSimulation(params: {
           hearingCourtroom: "Courtroom 4 (Sessions Judge)",
           judgeName: "Hon'ble Judge Ananya Deshmukh",
           adjournmentRisk: "HIGH_RISK_OF_ADJOURNMENT",
-          riskRationale: "IO testimony cannot be completed in absence of original recording officer without formal Link Officer notification.",
+          riskRationale:
+            "IO testimony cannot be completed in absence of original recording officer without formal Link Officer notification.",
         },
         {
           caseId: "sim-case-off-02",
@@ -619,7 +652,8 @@ export function runPoliceAssetSimulation(params: {
           hearingCourtroom: "Courtroom 2 (Special NDPS Court)",
           judgeName: "Hon'ble Judge Vikramaditya Sen",
           adjournmentRisk: "MODERATE_DELAY",
-          riskRationale: "Supplementary charge sheet requires digital signature endorsement under Section 63 BSA before statutory 90-day filing cutoff.",
+          riskRationale:
+            "Supplementary charge sheet requires digital signature endorsement under Section 63 BSA before statutory 90-day filing cutoff.",
         },
       );
 
@@ -631,7 +665,8 @@ export function runPoliceAssetSimulation(params: {
         tamperSealNumber: "FORENSIC-CRYO-9011",
         currentStatus: "STORED",
         storageLocation: "Cold Storage Biological Vault B-2",
-        chainOfCustodyRisk: "Chain of custody requires signature handover from leaving IO to Link IO.",
+        chainOfCustodyRisk:
+          "Chain of custody requires signature handover from leaving IO to Link IO.",
         admissibilityConcern: "Ensure dual signature endorsement under BSA Section 63.",
       });
 
@@ -663,7 +698,8 @@ export function runPoliceAssetSimulation(params: {
           id: "rec-alt-off-01",
           category: "OFFICER_REASSIGNMENT",
           title: "Designate Sub-Inspector Deepak Sharma as Official Link IO",
-          description: "Execute immediate administrative transfer of case dockets to Link IO with digital delegation of signing authority.",
+          description:
+            "Execute immediate administrative transfer of case dockets to Link IO with digital delegation of signing authority.",
           actionSteps: [
             "Issue Link Officer Order under CrPC Section 36 / BNSS Section 33.",
             "Transfer physical custody of Glock 17 AST-001 back to Kotwali Armory Safe.",
@@ -672,13 +708,15 @@ export function runPoliceAssetSimulation(params: {
           feasibilityScore: 94,
           priority: "CRITICAL",
           resourceAssigned: "SI Deepak Sharma (Kotwali Police Station)",
-          complianceNotes: "Preserves statutory compliance with BNSS 2023 investigation guidelines.",
+          complianceNotes:
+            "Preserves statutory compliance with BNSS 2023 investigation guidelines.",
         },
         {
           id: "rec-alt-off-02",
           category: "HEARING_MITIGATION",
           title: "File Authorized Representation & Passover Application in Courtroom 4",
-          description: "Submit Link Officer notification to Judge Deshmukh and apply for 5-day postponement of IO witness deposition while examining other public witnesses.",
+          description:
+            "Submit Link Officer notification to Judge Deshmukh and apply for 5-day postponement of IO witness deposition while examining other public witnesses.",
           actionSteps: [
             "Generate NyayaSetu Link IO Appearance Memo.",
             "Serve notice on defense counsel 24 hours prior to scheduled hearing.",
@@ -687,7 +725,8 @@ export function runPoliceAssetSimulation(params: {
           feasibilityScore: 89,
           priority: "HIGH",
           resourceAssigned: "Courtroom 4 Bench Register",
-          complianceNotes: "Avoids wasted courtroom hours and maintains 90%+ courtroom utilisation KPI.",
+          complianceNotes:
+            "Avoids wasted courtroom hours and maintains 90%+ courtroom utilisation KPI.",
         },
       );
       break;
@@ -747,7 +786,8 @@ export function runPoliceAssetSimulation(params: {
         hearingCourtroom: "Courtroom 2 (Special NDPS Court)",
         judgeName: "Hon'ble Judge Vikramaditya Sen",
         adjournmentRisk: "HIGH_RISK_OF_ADJOURNMENT",
-        riskRationale: "Under NDPS Section 37, bail adjudication hinges on whether contraband is of commercial quantity. Missing chemical purity certificate forces adjournment.",
+        riskRationale:
+          "Under NDPS Section 37, bail adjudication hinges on whether contraband is of commercial quantity. Missing chemical purity certificate forces adjournment.",
       });
 
       // 4. Affected Evidence
@@ -759,7 +799,8 @@ export function runPoliceAssetSimulation(params: {
         currentStatus: "TRANSFERRED",
         storageLocation: "Mobile Secured Transit Safe (Lock Box #2)",
         chainOfCustodyRisk: `Delayed acknowledgment: Transit window extended by ${delayHours} hours without destination receipt sign-off.`,
-        admissibilityConcern: "Possibility of defense arguing compromised custody if temperature control is breached.",
+        admissibilityConcern:
+          "Possibility of defense arguing compromised custody if temperature control is breached.",
       });
 
       // 5. Affected Documents
@@ -779,7 +820,8 @@ export function runPoliceAssetSimulation(params: {
           id: "rec-alt-trf-01",
           category: "CHAIN_SAFEGUARD",
           title: "Interim Checkpoint Custody Verification at District Malkhana Sonipat",
-          description: "Instruct escort team to check into closest designated government malkhana (Sonipat) to perform interim seal verification and re-secure under refrigerated storage.",
+          description:
+            "Instruct escort team to check into closest designated government malkhana (Sonipat) to perform interim seal verification and re-secure under refrigerated storage.",
           actionSteps: [
             "Issue Electronic Transit Deviation Clearance via NyayaSetu.",
             "Sonipat Malkhana Custodian inspects tamper seal #MHA-NARCO-SEAL-9982.",
@@ -788,13 +830,15 @@ export function runPoliceAssetSimulation(params: {
           feasibilityScore: 96,
           priority: "CRITICAL",
           resourceAssigned: "District Malkhana Sonipat (Safe Deposit Room)",
-          complianceNotes: "Preserves Section 63 BSA electronic admissibility and prevents environmental spoilage.",
+          complianceNotes:
+            "Preserves Section 63 BSA electronic admissibility and prevents environmental spoilage.",
         },
         {
           id: "rec-alt-trf-02",
           category: "HEARING_MITIGATION",
           title: "Submit Field Testing Kit (Drug Detection) Report for Interim Hearing",
-          description: "Submit preliminary field testing kit memo (already notarized in Secure DMS) to Judge Vikramaditya Sen to maintain bail hearing schedule without delay.",
+          description:
+            "Submit preliminary field testing kit memo (already notarized in Secure DMS) to Judge Vikramaditya Sen to maintain bail hearing schedule without delay.",
           actionSteps: [
             "Export digitally signed Field Drug Detection Certificate (DOC-2026-0008).",
             "Present to Special NDPS Court with formal notice of delayed FSL purity report.",
@@ -803,7 +847,8 @@ export function runPoliceAssetSimulation(params: {
           feasibilityScore: 87,
           priority: "HIGH",
           resourceAssigned: "Special NDPS Courtroom 2",
-          complianceNotes: "Complies with Supreme Court guidelines in Mohan Lal vs. State of Punjab.",
+          complianceNotes:
+            "Complies with Supreme Court guidelines in Mohan Lal vs. State of Punjab.",
         },
       );
       break;
@@ -815,7 +860,9 @@ export function runPoliceAssetSimulation(params: {
       summary = `Custom Simulation: Modeling operational unavailability for asset ${assetCode}. Identifying interconnected cases, officers, evidence exhibits, and generating alternatives.`;
 
       // Find matching asset from live list
-      const matched = assets.find((a) => a.asset_code === assetCode || a.id === input.targetAssetId);
+      const matched = assets.find(
+        (a) => a.asset_code === assetCode || a.id === input.targetAssetId,
+      );
       const matchedName = matched?.name || `Police Asset ${assetCode}`;
       const matchedLoc = matched?.current_location || "District Police Armory";
       const matchedCust = matched?.current_custodian_name || "Malkhana Moharrir";
@@ -854,7 +901,8 @@ export function runPoliceAssetSimulation(params: {
         hearingCourtroom: "District Courtroom 3",
         judgeName: "Presiding Judicial Magistrate",
         adjournmentRisk: "MODERATE_DELAY",
-        riskRationale: "Operational asset unavailability may delay evidence production or officer appearance.",
+        riskRationale:
+          "Operational asset unavailability may delay evidence production or officer appearance.",
       });
 
       if (matched?.evidence_status) {

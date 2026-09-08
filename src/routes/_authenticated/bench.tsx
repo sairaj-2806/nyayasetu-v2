@@ -14,7 +14,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCurrentStaff } from "@/hooks/use-current-staff";
 import { prioritySettingsQuery } from "@/lib/priority";
 import { causeListQuery, formatSlotTime } from "@/lib/cause-list";
-import { formatSlot, isActive, judgesQuery, schedulesQuery, MAX_JUDGE_WORKLOAD } from "@/lib/registry";
+import {
+  formatSlot,
+  isActive,
+  judgesQuery,
+  schedulesQuery,
+  MAX_JUDGE_WORKLOAD,
+} from "@/lib/registry";
 import { checkCourtHoliday } from "@/lib/holidays";
 import { casesQuery } from "@/lib/cases";
 import { PriorityBadge } from "@/components/priority-badge";
@@ -85,7 +91,8 @@ function BenchPage() {
   }, [cases.data, pendingSearch]);
 
   const mine = useMemo(
-    () => (schedules.data ?? []).filter((s) => !effectiveJudgeId || s.judge_id === effectiveJudgeId),
+    () =>
+      (schedules.data ?? []).filter((s) => !effectiveJudgeId || s.judge_id === effectiveJudgeId),
     [schedules.data, effectiveJudgeId],
   );
 
@@ -138,18 +145,27 @@ function BenchPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-foreground text-sm">Administrator Bench Inspection</span>
-                <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary text-[10px]">
+                <span className="font-semibold text-foreground text-sm">
+                  Administrator Bench Inspection
+                </span>
+                <Badge
+                  variant="outline"
+                  className="border-primary/40 bg-primary/10 text-primary text-[10px]"
+                >
                   Admin Preview
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Switch between judicial benches to preview any judge's live cause list, workload, and calendar.
+                Switch between judicial benches to preview any judge's live cause list, workload,
+                and calendar.
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Label htmlFor="judge-switcher" className="text-xs text-muted-foreground whitespace-nowrap">
+            <Label
+              htmlFor="judge-switcher"
+              className="text-xs text-muted-foreground whitespace-nowrap"
+            >
               Active Bench:
             </Label>
             <select
@@ -250,7 +266,8 @@ function BenchPage() {
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
               <span className="font-semibold">Court Closure:</span>
               <span>
-                {date} is a non-sitting court day ({checkCourtHoliday(date).holidayName || "Gazetted Holiday"}).
+                {date} is a non-sitting court day (
+                {checkCourtHoliday(date).holidayName || "Gazetted Holiday"}).
               </span>
             </div>
           )}
@@ -346,7 +363,8 @@ function BenchPage() {
                 Judicial Directive & Direct Bench Scheduling
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Select any pending or unlisted case from the registry to schedule directly on your bench with a judicial directive note.
+                Select any pending or unlisted case from the registry to schedule directly on your
+                bench with a judicial directive note.
               </p>
             </div>
             <div className="relative w-full sm:w-64">
@@ -389,7 +407,9 @@ function BenchPage() {
                           {c.estimated_duration_minutes} min est.
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{c.parties || "Parties on record"}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {c.parties || "Parties on record"}
+                      </p>
                     </div>
                     <div className="shrink-0 flex items-center gap-2">
                       <CustomJudicialScheduleModal

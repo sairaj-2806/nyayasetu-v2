@@ -9,8 +9,8 @@ import { checkRateLimit } from "@/lib/rate-limit.server";
  * does not block public or unauthenticated simulation runs.
  * Protected with per-client rate limiting to prevent data scraping.
  */
-export const getBacklogSimulationCases = createServerFn({ method: "GET" })
-  .handler(async (): Promise<BacklogCase[]> => {
+export const getBacklogSimulationCases = createServerFn({ method: "GET" }).handler(
+  async (): Promise<BacklogCase[]> => {
     try {
       const request = getRequest();
       const clientIp =
@@ -44,4 +44,5 @@ export const getBacklogSimulationCases = createServerFn({ method: "GET" })
       console.error("Failed to load backlog cases via server admin:", err);
       return [];
     }
-  });
+  },
+);

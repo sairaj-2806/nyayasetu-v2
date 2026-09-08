@@ -96,19 +96,47 @@ export const Route = createFileRoute("/_authenticated/documents/")({
 function getCategoryBadge(category: DocumentCategory) {
   switch (category) {
     case "FIR":
-      return <Badge className="bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-400">FIR</Badge>;
+      return (
+        <Badge className="bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-400">
+          FIR
+        </Badge>
+      );
     case "Charge Sheet":
-      return <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400">Charge Sheet</Badge>;
+      return (
+        <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400">
+          Charge Sheet
+        </Badge>
+      );
     case "Forensic Report":
-      return <Badge className="bg-purple-500/15 text-purple-700 border-purple-500/30 dark:text-purple-400">Forensic Report</Badge>;
+      return (
+        <Badge className="bg-purple-500/15 text-purple-700 border-purple-500/30 dark:text-purple-400">
+          Forensic Report
+        </Badge>
+      );
     case "Seizure Memo":
-      return <Badge className="bg-cyan-500/15 text-cyan-700 border-cyan-500/30 dark:text-cyan-400">Seizure Memo</Badge>;
+      return (
+        <Badge className="bg-cyan-500/15 text-cyan-700 border-cyan-500/30 dark:text-cyan-400">
+          Seizure Memo
+        </Badge>
+      );
     case "Witness Statement":
-      return <Badge className="bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400">Witness Statement</Badge>;
+      return (
+        <Badge className="bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400">
+          Witness Statement
+        </Badge>
+      );
     case "Chain of Custody Document":
-      return <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">Custody Record</Badge>;
+      return (
+        <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
+          Custody Record
+        </Badge>
+      );
     case "Judgment":
-      return <Badge className="bg-indigo-500/15 text-indigo-700 border-indigo-500/30 dark:text-indigo-400">Judgment / Order</Badge>;
+      return (
+        <Badge className="bg-indigo-500/15 text-indigo-700 border-indigo-500/30 dark:text-indigo-400">
+          Judgment / Order
+        </Badge>
+      );
     default:
       return <Badge variant="outline">{category}</Badge>;
   }
@@ -117,7 +145,12 @@ function getCategoryBadge(category: DocumentCategory) {
 function getSensitivityBadge(tier: DocumentSensitivityTier) {
   const conf = SENSITIVITY_TIERS.find((t) => t.tier === tier);
   return (
-    <span className={cn("inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded border", conf?.badgeClass)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded border",
+        conf?.badgeClass,
+      )}
+    >
       {tier === "SEALED_COVER_IN_CAMERA" && <Lock className="size-3" />}
       {conf?.label || tier}
     </span>
@@ -134,7 +167,9 @@ function DocumentsListPage() {
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<DocumentCategory | "ALL">("ALL");
-  const [sensitivityFilter, setSensitivityFilter] = useState<DocumentSensitivityTier | "ALL">("ALL");
+  const [sensitivityFilter, setSensitivityFilter] = useState<DocumentSensitivityTier | "ALL">(
+    "ALL",
+  );
 
   const docsQuery = useQuery(
     secureDocumentsQuery({
@@ -161,7 +196,9 @@ function DocumentsListPage() {
 
   // Verification Modal State
   const [selectedDocToVerify, setSelectedDocToVerify] = useState<SecureDocument | null>(null);
-  const [liveIntegrityResult, setLiveIntegrityResult] = useState<DocumentIntegrityResult | null>(null);
+  const [liveIntegrityResult, setLiveIntegrityResult] = useState<DocumentIntegrityResult | null>(
+    null,
+  );
   const [isVerifyingIndex, setIsVerifyingIndex] = useState(false);
 
   const handleVerifyDoc = async (doc: SecureDocument) => {
@@ -178,9 +215,13 @@ function DocumentsListPage() {
       queryClient.invalidateQueries({ queryKey: ["secure-documents"] });
 
       if (res.status === "VERIFIED") {
-        toast.success(`Integrity verified for ${doc.document_number}: SHA-256 matches recorded deposit hash.`);
+        toast.success(
+          `Integrity verified for ${doc.document_number}: SHA-256 matches recorded deposit hash.`,
+        );
       } else if (res.status === "INTEGRITY_MISMATCH") {
-        toast.error(`SECURITY ALERT: Integrity mismatch detected for ${doc.document_number}! High-priority alert logged.`);
+        toast.error(
+          `SECURITY ALERT: Integrity mismatch detected for ${doc.document_number}! High-priority alert logged.`,
+        );
       } else {
         toast.warning(`Integrity warning for ${doc.document_number}: Storage payload unavailable.`);
       }
@@ -217,7 +258,9 @@ function DocumentsListPage() {
       });
     },
     onSuccess: (newDoc) => {
-      toast.success(`Document ${newDoc.document_number} uploaded securely with SHA-256 integrity digest.`);
+      toast.success(
+        `Document ${newDoc.document_number} uploaded securely with SHA-256 integrity digest.`,
+      );
       setIsUploadOpen(false);
       setTitle("");
       setFileName("");
@@ -241,11 +284,18 @@ function DocumentsListPage() {
   // Summary Metrics
   const stats = useMemo(() => {
     const total = docs.length;
-    const firAndCs = docs.filter((d) => d.category === "FIR" || d.category === "Charge Sheet").length;
-    const forensicAndMemos = docs.filter(
-      (d) => d.category === "Forensic Report" || d.category === "Seizure Memo" || d.category === "Evidence Record",
+    const firAndCs = docs.filter(
+      (d) => d.category === "FIR" || d.category === "Charge Sheet",
     ).length;
-    const sealed = docs.filter((d) => d.sensitivity_tier === "SEALED_COVER_IN_CAMERA" || d.is_sealed).length;
+    const forensicAndMemos = docs.filter(
+      (d) =>
+        d.category === "Forensic Report" ||
+        d.category === "Seizure Memo" ||
+        d.category === "Evidence Record",
+    ).length;
+    const sealed = docs.filter(
+      (d) => d.sensitivity_tier === "SEALED_COVER_IN_CAMERA" || d.is_sealed,
+    ).length;
     return { total, firAndCs, forensicAndMemos, sealed };
   }, [docs]);
 
@@ -279,7 +329,10 @@ function DocumentsListPage() {
               Upload Document
             </Button>
           ) : (
-            <Badge variant="outline" className="text-xs text-muted-foreground py-1.5 px-3 gap-1.5 border-border/80">
+            <Badge
+              variant="outline"
+              className="text-xs text-muted-foreground py-1.5 px-3 gap-1.5 border-border/80"
+            >
               <Lock className="size-3 text-muted-foreground" />
               Upload Restricted ({staffRole})
             </Badge>
@@ -300,7 +353,9 @@ function DocumentsListPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">Immutable legal filings & evidence exhibits</p>
+            <p className="text-xs text-muted-foreground">
+              Immutable legal filings & evidence exhibits
+            </p>
           </CardContent>
         </Card>
 
@@ -315,7 +370,9 @@ function DocumentsListPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">Primary criminal complaints & police filings</p>
+            <p className="text-xs text-muted-foreground">
+              Primary criminal complaints & police filings
+            </p>
           </CardContent>
         </Card>
 
@@ -330,7 +387,9 @@ function DocumentsListPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">Scientific ballistic, cyber, and panchnama records</p>
+            <p className="text-xs text-muted-foreground">
+              Scientific ballistic, cyber, and panchnama records
+            </p>
           </CardContent>
         </Card>
 
@@ -345,7 +404,9 @@ function DocumentsListPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">Restricted to presiding judicial bench only</p>
+            <p className="text-xs text-muted-foreground">
+              Restricted to presiding judicial bench only
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -390,9 +451,14 @@ function DocumentsListPage() {
             <div className="md:col-span-3">
               <Select
                 value={sensitivityFilter}
-                onValueChange={(val) => setSensitivityFilter(val as DocumentSensitivityTier | "ALL")}
+                onValueChange={(val) =>
+                  setSensitivityFilter(val as DocumentSensitivityTier | "ALL")
+                }
               >
-                <SelectTrigger className="text-xs h-9" aria-label="Filter documents by sensitivity tier">
+                <SelectTrigger
+                  className="text-xs h-9"
+                  aria-label="Filter documents by sensitivity tier"
+                >
                   <SelectValue placeholder="All Sensitivity Tiers" />
                 </SelectTrigger>
                 <SelectContent>
@@ -422,7 +488,8 @@ function DocumentsListPage() {
                 </Badge>
               </CardTitle>
               <CardDescription className="text-xs">
-                Click any record to inspect full version tree, cryptographic hashes, and access history.
+                Click any record to inspect full version tree, cryptographic hashes, and access
+                history.
               </CardDescription>
             </div>
           </div>
@@ -437,8 +504,12 @@ function DocumentsListPage() {
           ) : docs.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <FileSearch className="mx-auto size-9 text-muted-foreground/60" />
-              <p className="mt-2 text-sm font-medium text-foreground">No documents matched filter criteria</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Try adjusting your category or search query.</p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                No documents matched filter criteria
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Try adjusting your category or search query.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -592,7 +663,8 @@ function DocumentsListPage() {
               Upload Document to Secure Legal Vault
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Every upload calculates a cryptographic SHA-256 checksum and binds to the judicial audit log under Section 63 BSA 2023.
+              Every upload calculates a cryptographic SHA-256 checksum and binds to the judicial
+              audit log under Section 63 BSA 2023.
             </DialogDescription>
           </DialogHeader>
 
@@ -615,7 +687,10 @@ function DocumentsListPage() {
                 <Label htmlFor="docCat" className="text-xs font-semibold">
                   Document Category *
                 </Label>
-                <Select value={category} onValueChange={(val) => setCategory(val as DocumentCategory)}>
+                <Select
+                  value={category}
+                  onValueChange={(val) => setCategory(val as DocumentCategory)}
+                >
                   <SelectTrigger id="docCat" className="text-xs">
                     <SelectValue />
                   </SelectTrigger>
@@ -717,9 +792,14 @@ function DocumentsListPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="contentText" className="text-xs font-semibold flex items-center justify-between">
+              <Label
+                htmlFor="contentText"
+                className="text-xs font-semibold flex items-center justify-between"
+              >
                 <span>Document Transcript / Extracted Text Preview</span>
-                <span className="text-[10px] text-muted-foreground">(Optional for instant previewer)</span>
+                <span className="text-[10px] text-muted-foreground">
+                  (Optional for instant previewer)
+                </span>
               </Label>
               <Textarea
                 id="contentText"
@@ -732,8 +812,13 @@ function DocumentsListPage() {
 
             {/* Allowed Formats and File Size Limit Guidance */}
             <div className="rounded-md border border-border/80 bg-muted/30 p-2.5 text-[11px] text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-              <span>Allowed formats: <strong className="text-foreground">PDF, PDF/A, DOCX, TIFF, PNG, JPG</strong></span>
-              <span>Max file size: <strong className="text-foreground">50 MB</strong></span>
+              <span>
+                Allowed formats:{" "}
+                <strong className="text-foreground">PDF, PDF/A, DOCX, TIFF, PNG, JPG</strong>
+              </span>
+              <span>
+                Max file size: <strong className="text-foreground">50 MB</strong>
+              </span>
             </div>
 
             <div className="text-[11px] text-muted-foreground">
@@ -834,17 +919,24 @@ function DocumentsListPage() {
                               <span className="text-[10px] text-destructive uppercase font-sans font-bold block">
                                 Calculated Current Hash (Altered):
                               </span>
-                              <span className="text-destructive font-bold">{liveIntegrityResult.computedSha256}</span>
+                              <span className="text-destructive font-bold">
+                                {liveIntegrityResult.computedSha256}
+                              </span>
                             </div>
                             <div className="border-t border-border/40 pt-1.5">
                               <span className="text-[10px] text-muted-foreground uppercase font-sans font-semibold block">
                                 Immutable Recorded Deposit Hash (Preserved):
                               </span>
-                              <span className="text-foreground">{liveIntegrityResult.recordedSha256}</span>
+                              <span className="text-foreground">
+                                {liveIntegrityResult.recordedSha256}
+                              </span>
                             </div>
                           </div>
                         ) : (
-                          <span>{liveIntegrityResult.computedSha256 || liveIntegrityResult.recordedSha256}</span>
+                          <span>
+                            {liveIntegrityResult.computedSha256 ||
+                              liveIntegrityResult.recordedSha256}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -888,15 +980,17 @@ function DocumentsListPage() {
                         HIGH-PRIORITY SECURITY AUDIT EVENT DISPATCHED
                       </div>
                       <p className="text-[11px] opacity-95">
-                        Cryptographic checksum does not match the immutable recorded deposit hash! Original deposit
-                        hash was <strong>NOT overwritten</strong>.
+                        Cryptographic checksum does not match the immutable recorded deposit hash!
+                        Original deposit hash was <strong>NOT overwritten</strong>.
                       </p>
                     </div>
                   )}
 
                   {/* Statutory BSA §63 Clause */}
                   <div className="rounded-lg border border-border/80 bg-muted/20 p-2.5 text-[11px] text-muted-foreground space-y-0.5">
-                    <p className="font-semibold text-foreground">Bharatiya Sakshya Adhiniyam, 2023 §63</p>
+                    <p className="font-semibold text-foreground">
+                      Bharatiya Sakshya Adhiniyam, 2023 §63
+                    </p>
                     <p>{liveIntegrityResult.bsaSection63Clause}</p>
                   </div>
 
@@ -915,15 +1009,17 @@ function DocumentsListPage() {
                       Merkle Leaf: {liveIntegrityResult.ledgerAnchor.merkleLeafHash}
                     </div>
                     <p className="text-[10px] text-muted-foreground italic pt-1 border-t border-border/40">
-                      SHA-256 provides deterministic mathematical integrity verification. Hashes are formatted
-                      for periodic anchoring to the National Judicial Consortium Ledger.
+                      SHA-256 provides deterministic mathematical integrity verification. Hashes are
+                      formatted for periodic anchoring to the National Judicial Consortium Ledger.
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="p-8 text-center space-y-2">
                   <RefreshCw className="size-6 animate-spin mx-auto text-primary" />
-                  <p className="text-xs text-muted-foreground">Calculating SHA-256 cryptographic digest...</p>
+                  <p className="text-xs text-muted-foreground">
+                    Calculating SHA-256 cryptographic digest...
+                  </p>
                 </div>
               )}
             </div>

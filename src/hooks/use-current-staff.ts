@@ -1,15 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  getOfflineStaffSession,
-  cacheStaffCredentialsLocally,
-} from "@/lib/offline-auth";
-import {
-  AppRole,
-  hasPermission,
-  normalizeRole,
-  ROLE_METADATA,
-} from "@/lib/rbac";
+import { getOfflineStaffSession, cacheStaffCredentialsLocally } from "@/lib/offline-auth";
+import { AppRole, hasPermission, normalizeRole, ROLE_METADATA } from "@/lib/rbac";
 
 export type StaffRole = AppRole;
 
@@ -105,6 +97,7 @@ export function useCurrentStaff() {
  * roles never see an action they cannot complete.
  */
 export type StaffPermissions = {
+  isAdmin: boolean;
   // Legacy / Judicial registry permissions
   canManageRegistry: boolean;
   canManageSettings: boolean;
@@ -132,6 +125,7 @@ export type StaffPermissions = {
 export function permissionsFor(role: StaffRole | null | undefined): StaffPermissions {
   const normRole = role ? normalizeRole(role) : null;
   return {
+    isAdmin: normRole === "admin",
     canManageRegistry: normRole === "admin",
     canManageSettings: normRole === "admin",
     canSchedule: normRole === "admin" || normRole === "registrar",

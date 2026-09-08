@@ -3,10 +3,7 @@ const path = require("path");
 
 let mainWindow = null;
 const LIVE_URL = "https://nyaysetu.sujal309206.workers.dev";
-const startUrl =
-  process.env.ELECTRON_START_URL ||
-  process.env.VITE_DEV_SERVER_URL ||
-  LIVE_URL;
+const startUrl = process.env.ELECTRON_START_URL || process.env.VITE_DEV_SERVER_URL || LIVE_URL;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -52,13 +49,18 @@ function createWindow() {
   });
 
   // ONLY trigger fallback if the top-level page failed to load (e.g. true offline)
-  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, _validatedURL, isMainFrame) => {
-    if (!isMainFrame) return; // Crucial: Ignore subresource, font, or analytics errors
-    if (errorCode === -3) return; // -3 is ERR_ABORTED (redirects or cancelled requests)
+  mainWindow.webContents.on(
+    "did-fail-load",
+    (_event, errorCode, errorDescription, _validatedURL, isMainFrame) => {
+      if (!isMainFrame) return; // Crucial: Ignore subresource, font, or analytics errors
+      if (errorCode === -3) return; // -3 is ERR_ABORTED (redirects or cancelled requests)
 
-    console.warn(`[NyayaSetu Desktop] Main page failed to load (${errorCode}: ${errorDescription})`);
-    loadOfflineFallback(mainWindow);
-  });
+      console.warn(
+        `[NyayaSetu Desktop] Main page failed to load (${errorCode}: ${errorDescription})`,
+      );
+      loadOfflineFallback(mainWindow);
+    },
+  );
 
   createApplicationMenu();
 }

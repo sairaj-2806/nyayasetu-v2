@@ -105,7 +105,10 @@ const GLOBAL_COURT_SALT = "nyayasetu_district_court_salt_2026";
 /**
  * Computes a salted SHA-256 hash using the Web Crypto API
  */
-export async function computePasswordHash(password: string, userSalt: string = GLOBAL_COURT_SALT): Promise<string> {
+export async function computePasswordHash(
+  password: string,
+  userSalt: string = GLOBAL_COURT_SALT,
+): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(`${userSalt}:${GLOBAL_COURT_SALT}:${password.trim()}`);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -149,7 +152,10 @@ export function getOfflineStaffVault(): OfflineStaffAccount[] {
  */
 export function switchActiveStaffPersona(targetRole: AppRole): OfflineStaffAccount {
   const vault = getOfflineStaffVault();
-  const found = vault.find((a) => a.role === targetRole) || SEED_OFFLINE_STAFF_ACCOUNTS.find((a) => a.role === targetRole) || SEED_OFFLINE_STAFF_ACCOUNTS[0]!;
+  const found =
+    vault.find((a) => a.role === targetRole) ||
+    SEED_OFFLINE_STAFF_ACCOUNTS.find((a) => a.role === targetRole) ||
+    SEED_OFFLINE_STAFF_ACCOUNTS[0]!;
   setOfflineStaffSession(found);
   return found;
 }
@@ -215,7 +221,8 @@ export async function authenticateOffline(
   if (!account) {
     return {
       success: false,
-      error: "No offline record found for this email on this device. Sign in once while online to cache your credentials.",
+      error:
+        "No offline record found for this email on this device. Sign in once while online to cache your credentials.",
     };
   }
 

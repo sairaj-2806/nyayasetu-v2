@@ -82,10 +82,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useCurrentStaff, usePermissions } from "@/hooks/use-current-staff";
 import { canAccessDocumentRecord } from "@/lib/rbac";
-import {
-  compareDocumentVersions,
-  type VersionComparisonReport,
-} from "@/lib/document-comparison";
+import { compareDocumentVersions, type VersionComparisonReport } from "@/lib/document-comparison";
 import {
   createNewDocumentVersion,
   recordDocumentAccess,
@@ -115,7 +112,8 @@ export const Route = createFileRoute("/_authenticated/documents/$documentId")({
       { title: "Document Particulars & Cryptographic Dossier — NyayaSetu" },
       {
         name: "description",
-        content: "Verified legal document preview, immutable version tree, and cryptographic proof under BSA §63.",
+        content:
+          "Verified legal document preview, immutable version tree, and cryptographic proof under BSA §63.",
       },
     ],
   }),
@@ -133,7 +131,9 @@ function FieldItem({
 }) {
   return (
     <div className="space-y-1">
-      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+        {label}
+      </p>
       {children || <p className="text-sm font-medium text-foreground">{value || "—"}</p>}
     </div>
   );
@@ -221,9 +221,7 @@ function IntegrityStatusCard({
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Version
             </p>
-            <p className="font-mono text-base font-bold text-foreground">
-              {result.versionNumber}
-            </p>
+            <p className="font-mono text-base font-bold text-foreground">{result.versionNumber}</p>
           </div>
 
           <div className="space-y-0.5">
@@ -254,8 +252,9 @@ function IntegrityStatusCard({
             HIGH-PRIORITY SECURITY AUDIT ALERT DISPATCHED
           </div>
           <p className="text-[11px] opacity-95 leading-relaxed">
-            The cryptographic checksum of the current file does not match the immutable recorded deposit hash!
-            A high-priority security event has been automatically written to the platform audit logs.
+            The cryptographic checksum of the current file does not match the immutable recorded
+            deposit hash! A high-priority security event has been automatically written to the
+            platform audit logs.
           </p>
           <div className="font-semibold text-[11px] border-t border-destructive/20 pt-1.5">
             🔒 Original deposit hash is strictly preserved and was NOT overwritten.
@@ -299,9 +298,10 @@ function IntegrityStatusCard({
         </div>
 
         <p className="text-[10px] text-muted-foreground italic pt-1 border-t border-border/40 leading-relaxed">
-          Architectural Note: SHA-256 provides local deterministic integrity verification. The system is designed
-          so hashes are pre-formatted as RFC-6962 Merkle tree leaves and can be anchored to an immutable permissioned
-          blockchain ledger for multi-agency non-repudiation across Police, Prosecution, and Judiciary.
+          Architectural Note: SHA-256 provides local deterministic integrity verification. The
+          system is designed so hashes are pre-formatted as RFC-6962 Merkle tree leaves and can be
+          anchored to an immutable permissioned blockchain ledger for multi-agency non-repudiation
+          across Police, Prosecution, and Judiciary.
         </p>
       </div>
 
@@ -344,7 +344,11 @@ function IntegrityStatusCard({
                 onClick={onReverify}
                 disabled={isVerifying}
               >
-                {isVerifying ? <RefreshCw className="size-3 animate-spin" /> : <ShieldCheck className="size-3" />}
+                {isVerifying ? (
+                  <RefreshCw className="size-3 animate-spin" />
+                ) : (
+                  <ShieldCheck className="size-3" />
+                )}
                 Re-Verify Integrity
               </Button>
             )}
@@ -410,23 +414,19 @@ function DigitalSignatureStatusCard({
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className="text-xs font-mono bg-muted/30 px-2 py-0.5"
-          >
+          <Badge variant="outline" className="text-xs font-mono bg-muted/30 px-2 py-0.5">
             Snapshot: v{versionNumber}
           </Badge>
           {canSign ? (
-            <Button
-              size="sm"
-              onClick={onOpenSignModal}
-              className="gap-1.5 text-xs h-8"
-            >
+            <Button size="sm" onClick={onOpenSignModal} className="gap-1.5 text-xs h-8">
               <FileCheck className="size-3.5" />
               {status === "SIGNED" ? "Re-Endorse / Sign" : "Digital Signature / Approval"}
             </Button>
           ) : (
-            <Badge variant="outline" className="text-xs text-muted-foreground gap-1 py-1 px-2 border-border/80">
+            <Badge
+              variant="outline"
+              className="text-xs text-muted-foreground gap-1 py-1 px-2 border-border/80"
+            >
               <Lock className="size-3" />
               Signing Restricted
             </Badge>
@@ -512,9 +512,7 @@ function DigitalSignatureStatusCard({
               })}
             </span>
           ) : (
-            <span className="text-muted-foreground italic font-normal">
-              [Not Yet Executed]
-            </span>
+            <span className="text-muted-foreground italic font-normal">[Not Yet Executed]</span>
           )}
         </p>
       </div>
@@ -544,7 +542,9 @@ function DigitalSignatureStatusCard({
         <div className="rounded-md bg-muted/40 p-3 font-mono text-xs text-foreground break-all border border-border/60 space-y-1.5">
           <div className="flex items-center justify-between text-[10px] text-muted-foreground font-sans">
             <span className="font-semibold uppercase tracking-wider">
-              {signature ? "Immutable Signed Digest (SHA-256):" : "Current Content Digest (SHA-256):"}
+              {signature
+                ? "Immutable Signed Digest (SHA-256):"
+                : "Current Content Digest (SHA-256):"}
             </span>
             {signature && status === "SIGNED" && (
               <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
@@ -557,7 +557,11 @@ function DigitalSignatureStatusCard({
               </span>
             )}
           </div>
-          <div className={cn(status === "INVALID" ? "text-destructive font-bold" : "text-foreground font-medium")}>
+          <div
+            className={cn(
+              status === "INVALID" ? "text-destructive font-bold" : "text-foreground font-medium",
+            )}
+          >
             [{signature?.signed_content_hash || contentHash}]
           </div>
           {status === "INVALID" && signature && (
@@ -577,18 +581,32 @@ function DigitalSignatureStatusCard({
       <div className="rounded-lg bg-muted/30 p-3.5 border border-border/60 space-y-2 text-xs">
         <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
           <span className="font-semibold text-foreground">
-            Algorithm: <span className="font-mono text-muted-foreground">{signature?.signature_algorithm || "ECDSA-P256-SHA256"}</span>
+            Algorithm:{" "}
+            <span className="font-mono text-muted-foreground">
+              {signature?.signature_algorithm || "ECDSA-P256-SHA256"}
+            </span>
           </span>
           <span className="font-semibold text-foreground">
-            Reference: <span className="font-mono text-muted-foreground">{signature?.signature_reference || "PENDING"}</span>
+            Reference:{" "}
+            <span className="font-mono text-muted-foreground">
+              {signature?.signature_reference || "PENDING"}
+            </span>
           </span>
         </div>
         <div className="text-[11px] text-muted-foreground leading-relaxed border-t border-border/40 pt-2 space-y-1">
           <p>
-            <strong>Prototype Architecture Disclosure:</strong> This electronic approval workflow operates on the internal platform cryptographic keystore under Bharatiya Sakshya Adhiniyam (BSA), 2023 §63.
+            <strong>Prototype Architecture Disclosure:</strong> This electronic approval workflow
+            operates on the internal platform cryptographic keystore under Bharatiya Sakshya
+            Adhiniyam (BSA), 2023 §63.
           </p>
           <p className="text-[10px] opacity-85">
-            <strong>DSC Readiness:</strong> The signature metadata architecture is designed to integrate directly with Indian Controller of Certifying Authorities (CCA) Class 3 DSC hardware tokens and NIC eSign Gateway APIs. <em>This system does not claim to be a government-certified DSC until such external hardware token integration is completed.</em>
+            <strong>DSC Readiness:</strong> The signature metadata architecture is designed to
+            integrate directly with Indian Controller of Certifying Authorities (CCA) Class 3 DSC
+            hardware tokens and NIC eSign Gateway APIs.{" "}
+            <em>
+              This system does not claim to be a government-certified DSC until such external
+              hardware token integration is completed.
+            </em>
           </p>
         </div>
       </div>
@@ -688,7 +706,8 @@ function DocumentDetailPage() {
   });
 
   const openSignModal = (versionNum?: number) => {
-    const target = versionNum ?? (selectedVersionNumber || detailQuery.data?.document?.current_version || 1);
+    const target =
+      versionNum ?? (selectedVersionNumber || detailQuery.data?.document?.current_version || 1);
     setTargetSignVersion(target);
     setSignerCustomName(staffName);
     setSignerCustomRole(staffRole);
@@ -758,7 +777,9 @@ function DocumentDetailPage() {
       if (result.status === "VERIFIED") {
         toast.success(`Integrity verified for v${verNum}: SHA-256 matches recorded deposit hash.`);
       } else if (result.status === "INTEGRITY_MISMATCH") {
-        toast.error(`SECURITY ALERT: Integrity mismatch detected for v${verNum}! High-priority alert dispatched.`);
+        toast.error(
+          `SECURITY ALERT: Integrity mismatch detected for v${verNum}! High-priority alert dispatched.`,
+        );
       } else {
         toast.warning(`Verification warning for v${verNum}: Storage payload unavailable.`);
       }
@@ -773,7 +794,9 @@ function DocumentDetailPage() {
     if (!detailQuery.data?.document) return;
     const res = simulateDocumentTamper(detailQuery.data.document.id, verNum);
     if (res.success) {
-      toast.warning("Simulated file alteration injected! Now running verification to test detection...");
+      toast.warning(
+        "Simulated file alteration injected! Now running verification to test detection...",
+      );
       queryClient.invalidateQueries({ queryKey: ["secure-document-detail", documentId] });
       runVerification(verNum);
     }
@@ -887,11 +910,7 @@ function DocumentDetailPage() {
 
   const { document: doc, versions, integrity, accessLogs } = detailQuery.data;
 
-  const isAuthorized = canAccessDocumentRecord(
-    staffRole,
-    doc,
-    staff.data?.judgeId,
-  );
+  const isAuthorized = canAccessDocumentRecord(staffRole, doc, staff.data?.judgeId);
 
   if (!isAuthorized) {
     return (
@@ -906,7 +925,10 @@ function DocumentDetailPage() {
           Access Denied: {doc.sensitivity_tier} Clearance Required
         </h2>
         <p className="mt-2 max-w-md mx-auto text-sm text-muted-foreground">
-          Your current authenticated role (<strong className="text-foreground">{staffRole}</strong>) lacks statutory security clearance to inspect this legal record. All unauthorized inspection attempts are logged to the tamper-evident audit trail under Section 63 BSA 2023.
+          Your current authenticated role (<strong className="text-foreground">{staffRole}</strong>)
+          lacks statutory security clearance to inspect this legal record. All unauthorized
+          inspection attempts are logged to the tamper-evident audit trail under Section 63 BSA
+          2023.
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <Button asChild variant="outline">
@@ -918,8 +940,7 @@ function DocumentDetailPage() {
   }
 
   // Resolved active version for viewing/sandbox preview
-  const currentVerRecord =
-    versions.find((v) => v.version_number === doc.current_version) ||
+  const currentVerRecord = versions.find((v) => v.version_number === doc.current_version) ||
     versions[versions.length - 1] || {
       id: `ver-${doc.id}-${doc.current_version}`,
       document_id: doc.id,
@@ -948,7 +969,8 @@ function DocumentDetailPage() {
   const isViewingHistorical = activeVersion.version_number !== doc.current_version;
 
   // Comparison report calculation
-  const verA = versions.find((v) => v.version_number === compareVersionA) || versions[0] || currentVerRecord;
+  const verA =
+    versions.find((v) => v.version_number === compareVersionA) || versions[0] || currentVerRecord;
   const verB = versions.find((v) => v.version_number === compareVersionB) || currentVerRecord;
   const comparisonReport: VersionComparisonReport | null =
     verA && verB ? compareDocumentVersions(verA, verB) : null;
@@ -958,13 +980,15 @@ function DocumentDetailPage() {
     (s) => s.version_number === activeVersion.version_number,
   );
 
-  const isTamperedActiveVersion = doc.is_tampered || activeVersion.integrity_status === "INTEGRITY_MISMATCH";
+  const isTamperedActiveVersion =
+    doc.is_tampered || activeVersion.integrity_status === "INTEGRITY_MISMATCH";
 
   const activeSignatureStatus: SignatureStatus = !activeSignature
     ? "PENDING"
     : isTamperedActiveVersion ||
         (activeSignature.signed_content_hash &&
-          activeSignature.signed_content_hash.toLowerCase() !== activeVersion.sha256_hash.toLowerCase())
+          activeSignature.signed_content_hash.toLowerCase() !==
+            activeVersion.sha256_hash.toLowerCase())
       ? "INVALID"
       : activeSignature.signature_status === "INVALID"
         ? "INVALID"
@@ -1006,14 +1030,18 @@ function DocumentDetailPage() {
               )}
               {activeSignatureStatus === "SIGNED" ? (
                 <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-xs gap-1 font-sans">
-                  <CheckCircle2 className="size-3" /> Digitally Signed (v{activeVersion.version_number})
+                  <CheckCircle2 className="size-3" /> Digitally Signed (v
+                  {activeVersion.version_number})
                 </Badge>
               ) : activeSignatureStatus === "INVALID" ? (
                 <Badge variant="destructive" className="text-xs gap-1">
                   <XCircle className="size-3" /> Signature Invalid
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-500/30 text-xs gap-1 font-sans">
+                <Badge
+                  variant="outline"
+                  className="text-amber-700 dark:text-amber-400 border-amber-500/30 text-xs gap-1 font-sans"
+                >
                   <Clock className="size-3" /> Signature Pending (v{activeVersion.version_number})
                 </Badge>
               )}
@@ -1022,7 +1050,10 @@ function DocumentDetailPage() {
                   <Lock className="size-3" /> Sealed Cover
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-xs text-blue-700 dark:text-blue-400 border-blue-500/30">
+                <Badge
+                  variant="outline"
+                  className="text-xs text-blue-700 dark:text-blue-400 border-blue-500/30"
+                >
                   {doc.sensitivity_tier}
                 </Badge>
               )}
@@ -1086,11 +1117,7 @@ function DocumentDetailPage() {
             )}
 
             {permissions.canVersionDocuments && (
-              <Button
-                size="sm"
-                onClick={openUploadModal}
-                className="gap-1.5 text-xs"
-              >
+              <Button size="sm" onClick={openUploadModal} className="gap-1.5 text-xs">
                 <FilePlus className="size-3.5" />
                 Upload New Version
               </Button>
@@ -1192,8 +1219,10 @@ function DocumentDetailPage() {
                     Viewing Archived Historical Version: v{activeVersion.version_number}
                   </p>
                   <p className="text-[11px] opacity-90 mt-0.5">
-                    Uploaded by <strong>{activeVersion.uploaded_by_name}</strong> ({activeVersion.uploaded_by_role}) on{" "}
-                    {new Date(activeVersion.created_at).toLocaleString("en-IN")}. This is an immutable past snapshot.
+                    Uploaded by <strong>{activeVersion.uploaded_by_name}</strong> (
+                    {activeVersion.uploaded_by_role}) on{" "}
+                    {new Date(activeVersion.created_at).toLocaleString("en-IN")}. This is an
+                    immutable past snapshot.
                   </p>
                 </div>
               </div>
@@ -1202,7 +1231,9 @@ function DocumentDetailPage() {
                   size="sm"
                   variant="outline"
                   className="h-7 text-xs border-amber-500/40 bg-background/50 hover:bg-amber-500/20"
-                  onClick={() => openCompareModal(activeVersion.version_number, doc.current_version)}
+                  onClick={() =>
+                    openCompareModal(activeVersion.version_number, doc.current_version)
+                  }
                 >
                   <Split className="size-3 mr-1" />
                   Compare with Current (v{doc.current_version})
@@ -1229,7 +1260,10 @@ function DocumentDetailPage() {
                       CURRENT ACTIVE VERSION
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px]">
+                    <Badge
+                      variant="outline"
+                      className="text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px]"
+                    >
                       ARCHIVED SNAPSHOT v{activeVersion.version_number}
                     </Badge>
                   )}
@@ -1242,20 +1276,29 @@ function DocumentDetailPage() {
               {/* Version Switcher Controls */}
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-1.5">
-                  <Label htmlFor="version-selector" className="text-xs text-muted-foreground font-medium">
+                  <Label
+                    htmlFor="version-selector"
+                    className="text-xs text-muted-foreground font-medium"
+                  >
                     Version:
                   </Label>
                   <Select
                     value={String(activeVersion.version_number)}
                     onValueChange={(val) => setSelectedVersionNumber(Number(val))}
                   >
-                    <SelectTrigger id="version-selector" className="h-8 text-xs w-[170px] bg-background">
+                    <SelectTrigger
+                      id="version-selector"
+                      className="h-8 text-xs w-[170px] bg-background"
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {versions.map((v) => (
                         <SelectItem key={v.id} value={String(v.version_number)} className="text-xs">
-                          v{v.version_number} {v.version_number === doc.current_version ? "(Current Active)" : "(Archived)"}
+                          v{v.version_number}{" "}
+                          {v.version_number === doc.current_version
+                            ? "(Current Active)"
+                            : "(Archived)"}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1263,7 +1306,8 @@ function DocumentDetailPage() {
                 </div>
 
                 <Badge variant="outline" className="font-mono text-xs hidden md:inline-flex">
-                  {activeVersion.mime_type || doc.file_format} • {(activeVersion.file_size_bytes / 1024).toFixed(0)} KB
+                  {activeVersion.mime_type || doc.file_format} •{" "}
+                  {(activeVersion.file_size_bytes / 1024).toFixed(0)} KB
                 </Badge>
 
                 <Button
@@ -1273,7 +1317,11 @@ function DocumentDetailPage() {
                   disabled={isVerifying}
                   className="text-xs h-8 gap-1 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
                 >
-                  {isVerifying ? <RefreshCw className="size-3 animate-spin" /> : <ShieldCheck className="size-3" />}
+                  {isVerifying ? (
+                    <RefreshCw className="size-3 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="size-3" />
+                  )}
                   Verify v{activeVersion.version_number}
                 </Button>
 
@@ -1296,10 +1344,12 @@ function DocumentDetailPage() {
               ) : (
                 <div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
                   <FileText className="mx-auto size-12 text-muted-foreground/60" />
-                  <p className="mt-3 text-sm font-semibold text-foreground">{activeVersion.file_name}</p>
+                  <p className="mt-3 text-sm font-semibold text-foreground">
+                    {activeVersion.file_name}
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground max-w-md mx-auto">
-                    This file version is stored in encrypted vault storage ({activeVersion.storage_path}).
-                    Click below to download and inspect.
+                    This file version is stored in encrypted vault storage (
+                    {activeVersion.storage_path}). Click below to download and inspect.
                   </p>
                   <Button
                     onClick={() => handleDownloadVersion(activeVersion)}
@@ -1307,7 +1357,8 @@ function DocumentDetailPage() {
                     size="sm"
                   >
                     <Download className="size-3.5" />
-                    Download Version v{activeVersion.version_number} ({(activeVersion.file_size_bytes / 1024).toFixed(0)} KB)
+                    Download Version v{activeVersion.version_number} (
+                    {(activeVersion.file_size_bytes / 1024).toFixed(0)} KB)
                   </Button>
                 </div>
               )}
@@ -1316,12 +1367,17 @@ function DocumentDetailPage() {
               <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px] text-muted-foreground font-mono bg-muted/30 p-3 rounded border border-border/60">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">Version v{activeVersion.version_number}</span>
+                    <span className="font-semibold text-foreground">
+                      Version v{activeVersion.version_number}
+                    </span>
                     <span>•</span>
-                    <span className="text-muted-foreground">SHA-256: {activeVersion.sha256_hash}</span>
+                    <span className="text-muted-foreground">
+                      SHA-256: {activeVersion.sha256_hash}
+                    </span>
                   </div>
                   <div className="text-[10px] text-muted-foreground">
-                    Vault Ref: {activeVersion.file_reference} • Signer: {activeVersion.signer_identity || doc.originating_agency}
+                    Vault Ref: {activeVersion.file_reference} • Signer:{" "}
+                    {activeVersion.signer_identity || doc.originating_agency}
                   </div>
                 </div>
                 <div className="shrink-0 flex items-center gap-2">
@@ -1331,7 +1387,8 @@ function DocumentDetailPage() {
                     </span>
                   ) : (
                     <span className="text-emerald-600 flex items-center gap-1 font-semibold text-xs">
-                      <CheckCircle2 className="size-3.5" /> {activeVersion.integrity_status || "VERIFIED"} (BSA §63)
+                      <CheckCircle2 className="size-3.5" />{" "}
+                      {activeVersion.integrity_status || "VERIFIED"} (BSA §63)
                     </span>
                   )}
                 </div>
@@ -1383,9 +1440,18 @@ function DocumentDetailPage() {
                 <FieldItem label="Attached Evidence Exhibit" value={doc.asset_code || "None"} />
                 <FieldItem label="Storage Path" value={doc.storage_path} />
                 <FieldItem label="File Name" value={doc.file_name} />
-                <FieldItem label="File Size" value={`${(doc.file_size_bytes / 1024).toFixed(1)} KB`} />
-                <FieldItem label="Uploaded At" value={new Date(doc.created_at).toLocaleString("en-IN")} />
-                <FieldItem label="Last Modified" value={new Date(doc.updated_at).toLocaleString("en-IN")} />
+                <FieldItem
+                  label="File Size"
+                  value={`${(doc.file_size_bytes / 1024).toFixed(1)} KB`}
+                />
+                <FieldItem
+                  label="Uploaded At"
+                  value={new Date(doc.created_at).toLocaleString("en-IN")}
+                />
+                <FieldItem
+                  label="Last Modified"
+                  value={new Date(doc.updated_at).toLocaleString("en-IN")}
+                />
               </CardContent>
             </Card>
           </div>
@@ -1401,7 +1467,8 @@ function DocumentDetailPage() {
                   Immutable Document Version Control Tree
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Every revision preserves previous history non-destructively and seals a new cryptographic block.
+                  Every revision preserves previous history non-destructively and seals a new
+                  cryptographic block.
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -1426,18 +1493,24 @@ function DocumentDetailPage() {
             {/* Quick Stat Strip */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-muted/20 border-b border-border/60 text-xs">
               <div className="space-y-0.5">
-                <span className="text-[10px] text-muted-foreground uppercase font-semibold">Active Version</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                  Active Version
+                </span>
                 <p className="font-mono font-bold text-foreground text-sm flex items-center gap-1.5">
                   v{doc.current_version}
                   <span className="inline-block size-2 rounded-full bg-emerald-500 animate-pulse" />
                 </p>
               </div>
               <div className="space-y-0.5">
-                <span className="text-[10px] text-muted-foreground uppercase font-semibold">Total Sealed Versions</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                  Total Sealed Versions
+                </span>
                 <p className="font-mono font-bold text-foreground text-sm">{versions.length}</p>
               </div>
               <div className="space-y-0.5">
-                <span className="text-[10px] text-muted-foreground uppercase font-semibold">Genesis Filing (v1)</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                  Genesis Filing (v1)
+                </span>
                 <p className="text-foreground">
                   {new Date(versions[0]?.created_at || doc.created_at).toLocaleDateString("en-IN", {
                     day: "numeric",
@@ -1447,7 +1520,9 @@ function DocumentDetailPage() {
                 </p>
               </div>
               <div className="space-y-0.5">
-                <span className="text-[10px] text-muted-foreground uppercase font-semibold">Integrity Standard</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                  Integrity Standard
+                </span>
                 <p className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
                   <CheckCircle2 className="size-3" /> BSA 2023 §63 Sealed
                 </p>
@@ -1477,26 +1552,38 @@ function DocumentDetailPage() {
                     const isVerTampered = ver.integrity_status === "INTEGRITY_MISMATCH";
                     const vStatus: SignatureStatus = !vSig
                       ? "PENDING"
-                      : isVerTampered || (vSig.signed_content_hash.toLowerCase() !== ver.sha256_hash.toLowerCase())
+                      : isVerTampered ||
+                          vSig.signed_content_hash.toLowerCase() !== ver.sha256_hash.toLowerCase()
                         ? "INVALID"
                         : vSig.signature_status;
 
                     return (
-                      <TableRow key={ver.id} className={cn(isCurrent && "bg-emerald-500/[0.03]", isMismatch && "bg-destructive/[0.05]")}>
+                      <TableRow
+                        key={ver.id}
+                        className={cn(
+                          isCurrent && "bg-emerald-500/[0.03]",
+                          isMismatch && "bg-destructive/[0.05]",
+                        )}
+                      >
                         <TableCell>
                           {isCurrent ? (
                             <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-mono text-xs font-semibold whitespace-nowrap">
                               v{ver.version_number} (Current)
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="text-muted-foreground font-mono text-xs whitespace-nowrap">
+                            <Badge
+                              variant="outline"
+                              className="text-muted-foreground font-mono text-xs whitespace-nowrap"
+                            >
                               v{ver.version_number} (Archived)
                             </Badge>
                           )}
                         </TableCell>
 
                         <TableCell className="max-w-[200px]">
-                          <div className="font-medium text-xs text-foreground truncate">{ver.file_name}</div>
+                          <div className="font-medium text-xs text-foreground truncate">
+                            {ver.file_name}
+                          </div>
                           <div className="text-[10px] font-mono text-muted-foreground truncate mt-0.5">
                             {ver.file_reference}
                           </div>
@@ -1514,7 +1601,9 @@ function DocumentDetailPage() {
                         </TableCell>
 
                         <TableCell className="text-xs whitespace-nowrap">
-                          <span className="font-medium text-foreground">{ver.uploaded_by_name}</span>
+                          <span className="font-medium text-foreground">
+                            {ver.uploaded_by_name}
+                          </span>
                           <span className="block text-[10px] text-muted-foreground capitalize">
                             {ver.uploaded_by_role}
                           </span>
@@ -1559,14 +1648,22 @@ function DocumentDetailPage() {
                             </div>
                           ) : vStatus === "INVALID" ? (
                             <div>
-                              <Badge variant="destructive" className="text-[10px] font-bold flex items-center gap-1 w-fit">
+                              <Badge
+                                variant="destructive"
+                                className="text-[10px] font-bold flex items-center gap-1 w-fit"
+                              >
                                 <XCircle className="size-3" /> INVALID
                               </Badge>
-                              <span className="text-[10px] text-destructive block mt-0.5">Hash Divergence</span>
+                              <span className="text-[10px] text-destructive block mt-0.5">
+                                Hash Divergence
+                              </span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1.5">
-                              <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px] font-semibold flex items-center gap-1">
+                              <Badge
+                                variant="outline"
+                                className="text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px] font-semibold flex items-center gap-1"
+                              >
                                 <Clock className="size-2.5" /> PENDING
                               </Badge>
                               <Button
@@ -1621,7 +1718,9 @@ function DocumentDetailPage() {
                               variant="ghost"
                               size="sm"
                               className="h-7 px-2 text-xs text-foreground gap-1"
-                              onClick={() => openCompareModal(ver.version_number, doc.current_version)}
+                              onClick={() =>
+                                openCompareModal(ver.version_number, doc.current_version)
+                              }
                             >
                               <Split className="size-3" />
                               Compare
@@ -1667,7 +1766,11 @@ function DocumentDetailPage() {
                   disabled={isVerifying}
                   className="gap-1.5 text-xs"
                 >
-                  {isVerifying ? <RefreshCw className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}
+                  {isVerifying ? (
+                    <RefreshCw className="size-3.5 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="size-3.5" />
+                  )}
                   Execute Real-Time Verification
                 </Button>
               </div>
@@ -1701,7 +1804,9 @@ function DocumentDetailPage() {
                   setTargetTamperVersion(selectedVersionNumber || doc.current_version);
                   setIsTamperConfirmOpen(true);
                 }}
-                onRestore={() => handleRestoreAuthentic(selectedVersionNumber || doc.current_version)}
+                onRestore={() =>
+                  handleRestoreAuthentic(selectedVersionNumber || doc.current_version)
+                }
                 onReverify={() => runVerification(selectedVersionNumber || doc.current_version)}
                 isVerifying={isVerifying}
               />
@@ -1730,7 +1835,8 @@ function DocumentDetailPage() {
                 Document Access & Inspection History
               </CardTitle>
               <CardDescription className="text-xs">
-                Zero silent leaks policy: All previews, downloads, and verifications are logged with authenticated identity.
+                Zero silent leaks policy: All previews, downloads, and verifications are logged with
+                authenticated identity.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
@@ -1747,8 +1853,12 @@ function DocumentDetailPage() {
                 <TableBody>
                   {accessLogs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell className="text-xs font-medium text-foreground">{log.user_name}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{log.user_role}</TableCell>
+                      <TableCell className="text-xs font-medium text-foreground">
+                        {log.user_name}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {log.user_role}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-[10px]">
                           {log.access_type}
@@ -1757,7 +1867,9 @@ function DocumentDetailPage() {
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(log.timestamp).toLocaleString("en-IN")}
                       </TableCell>
-                      <TableCell className="font-mono text-[11px] text-muted-foreground">{log.ip_or_terminal}</TableCell>
+                      <TableCell className="font-mono text-[11px] text-muted-foreground">
+                        {log.ip_or_terminal}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -1787,7 +1899,10 @@ function DocumentDetailPage() {
             <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="compareVerA" className="text-xs font-semibold text-muted-foreground">
+                  <Label
+                    htmlFor="compareVerA"
+                    className="text-xs font-semibold text-muted-foreground"
+                  >
                     Base Version (A)
                   </Label>
                   <Select
@@ -1800,7 +1915,8 @@ function DocumentDetailPage() {
                     <SelectContent>
                       {versions.map((v) => (
                         <SelectItem key={v.id} value={String(v.version_number)} className="text-xs">
-                          v{v.version_number} — {v.file_name} {v.version_number === doc.current_version ? "(Current)" : ""}
+                          v{v.version_number} — {v.file_name}{" "}
+                          {v.version_number === doc.current_version ? "(Current)" : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1808,7 +1924,10 @@ function DocumentDetailPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="compareVerB" className="text-xs font-semibold text-muted-foreground">
+                  <Label
+                    htmlFor="compareVerB"
+                    className="text-xs font-semibold text-muted-foreground"
+                  >
                     Comparison Target (B)
                   </Label>
                   <Select
@@ -1821,7 +1940,8 @@ function DocumentDetailPage() {
                     <SelectContent>
                       {versions.map((v) => (
                         <SelectItem key={v.id} value={String(v.version_number)} className="text-xs">
-                          v{v.version_number} — {v.file_name} {v.version_number === doc.current_version ? "(Current)" : ""}
+                          v{v.version_number} — {v.file_name}{" "}
+                          {v.version_number === doc.current_version ? "(Current)" : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1886,7 +2006,8 @@ function DocumentDetailPage() {
 
                     <div className="space-y-1.5 text-muted-foreground">
                       <p>
-                        <strong className="text-foreground">File:</strong> {comparisonReport.versionA.file_name}
+                        <strong className="text-foreground">File:</strong>{" "}
+                        {comparisonReport.versionA.file_name}
                       </p>
                       <p>
                         <strong className="text-foreground">Size:</strong>{" "}
@@ -1894,7 +2015,8 @@ function DocumentDetailPage() {
                         {comparisonReport.versionA.mime_type || "application/pdf"})
                       </p>
                       <p>
-                        <strong className="text-foreground">Uploader:</strong> {comparisonReport.versionA.uploaded_by_name} (
+                        <strong className="text-foreground">Uploader:</strong>{" "}
+                        {comparisonReport.versionA.uploaded_by_name} (
                         {comparisonReport.versionA.uploaded_by_role})
                       </p>
                       <p>
@@ -1908,8 +2030,12 @@ function DocumentDetailPage() {
                     </div>
 
                     <div className="rounded bg-muted/40 p-2 text-[11px]">
-                      <span className="font-semibold text-foreground block">Change Description:</span>
-                      <span className="text-muted-foreground">{comparisonReport.versionA.change_summary}</span>
+                      <span className="font-semibold text-foreground block">
+                        Change Description:
+                      </span>
+                      <span className="text-muted-foreground">
+                        {comparisonReport.versionA.change_summary}
+                      </span>
                     </div>
                   </div>
 
@@ -1931,7 +2057,8 @@ function DocumentDetailPage() {
 
                     <div className="space-y-1.5 text-muted-foreground">
                       <p>
-                        <strong className="text-foreground">File:</strong> {comparisonReport.versionB.file_name}
+                        <strong className="text-foreground">File:</strong>{" "}
+                        {comparisonReport.versionB.file_name}
                       </p>
                       <p className="flex items-center gap-2">
                         <strong className="text-foreground">Size:</strong>{" "}
@@ -1949,7 +2076,8 @@ function DocumentDetailPage() {
                         </Badge>
                       </p>
                       <p>
-                        <strong className="text-foreground">Uploader:</strong> {comparisonReport.versionB.uploaded_by_name} (
+                        <strong className="text-foreground">Uploader:</strong>{" "}
+                        {comparisonReport.versionB.uploaded_by_name} (
                         {comparisonReport.versionB.uploaded_by_role})
                       </p>
                       <p className="flex items-center gap-1.5">
@@ -1966,8 +2094,12 @@ function DocumentDetailPage() {
                     </div>
 
                     <div className="rounded bg-muted/40 p-2 text-[11px]">
-                      <span className="font-semibold text-foreground block">Change Description:</span>
-                      <span className="text-muted-foreground">{comparisonReport.versionB.change_summary}</span>
+                      <span className="font-semibold text-foreground block">
+                        Change Description:
+                      </span>
+                      <span className="text-muted-foreground">
+                        {comparisonReport.versionB.change_summary}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -2002,10 +2134,13 @@ function DocumentDetailPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/40 px-4 py-2.5 border-b border-border text-xs">
                     <div className="flex items-center gap-2">
                       <FileText className="size-3.5 text-primary" />
-                      <span className="font-semibold text-foreground">Operative Legal Text & Pleading Diff</span>
+                      <span className="font-semibold text-foreground">
+                        Operative Legal Text & Pleading Diff
+                      </span>
                       <span className="text-muted-foreground text-[11px]">
                         ({comparisonReport.textDiff.filter((l) => l.type === "added").length} added,{" "}
-                        {comparisonReport.textDiff.filter((l) => l.type === "removed").length} removed)
+                        {comparisonReport.textDiff.filter((l) => l.type === "removed").length}{" "}
+                        removed)
                       </span>
                     </div>
 
@@ -2038,21 +2173,27 @@ function DocumentDetailPage() {
                       </p>
                     ) : (
                       comparisonReport.textDiff
-                        .filter((line) => (compareDiffFilter === "changes_only" ? line.type !== "unchanged" : true))
+                        .filter((line) =>
+                          compareDiffFilter === "changes_only" ? line.type !== "unchanged" : true,
+                        )
                         .map((line, idx) => (
                           <div
                             key={idx}
                             className={cn(
                               "px-2 py-0.5 rounded-xs flex items-start gap-2",
-                              line.type === "added" && "bg-emerald-500/15 text-emerald-900 dark:text-emerald-200",
-                              line.type === "removed" && "bg-red-500/15 text-red-900 dark:text-red-200 line-through opacity-80",
+                              line.type === "added" &&
+                                "bg-emerald-500/15 text-emerald-900 dark:text-emerald-200",
+                              line.type === "removed" &&
+                                "bg-red-500/15 text-red-900 dark:text-red-200 line-through opacity-80",
                               line.type === "unchanged" && "text-muted-foreground",
                             )}
                           >
                             <span className="select-none text-[10px] w-5 text-right opacity-50 shrink-0">
                               {line.type === "added" ? "+" : line.type === "removed" ? "-" : " "}
                             </span>
-                            <span className="whitespace-pre-wrap break-all">{line.text || " "}</span>
+                            <span className="whitespace-pre-wrap break-all">
+                              {line.text || " "}
+                            </span>
                           </div>
                         ))
                     )}
@@ -2103,8 +2244,8 @@ function DocumentDetailPage() {
               Upload Version v{doc.current_version + 1} (Non-Destructive Revision)
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Upload an updated filing, supplementary report, or amended pleading. Previous versions v1 to v
-              {doc.current_version} remain permanently preserved and tamper-sealed.
+              Upload an updated filing, supplementary report, or amended pleading. Previous versions
+              v1 to v{doc.current_version} remain permanently preserved and tamper-sealed.
             </DialogDescription>
           </DialogHeader>
 
@@ -2114,8 +2255,9 @@ function DocumentDetailPage() {
             <div>
               <p className="font-semibold">Zero Destructive Overwrite Guarantee</p>
               <p className="text-[11px] opacity-90 mt-0.5">
-                Existing versions v1 to v{doc.current_version} will never be mutated or replaced. Submitting
-                will commit a new cryptographic block pointing to version v{doc.current_version + 1}.
+                Existing versions v1 to v{doc.current_version} will never be mutated or replaced.
+                Submitting will commit a new cryptographic block pointing to version v
+                {doc.current_version + 1}.
               </p>
             </div>
           </div>
@@ -2184,9 +2326,14 @@ function DocumentDetailPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="vContentText" className="text-xs font-semibold flex items-center justify-between">
+              <Label
+                htmlFor="vContentText"
+                className="text-xs font-semibold flex items-center justify-between"
+              >
                 <span>Operative Pleading & Document Text Snapshot</span>
-                <span className="text-[10px] text-muted-foreground font-normal">Supports version diffing</span>
+                <span className="text-[10px] text-muted-foreground font-normal">
+                  Supports version diffing
+                </span>
               </Label>
               <Textarea
                 id="vContentText"
@@ -2274,7 +2421,9 @@ function DocumentDetailPage() {
           ) : (
             <div className="p-8 text-center">
               <RefreshCw className="size-6 animate-spin mx-auto text-muted-foreground" />
-              <p className="mt-2 text-xs text-muted-foreground">Calculating cryptographic SHA-256 digest...</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Calculating cryptographic SHA-256 digest...
+              </p>
             </div>
           )}
 
@@ -2297,7 +2446,8 @@ function DocumentDetailPage() {
               Digital Signature / Approval Workflow
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Cryptographically seal an official electronic endorsement tied strictly to Document Version v{targetSignVersion ?? activeVersion.version_number}.
+              Cryptographically seal an official electronic endorsement tied strictly to Document
+              Version v{targetSignVersion ?? activeVersion.version_number}.
             </DialogDescription>
           </DialogHeader>
 
@@ -2311,7 +2461,11 @@ function DocumentDetailPage() {
                 </Badge>
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                This digital approval will be permanently bound to Version v{targetSignVersion ?? activeVersion.version_number}. If a subsequent revision (e.g. v{(targetSignVersion ?? activeVersion.version_number) + 1}) is created in the future, this signature will <strong>not</strong> automatically apply to the new version.
+                This digital approval will be permanently bound to Version v
+                {targetSignVersion ?? activeVersion.version_number}. If a subsequent revision (e.g.
+                v{(targetSignVersion ?? activeVersion.version_number) + 1}) is created in the
+                future, this signature will <strong>not</strong> automatically apply to the new
+                version.
               </p>
             </div>
 
@@ -2319,7 +2473,14 @@ function DocumentDetailPage() {
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">SHA-256 Content Digest to be Sealed *</Label>
               <div className="rounded-md bg-muted/40 p-2.5 font-mono text-[11px] text-foreground break-all border border-border/60">
-                {(versions.find((v) => v.version_number === (targetSignVersion ?? activeVersion.version_number)) || activeVersion).sha256_hash}
+                {
+                  (
+                    versions.find(
+                      (v) =>
+                        v.version_number === (targetSignVersion ?? activeVersion.version_number),
+                    ) || activeVersion
+                  ).sha256_hash
+                }
               </div>
             </div>
 
@@ -2375,12 +2536,19 @@ function DocumentDetailPage() {
                   onChange={(e) => setSignatureAcknowledged(e.target.checked)}
                   className="mt-1 size-4 rounded border-border cursor-pointer"
                 />
-                <label htmlFor="disclaimerCheck" className="text-[11px] text-foreground font-medium leading-snug cursor-pointer">
-                  I endorse this digital approval and confirm that the document content matches the computed SHA-256 digest.
+                <label
+                  htmlFor="disclaimerCheck"
+                  className="text-[11px] text-foreground font-medium leading-snug cursor-pointer"
+                >
+                  I endorse this digital approval and confirm that the document content matches the
+                  computed SHA-256 digest.
                 </label>
               </div>
               <p className="text-[10px] text-muted-foreground pl-6 leading-relaxed">
-                <strong>System Disclosure:</strong> Internal platform cryptographic endorsement. System architecture is digital-signature-ready for Controller of Certifying Authorities (CCA) Class 3 DSC tokens and NIC eSign Gateway API. (Not a government-certified DSC).
+                <strong>System Disclosure:</strong> Internal platform cryptographic endorsement.
+                System architecture is digital-signature-ready for Controller of Certifying
+                Authorities (CCA) Class 3 DSC tokens and NIC eSign Gateway API. (Not a
+                government-certified DSC).
               </p>
             </div>
           </div>
@@ -2428,10 +2596,15 @@ function DocumentDetailPage() {
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs leading-relaxed space-y-2">
               <p>
-                This test alters the simulated vault storage payload for Version v{targetTamperVersion || selectedVersionNumber || doc.current_version} to verify that NyayaSetu&apos;s SHA-256 integrity verification engine immediately catches bit-level file alterations.
+                This test alters the simulated vault storage payload for Version v
+                {targetTamperVersion || selectedVersionNumber || doc.current_version} to verify that
+                NyayaSetu&apos;s SHA-256 integrity verification engine immediately catches bit-level
+                file alterations.
               </p>
               <p className="font-medium text-foreground">
-                An <strong className="text-destructive">INTEGRITY_MISMATCH</strong> high-priority security audit record will be logged. You can click &quot;Restore Authentic File&quot; at any time to return the document to its original state.
+                An <strong className="text-destructive">INTEGRITY_MISMATCH</strong> high-priority
+                security audit record will be logged. You can click &quot;Restore Authentic
+                File&quot; at any time to return the document to its original state.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>

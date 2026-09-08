@@ -126,7 +126,11 @@ export function computeDmsAssetAnalytics(
   ];
 
   const integrityStatus = [
-    { status: "Verified (Section 63 BSA)", count: Math.max(verifiedCount, 3), color: "var(--chart-2)" },
+    {
+      status: "Verified (Section 63 BSA)",
+      count: Math.max(verifiedCount, 3),
+      color: "var(--chart-2)",
+    },
     { status: "Pending Verification", count: pendingCount, color: "var(--chart-4)" },
     { status: "Integrity Mismatch", count: mismatchCount, color: "var(--destructive)" },
     { status: "Storage Unavailable", count: unavailableCount, color: "var(--chart-5)" },
@@ -173,10 +177,16 @@ export function computeDmsAssetAnalytics(
   const byLocation = Array.from(locationMap.entries())
     .slice(0, 6)
     .map(([location, count]) => ({ location: location.split(",")[0] || location, count }));
-  const byAssetDept = Array.from(deptAssetMap.entries()).map(([department, count]) => ({ department, count }));
+  const byAssetDept = Array.from(deptAssetMap.entries()).map(([department, count]) => ({
+    department,
+    count,
+  }));
   const assignmentHistory = Array.from(officerMap.entries())
     .slice(0, 6)
-    .map(([officer, count]) => ({ officer: officer.replace("Inspector ", "Insp. ").replace("Head Constable ", "HC "), count }));
+    .map(([officer, count]) => ({
+      officer: officer.replace("Inspector ", "Insp. ").replace("Head Constable ", "HC "),
+      count,
+    }));
 
   const maintenanceFrequency = [
     { service: "Ballistic Calibration", count: 4 },
@@ -224,12 +234,18 @@ export function computeDmsAssetAnalytics(
     evCaseMap.set("NDPS/2026/0009", 1);
   }
 
-  const evByCase = Array.from(evCaseMap.entries()).map(([caseNumber, count]) => ({ caseNumber, count }));
+  const evByCase = Array.from(evCaseMap.entries()).map(([caseNumber, count]) => ({
+    caseNumber,
+    count,
+  }));
   const evByStatus = [
     { status: "Seized & Registered", count: Math.max(evStatusMap.get("REGISTERED") || 2, 2) },
     { status: "Sealed in Vault", count: Math.max(evStatusMap.get("STORED") || 3, 3) },
     { status: "In Transit / Transfer", count: Math.max(evStatusMap.get("TRANSFERRED") || 1, 1) },
-    { status: "Forensic Examination", count: Math.max(evStatusMap.get("FORENSIC_EXAMINATION") || 2, 2) },
+    {
+      status: "Forensic Examination",
+      count: Math.max(evStatusMap.get("FORENSIC_EXAMINATION") || 2, 2),
+    },
     { status: "Court Submission", count: Math.max(evStatusMap.get("COURT_SUBMISSION") || 1, 1) },
   ];
 

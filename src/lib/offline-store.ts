@@ -1,11 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 export type OfflineDraftType =
-  | "reschedule"
-  | "hearing_note"
-  | "judge_assignment"
-  | "case_status"
-  | "custom";
+  "reschedule" | "hearing_note" | "judge_assignment" | "case_status" | "custom";
 
 export interface OfflineDraft {
   id: string;

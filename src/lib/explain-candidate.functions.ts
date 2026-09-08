@@ -139,7 +139,10 @@ export const explainSchedulingRecommendation = createServerFn({ method: "POST" }
     try {
       if (hasAI) {
         const topFactorText = (data.topCandidate.factors || [])
-          .map((f) => `- ${f.label || "Factor"}: +${f.points}/${f.weight} points (${f.detail || "passed"})`)
+          .map(
+            (f) =>
+              `- ${f.label || "Factor"}: +${f.points}/${f.weight} points (${f.detail || "passed"})`,
+          )
           .join("\n");
 
         const alternativesText = (data.alternatives || [])
@@ -187,4 +190,3 @@ Explain concisely why this top recommended slot was selected by the engine, high
       explanation: generateRuleBasedExplanation(data),
     };
   });
-

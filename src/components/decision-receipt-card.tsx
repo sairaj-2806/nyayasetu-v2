@@ -70,13 +70,14 @@ export function DecisionReceiptCard({
             </p>
           </div>
           <p className="text-sm font-bold text-foreground">
-            {caseRow.case_number} · <span className="font-normal text-muted-foreground">{caseRow.case_categories?.name ?? "Uncategorised"}</span>
+            {caseRow.case_number} ·{" "}
+            <span className="font-normal text-muted-foreground">
+              {caseRow.case_categories?.name ?? "Uncategorised"}
+            </span>
           </p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-2xl font-bold text-primary tabular-nums leading-none">
-            {top.score}
-          </p>
+          <p className="text-2xl font-bold text-primary tabular-nums leading-none">{top.score}</p>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">
             fit score / 100
           </p>
@@ -123,10 +124,17 @@ export function DecisionReceiptCard({
                   <XCircle className="mt-0.5 size-3.5 shrink-0 text-destructive" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className={cn("font-medium text-xs leading-tight", c.pass ? "text-foreground" : "text-destructive")}>
+                  <p
+                    className={cn(
+                      "font-medium text-xs leading-tight",
+                      c.pass ? "text-foreground" : "text-destructive",
+                    )}
+                  >
                     {c.label}
                   </p>
-                  <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">{c.detail}</p>
+                  <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                    {c.detail}
+                  </p>
                 </div>
               </div>
             ))}
@@ -139,7 +147,9 @@ export function DecisionReceiptCard({
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Soft Preferences (Ranking Weights)
             </p>
-            <span className="text-[10px] font-semibold text-primary">{top.score} Points Scored</span>
+            <span className="text-[10px] font-semibold text-primary">
+              {top.score} Points Scored
+            </span>
           </div>
           <div className="space-y-2">
             {top.factors.map((f) => {
@@ -174,9 +184,7 @@ export function DecisionReceiptCard({
             Deterministic rule solver · 100% explainable · Zero black-box AI variance
           </p>
         </div>
-        <span className="text-[10px] font-mono text-muted-foreground">
-          Audit Verified
-        </span>
+        <span className="text-[10px] font-mono text-muted-foreground">Audit Verified</span>
       </div>
     </div>
   );

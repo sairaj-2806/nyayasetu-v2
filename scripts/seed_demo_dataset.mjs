@@ -39,19 +39,39 @@ const ADVOCATES = [
 ];
 
 const LITIGANTS_SAMPLE = [
-  { p: "Rameshwar Prasad & Ors.", r: "State of NCT of Delhi", cat: "BNS Criminal Trial (Bharatiya Nyaya Sanhita)" },
+  {
+    p: "Rameshwar Prasad & Ors.",
+    r: "State of NCT of Delhi",
+    cat: "BNS Criminal Trial (Bharatiya Nyaya Sanhita)",
+  },
   { p: "Meenakshi Devi", r: "Rajesh Kumar & In-laws", cat: "Family & Matrimonial" },
-  { p: "ICICI Lombard General Insurance Co.", r: "Sunil Sharma & Ors.", cat: "Motor Accident Claims" },
+  {
+    p: "ICICI Lombard General Insurance Co.",
+    r: "Sunil Sharma & Ors.",
+    cat: "Motor Accident Claims",
+  },
   { p: "Ananya Infrastructure Ltd.", r: "Delhi Development Authority", cat: "Commercial Dispute" },
-  { p: "Dr. Arvind Swaminathan", r: "Medical Council of India & Anr.", cat: "Writ / Constitutional Matter" },
+  {
+    p: "Dr. Arvind Swaminathan",
+    r: "Medical Council of India & Anr.",
+    cat: "Writ / Constitutional Matter",
+  },
   { p: "Sunita Bai & 3 Ors.", r: "Collector & Land Acquisition Officer", cat: "Property & Land" },
   { p: "M/s Apex Logistics LLP", r: "State Bank of India", cat: "Cheque / Financial Offence" },
   { p: "Mohan Lal Gupta (Senior Citizen)", r: "DDA & Municipal Corp.", cat: "Property & Land" },
   { p: "Victim 'X' (FTSC-POCSO)", r: "Accused Kamal & State", cat: "Criminal Case" },
   { p: "Suraj Bhan & Sons", r: "Godrej Consumer Products Ltd.", cat: "Consumer Dispute" },
-  { p: "Virendra Singh (Worker Union)", r: "Tata Motors Pantnagar Plant", cat: "Labour & Employment" },
+  {
+    p: "Virendra Singh (Worker Union)",
+    r: "Tata Motors Pantnagar Plant",
+    cat: "Labour & Employment",
+  },
   { p: "Kavita Singhal", r: "Vivek Singhal & Ors.", cat: "Family & Matrimonial" },
-  { p: "State (through Crime Branch)", r: "Gurmeet Singh @ Billa", cat: "BNS Criminal Trial (Bharatiya Nyaya Sanhita)" },
+  {
+    p: "State (through Crime Branch)",
+    r: "Gurmeet Singh @ Billa",
+    cat: "BNS Criminal Trial (Bharatiya Nyaya Sanhita)",
+  },
   { p: "Deepak Chawla", r: "HDFC Bank Ltd. Credit Div.", cat: "Consumer Dispute" },
   { p: "M/s Radiant Solar Energy", r: "BSES Yamuna Power Ltd.", cat: "Commercial Dispute" },
 ];
@@ -79,7 +99,9 @@ async function main() {
     console.error("Missing baseline categories, judges, or courtrooms");
     process.exit(1);
   }
-  console.log(`Loaded ${categories.length} categories, ${judges.length} judges, ${courtrooms.length} courtrooms.`);
+  console.log(
+    `Loaded ${categories.length} categories, ${judges.length} judges, ${courtrooms.length} courtrooms.`,
+  );
 
   const catMap = new Map();
   categories.forEach((c) => catMap.set(c.name, c));
@@ -153,14 +175,14 @@ async function main() {
     // Today gets 6-8 hearings across multiple rooms
     // Past gets 2-3 hearings
     // Future gets 2-3 hearings
-    const countOnDay = isToday ? 8 : (dayIdx % 3 === 0 ? 3 : 2);
+    const countOnDay = isToday ? 8 : dayIdx % 3 === 0 ? 3 : 2;
 
     for (let cIdx = 0; cIdx < countOnDay; cIdx++) {
       caseCounter++;
       const slot = daySlots[cIdx % daySlots.length];
       const judge = judges[(dayIdx + cIdx) % judges.length];
       const courtroom = courtrooms[(dayIdx + cIdx) % courtrooms.length];
-      const sample = LITIGANTS_SAMPLE[(caseCounter) % LITIGANTS_SAMPLE.length];
+      const sample = LITIGANTS_SAMPLE[caseCounter % LITIGANTS_SAMPLE.length];
       const filingAdv = ADVOCATES[caseCounter % ADVOCATES.length];
       const oppAdv = ADVOCATES[(caseCounter + 3) % ADVOCATES.length];
 
@@ -168,8 +190,12 @@ async function main() {
       const caseNum = `CASE-2026-${String(caseCounter).padStart(4, "0")}`;
       const cnrNum = `DLCT01-${String(caseCounter + 5000).padStart(6, "0")}-2026`;
 
-      const isTier1 = sample.cat.includes("BNS") || sample.cat.includes("Bail") || sample.p.includes("POCSO");
-      const isTier2 = sample.cat.includes("Commercial") || sample.p.includes("Senior") || sample.cat.includes("Property");
+      const isTier1 =
+        sample.cat.includes("BNS") || sample.cat.includes("Bail") || sample.p.includes("POCSO");
+      const isTier2 =
+        sample.cat.includes("Commercial") ||
+        sample.p.includes("Senior") ||
+        sample.cat.includes("Property");
       const priorityTier = isTier1 ? "Tier 1" : isTier2 ? "Tier 2" : "Tier 3";
       const priorityScore = isTier1 ? 88.5 : isTier2 ? 64.0 : 38.0;
 
@@ -216,50 +242,410 @@ async function main() {
   console.log("Generating unscheduled pending cases for Smart Scheduling queue...");
   const UNSCHEDULED_SPECS = [
     // Tier 1 Critical
-    { p: "State (Cyber Cell)", r: "Amitabh Sen (Sec 480 Regular Bail)", cat: "Bail Application", t: "Tier 1", score: 94.0, pocso: false, sc: false, lim: "2026-09-15" },
-    { p: "Victim Child 'M' (POCSO Special Court)", r: "Accused Dharmesh Yadav", cat: "Criminal Case", t: "Tier 1", score: 96.5, pocso: true, sc: false, lim: null },
-    { p: "Shanti Devi (82 Yrs - Senior Citizen)", r: "SDM & Sub-Registrar", cat: "Property & Land", t: "Tier 1", score: 89.0, pocso: false, sc: true, lim: "2026-09-20" },
-    { p: "State (Special Cell Anti-Terror)", r: "Nadeem Akhtar (Interim Bail)", cat: "Bail Application", t: "Tier 1", score: 92.0, pocso: false, sc: false, lim: null },
-    { p: "Minor Victim 'K' through Guardian", r: "Accused Vikram & Ors.", cat: "BNS Criminal Trial (Bharatiya Nyaya Sanhita)", t: "Tier 1", score: 95.0, pocso: true, sc: false, lim: null },
-    { p: "Ram Dulari (79 Yrs) Maintenance Petition", r: "Son Naresh Kumar & Ors.", cat: "Family & Matrimonial", t: "Tier 1", score: 87.5, pocso: false, sc: true, lim: null },
-    { p: "State (Anti-Corruption Branch)", r: "Ex-Executive Engineer Sharma", cat: "Criminal Case", t: "Tier 1", score: 88.0, pocso: false, sc: false, lim: "2026-09-18" },
-    { p: "Victim 'R' (FTSC Urgent Hearing)", r: "Accused Ramesh", cat: "Criminal Case", t: "Tier 1", score: 96.0, pocso: true, sc: false, lim: null },
-    { p: "Dharampal Vohra (Senior Citizen)", r: "Punjab National Bank", cat: "Cheque / Financial Offence", t: "Tier 1", score: 84.5, pocso: false, sc: true, lim: null },
-    { p: "State (Economic Offences Wing)", r: "Director Rajat Verma (Bail)", cat: "Bail Application", t: "Tier 1", score: 91.0, pocso: false, sc: false, lim: "2026-09-16" },
+    {
+      p: "State (Cyber Cell)",
+      r: "Amitabh Sen (Sec 480 Regular Bail)",
+      cat: "Bail Application",
+      t: "Tier 1",
+      score: 94.0,
+      pocso: false,
+      sc: false,
+      lim: "2026-09-15",
+    },
+    {
+      p: "Victim Child 'M' (POCSO Special Court)",
+      r: "Accused Dharmesh Yadav",
+      cat: "Criminal Case",
+      t: "Tier 1",
+      score: 96.5,
+      pocso: true,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Shanti Devi (82 Yrs - Senior Citizen)",
+      r: "SDM & Sub-Registrar",
+      cat: "Property & Land",
+      t: "Tier 1",
+      score: 89.0,
+      pocso: false,
+      sc: true,
+      lim: "2026-09-20",
+    },
+    {
+      p: "State (Special Cell Anti-Terror)",
+      r: "Nadeem Akhtar (Interim Bail)",
+      cat: "Bail Application",
+      t: "Tier 1",
+      score: 92.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Minor Victim 'K' through Guardian",
+      r: "Accused Vikram & Ors.",
+      cat: "BNS Criminal Trial (Bharatiya Nyaya Sanhita)",
+      t: "Tier 1",
+      score: 95.0,
+      pocso: true,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Ram Dulari (79 Yrs) Maintenance Petition",
+      r: "Son Naresh Kumar & Ors.",
+      cat: "Family & Matrimonial",
+      t: "Tier 1",
+      score: 87.5,
+      pocso: false,
+      sc: true,
+      lim: null,
+    },
+    {
+      p: "State (Anti-Corruption Branch)",
+      r: "Ex-Executive Engineer Sharma",
+      cat: "Criminal Case",
+      t: "Tier 1",
+      score: 88.0,
+      pocso: false,
+      sc: false,
+      lim: "2026-09-18",
+    },
+    {
+      p: "Victim 'R' (FTSC Urgent Hearing)",
+      r: "Accused Ramesh",
+      cat: "Criminal Case",
+      t: "Tier 1",
+      score: 96.0,
+      pocso: true,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Dharampal Vohra (Senior Citizen)",
+      r: "Punjab National Bank",
+      cat: "Cheque / Financial Offence",
+      t: "Tier 1",
+      score: 84.5,
+      pocso: false,
+      sc: true,
+      lim: null,
+    },
+    {
+      p: "State (Economic Offences Wing)",
+      r: "Director Rajat Verma (Bail)",
+      cat: "Bail Application",
+      t: "Tier 1",
+      score: 91.0,
+      pocso: false,
+      sc: false,
+      lim: "2026-09-16",
+    },
 
     // Tier 2 High
-    { p: "Tata Consultancy Services Ltd.", r: "TechZone Infotech (Injunction)", cat: "Commercial Dispute", t: "Tier 2", score: 72.0, pocso: false, sc: false, lim: null },
-    { p: "Balwant Rai (7 yr Title Dispute)", r: "Delhi Cantonment Board", cat: "Property & Land", t: "Tier 2", score: 68.5, pocso: false, sc: false, lim: null },
-    { p: "M/s Jindal Steel & Power Ltd.", r: "Northern Railway Construction", cat: "Commercial Dispute", t: "Tier 2", score: 74.0, pocso: false, sc: false, lim: null },
-    { p: "Anil Goel (Partition Suit - 6 yrs)", r: "Suresh Goel & 4 Others", cat: "Property & Land", t: "Tier 2", score: 66.0, pocso: false, sc: false, lim: null },
-    { p: "M/s Fortis Healthcare Division", r: "National Pharma Suppliers", cat: "Commercial Dispute", t: "Tier 2", score: 71.5, pocso: false, sc: false, lim: null },
-    { p: "Pooja Malhotra", r: "Gaurav Malhotra (Custody)", cat: "Family & Matrimonial", t: "Tier 2", score: 69.0, pocso: false, sc: false, lim: null },
-    { p: "State (Crime Branch Narcotics)", r: "Sikandar Khan (Trial)", cat: "BNS Criminal Trial (Bharatiya Nyaya Sanhita)", t: "Tier 2", score: 75.0, pocso: false, sc: false, lim: null },
-    { p: "Goyal Builders Pvt. Ltd.", r: "Real Estate Regulatory Authority", cat: "Writ / Constitutional Matter", t: "Tier 2", score: 63.5, pocso: false, sc: false, lim: null },
-    { p: "M/s Reliance Retail Logistics", r: "Express Cargo Transport Ltd.", cat: "Commercial Dispute", t: "Tier 2", score: 70.0, pocso: false, sc: false, lim: null },
-    { p: "Jagdish Chander", r: "Land Acquisition Collector Rohini", cat: "Property & Land", t: "Tier 2", score: 67.0, pocso: false, sc: false, lim: null },
-    { p: "Deepika Sen", r: "Rahul Sen (Restitution of Rights)", cat: "Family & Matrimonial", t: "Tier 2", score: 62.0, pocso: false, sc: false, lim: null },
-    { p: "State (BSA Expert Evidence)", r: "Dr. K. L. Mehra (Forensic)", cat: "BSA Evidentiary Matter (Bharatiya Sakshya Adhiniyam)", t: "Tier 2", score: 65.0, pocso: false, sc: false, lim: null },
-    { p: "Sanjay Narang", r: "Municipal Corporation Delhi", cat: "Public / Administrative Matter", t: "Tier 2", score: 61.0, pocso: false, sc: false, lim: null },
-    { p: "M/s Flipkart Internet Pvt. Ltd.", r: "Trade Tax Officer Ward 4", cat: "Commercial Dispute", t: "Tier 2", score: 73.0, pocso: false, sc: false, lim: null },
-    { p: "Kusum Lata", r: "Hemant Rawat (Divorce & Alimony)", cat: "Family & Matrimonial", t: "Tier 2", score: 64.0, pocso: false, sc: false, lim: null },
+    {
+      p: "Tata Consultancy Services Ltd.",
+      r: "TechZone Infotech (Injunction)",
+      cat: "Commercial Dispute",
+      t: "Tier 2",
+      score: 72.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Balwant Rai (7 yr Title Dispute)",
+      r: "Delhi Cantonment Board",
+      cat: "Property & Land",
+      t: "Tier 2",
+      score: 68.5,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "M/s Jindal Steel & Power Ltd.",
+      r: "Northern Railway Construction",
+      cat: "Commercial Dispute",
+      t: "Tier 2",
+      score: 74.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Anil Goel (Partition Suit - 6 yrs)",
+      r: "Suresh Goel & 4 Others",
+      cat: "Property & Land",
+      t: "Tier 2",
+      score: 66.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "M/s Fortis Healthcare Division",
+      r: "National Pharma Suppliers",
+      cat: "Commercial Dispute",
+      t: "Tier 2",
+      score: 71.5,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Pooja Malhotra",
+      r: "Gaurav Malhotra (Custody)",
+      cat: "Family & Matrimonial",
+      t: "Tier 2",
+      score: 69.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "State (Crime Branch Narcotics)",
+      r: "Sikandar Khan (Trial)",
+      cat: "BNS Criminal Trial (Bharatiya Nyaya Sanhita)",
+      t: "Tier 2",
+      score: 75.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Goyal Builders Pvt. Ltd.",
+      r: "Real Estate Regulatory Authority",
+      cat: "Writ / Constitutional Matter",
+      t: "Tier 2",
+      score: 63.5,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "M/s Reliance Retail Logistics",
+      r: "Express Cargo Transport Ltd.",
+      cat: "Commercial Dispute",
+      t: "Tier 2",
+      score: 70.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Jagdish Chander",
+      r: "Land Acquisition Collector Rohini",
+      cat: "Property & Land",
+      t: "Tier 2",
+      score: 67.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Deepika Sen",
+      r: "Rahul Sen (Restitution of Rights)",
+      cat: "Family & Matrimonial",
+      t: "Tier 2",
+      score: 62.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "State (BSA Expert Evidence)",
+      r: "Dr. K. L. Mehra (Forensic)",
+      cat: "BSA Evidentiary Matter (Bharatiya Sakshya Adhiniyam)",
+      t: "Tier 2",
+      score: 65.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Sanjay Narang",
+      r: "Municipal Corporation Delhi",
+      cat: "Public / Administrative Matter",
+      t: "Tier 2",
+      score: 61.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "M/s Flipkart Internet Pvt. Ltd.",
+      r: "Trade Tax Officer Ward 4",
+      cat: "Commercial Dispute",
+      t: "Tier 2",
+      score: 73.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Kusum Lata",
+      r: "Hemant Rawat (Divorce & Alimony)",
+      cat: "Family & Matrimonial",
+      t: "Tier 2",
+      score: 64.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
 
     // Tier 3 Routine Civil / Financial / Consumer
-    { p: "Rajeev Bansal (Cheque Dishonour 138 NI)", r: "Sunil Chopra & Co.", cat: "Cheque / Financial Offence", t: "Tier 3", score: 42.0, pocso: false, sc: false, lim: null },
-    { p: "Sangeeta Arora", r: "Samsung Electronics India Ltd.", cat: "Consumer Dispute", t: "Tier 3", score: 36.0, pocso: false, sc: false, lim: null },
-    { p: "M/s Universal Hardware Traders", r: "Gupta Engineering Works", cat: "Civil Suit", t: "Tier 3", score: 39.5, pocso: false, sc: false, lim: null },
-    { p: "Rakesh Verma", r: "New India Assurance Co. Ltd.", cat: "Motor Accident Claims", t: "Tier 3", score: 44.0, pocso: false, sc: false, lim: null },
-    { p: "Alok Srivastava", r: "Airtel Telecommunications Ltd.", cat: "Consumer Dispute", t: "Tier 3", score: 32.0, pocso: false, sc: false, lim: null },
-    { p: "M/s Aggarwal Timber Merchants", r: "Sharma Modular Kitchens", cat: "Civil Suit", t: "Tier 3", score: 38.0, pocso: false, sc: false, lim: null },
-    { p: "Vinay Pathak", r: "Bajaj Allianz Life Insurance", cat: "Consumer Dispute", t: "Tier 3", score: 34.0, pocso: false, sc: false, lim: null },
-    { p: "Kamal Kishor (Money Recovery)", r: "Praveen Saini", cat: "Civil Suit", t: "Tier 3", score: 41.0, pocso: false, sc: false, lim: null },
-    { p: "Dinesh Rawat (Claimant)", r: "Delhi Transport Corporation", cat: "Motor Accident Claims", t: "Tier 3", score: 43.5, pocso: false, sc: false, lim: null },
-    { p: "M/s Metro Electricals", r: "Singhal Housing Projects", cat: "Civil Suit", t: "Tier 3", score: 37.0, pocso: false, sc: false, lim: null },
-    { p: "Priya Sundaram", r: "Amazon India Seller Services", cat: "Consumer Dispute", t: "Tier 3", score: 31.0, pocso: false, sc: false, lim: null },
-    { p: "Surender Pal Singh", r: "United India Insurance Co.", cat: "Motor Accident Claims", t: "Tier 3", score: 40.0, pocso: false, sc: false, lim: null },
-    { p: "M/s Shiva Polyesters", r: "Vardhman Textiles Ltd.", cat: "Civil Suit", t: "Tier 3", score: 39.0, pocso: false, sc: false, lim: null },
-    { p: "Mukesh Chand (Cheque Bounce)", r: "Girish Khandelwal", cat: "Cheque / Financial Offence", t: "Tier 3", score: 42.5, pocso: false, sc: false, lim: null },
-    { p: "Savitri Devi", r: "BSES Rajdhani Power Ltd.", cat: "Consumer Dispute", t: "Tier 3", score: 33.0, pocso: false, sc: false, lim: null },
+    {
+      p: "Rajeev Bansal (Cheque Dishonour 138 NI)",
+      r: "Sunil Chopra & Co.",
+      cat: "Cheque / Financial Offence",
+      t: "Tier 3",
+      score: 42.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Sangeeta Arora",
+      r: "Samsung Electronics India Ltd.",
+      cat: "Consumer Dispute",
+      t: "Tier 3",
+      score: 36.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "M/s Universal Hardware Traders",
+      r: "Gupta Engineering Works",
+      cat: "Civil Suit",
+      t: "Tier 3",
+      score: 39.5,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Rakesh Verma",
+      r: "New India Assurance Co. Ltd.",
+      cat: "Motor Accident Claims",
+      t: "Tier 3",
+      score: 44.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Alok Srivastava",
+      r: "Airtel Telecommunications Ltd.",
+      cat: "Consumer Dispute",
+      t: "Tier 3",
+      score: 32.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "M/s Aggarwal Timber Merchants",
+      r: "Sharma Modular Kitchens",
+      cat: "Civil Suit",
+      t: "Tier 3",
+      score: 38.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Vinay Pathak",
+      r: "Bajaj Allianz Life Insurance",
+      cat: "Consumer Dispute",
+      t: "Tier 3",
+      score: 34.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Kamal Kishor (Money Recovery)",
+      r: "Praveen Saini",
+      cat: "Civil Suit",
+      t: "Tier 3",
+      score: 41.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Dinesh Rawat (Claimant)",
+      r: "Delhi Transport Corporation",
+      cat: "Motor Accident Claims",
+      t: "Tier 3",
+      score: 43.5,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "M/s Metro Electricals",
+      r: "Singhal Housing Projects",
+      cat: "Civil Suit",
+      t: "Tier 3",
+      score: 37.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Priya Sundaram",
+      r: "Amazon India Seller Services",
+      cat: "Consumer Dispute",
+      t: "Tier 3",
+      score: 31.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Surender Pal Singh",
+      r: "United India Insurance Co.",
+      cat: "Motor Accident Claims",
+      t: "Tier 3",
+      score: 40.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "M/s Shiva Polyesters",
+      r: "Vardhman Textiles Ltd.",
+      cat: "Civil Suit",
+      t: "Tier 3",
+      score: 39.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Mukesh Chand (Cheque Bounce)",
+      r: "Girish Khandelwal",
+      cat: "Cheque / Financial Offence",
+      t: "Tier 3",
+      score: 42.5,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
+    {
+      p: "Savitri Devi",
+      r: "BSES Rajdhani Power Ltd.",
+      cat: "Consumer Dispute",
+      t: "Tier 3",
+      score: 33.0,
+      pocso: false,
+      sc: false,
+      lim: null,
+    },
   ];
 
   for (let i = 0; i < UNSCHEDULED_SPECS.length; i++) {
@@ -409,9 +795,16 @@ async function main() {
   }
 
   // 8. Summary Verification
-  const { count: totalCases } = await supabase.from("cases").select("*", { count: "exact", head: true });
-  const { count: totalSchedules } = await supabase.from("schedules").select("*", { count: "exact", head: true });
-  const { data: unscheduledCases } = await supabase.from("cases").select("id, status").in("status", ["filed", "adjourned"]);
+  const { count: totalCases } = await supabase
+    .from("cases")
+    .select("*", { count: "exact", head: true });
+  const { count: totalSchedules } = await supabase
+    .from("schedules")
+    .select("*", { count: "exact", head: true });
+  const { data: unscheduledCases } = await supabase
+    .from("cases")
+    .select("id, status")
+    .in("status", ["filed", "adjourned"]);
 
   console.log("\n================ SEEDING COMPLETE ================");
   console.log(`Total Cases in Registry: ${totalCases}`);

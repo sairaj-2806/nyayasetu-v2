@@ -74,7 +74,8 @@ export const Route = createFileRoute("/_authenticated/activity-log")({
 });
 
 // Primary navigation filter domains requested by the administrator
-type DomainFilter = "all" | "case" | "document" | "asset" | "evidence" | "user" | "security" | "judicial";
+type DomainFilter =
+  "all" | "case" | "document" | "asset" | "evidence" | "user" | "security" | "judicial";
 
 interface DomainTabDef {
   key: DomainFilter;
@@ -198,10 +199,17 @@ const DOMAIN_ACTIONS: Record<DomainFilter, { code: string; label: string }[]> = 
 };
 
 function getActionTone(code: string, isSecurity?: boolean): string {
-  if (isSecurity || code === "INTEGRITY_MISMATCH" || code === "MARKED_LOST" || code.includes("UNAUTHORIZED")) {
+  if (
+    isSecurity ||
+    code === "INTEGRITY_MISMATCH" ||
+    code === "MARKED_LOST" ||
+    code.includes("UNAUTHORIZED")
+  ) {
     return "bg-destructive/15 text-destructive border-destructive/30";
   }
-  if (["SIGNED", "INTEGRITY_VERIFIED", "RECEIVED", "MAINTENANCE_COMPLETED", "DISPOSED"].includes(code)) {
+  if (
+    ["SIGNED", "INTEGRITY_VERIFIED", "RECEIVED", "MAINTENANCE_COMPLETED", "DISPOSED"].includes(code)
+  ) {
     return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30";
   }
   if (["UPLOADED", "VERSION_CREATED", "CREATED", "REGISTERED"].includes(code)) {
@@ -216,28 +224,64 @@ function getActionTone(code: string, isSecurity?: boolean): string {
   return "bg-muted text-muted-foreground border-border";
 }
 
-function getDomainBadge(domain: AuditDomain | string): { label: string; tone: string; icon: typeof Scale } {
+function getDomainBadge(domain: AuditDomain | string): {
+  label: string;
+  tone: string;
+  icon: typeof Scale;
+} {
   switch (domain) {
     case "case":
-      return { label: "Case", tone: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20", icon: Scale };
+      return {
+        label: "Case",
+        tone: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
+        icon: Scale,
+      };
     case "document":
-      return { label: "Secure DMS", tone: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20", icon: FileText };
+      return {
+        label: "Secure DMS",
+        tone: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
+        icon: FileText,
+      };
     case "asset":
-      return { label: "Police Asset", tone: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20", icon: Package };
+      return {
+        label: "Police Asset",
+        tone: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
+        icon: Package,
+      };
     case "evidence":
-      return { label: "Evidence", tone: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20", icon: ShieldCheck };
+      return {
+        label: "Evidence",
+        tone: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+        icon: ShieldCheck,
+      };
     case "security":
-      return { label: "Security Alert", tone: "bg-destructive/15 text-destructive border-destructive/30", icon: ShieldAlert };
+      return {
+        label: "Security Alert",
+        tone: "bg-destructive/15 text-destructive border-destructive/30",
+        icon: ShieldAlert,
+      };
     case "user":
-      return { label: "User", tone: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20", icon: Users };
+      return {
+        label: "User",
+        tone: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20",
+        icon: Users,
+      };
     case "schedule":
     case "recommendation":
     case "simulation":
     case "availability":
     case "settings":
-      return { label: "Judicial", tone: "bg-primary/10 text-primary border-primary/20", icon: History };
+      return {
+        label: "Judicial",
+        tone: "bg-primary/10 text-primary border-primary/20",
+        icon: History,
+      };
     default:
-      return { label: "System", tone: "bg-muted text-muted-foreground border-border", icon: ScrollText };
+      return {
+        label: "System",
+        tone: "bg-muted text-muted-foreground border-border",
+        icon: ScrollText,
+      };
   }
 }
 
@@ -264,31 +308,6 @@ function Page() {
 
   const entries = useMemo(() => logs.data ?? [], [logs.data]);
 
-  // Access Control Guard
-  if (permissions.ready && !permissions.canViewAudit) {
-    return (
-      <div className="mx-auto w-full max-w-4xl px-4 py-16 text-center">
-        <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-destructive/10 text-destructive mb-4">
-          <Lock className="size-7" />
-        </div>
-        <Badge variant="destructive" className="mb-3 text-xs uppercase tracking-wider">
-          Access Restricted — 403 Forbidden
-        </Badge>
-        <h2 className="text-xl font-bold text-foreground">
-          Audit Trail Inspection Restricted
-        </h2>
-        <p className="mt-2 max-w-md mx-auto text-sm text-muted-foreground">
-          Your current authenticated role (<strong className="text-foreground">{staffRole}</strong>) lacks <code className="font-mono text-xs">AUDIT_VIEW</code> security clearance. The central judicial audit trail is restricted to supervisory registrars, investigating officers, forensic authorities, and administrators.
-        </p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Button asChild variant="outline">
-            <Link to="/dashboard">Back to Dashboard</Link>
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   // Counts for each domain tab
   const domainCounts = useMemo(() => {
     const counts: Record<DomainFilter, number> = {
@@ -311,7 +330,16 @@ function Page() {
       else if (e.domain === "asset") counts.asset += 1;
       else if (e.domain === "evidence") counts.evidence += 1;
       else if (e.domain === "user") counts.user += 1;
-      else if (["schedule", "recommendation", "simulation", "availability", "settings", "registry"].includes(e.domain)) {
+      else if (
+        [
+          "schedule",
+          "recommendation",
+          "simulation",
+          "availability",
+          "settings",
+          "registry",
+        ].includes(e.domain)
+      ) {
         counts.judicial += 1;
       }
     }
@@ -350,7 +378,16 @@ function Page() {
         if (selectedDomain === "security") {
           if (!e.isSecurityAlert && e.domain !== "security") return false;
         } else if (selectedDomain === "judicial") {
-          if (!["schedule", "recommendation", "simulation", "availability", "settings", "registry"].includes(e.domain)) {
+          if (
+            ![
+              "schedule",
+              "recommendation",
+              "simulation",
+              "availability",
+              "settings",
+              "registry",
+            ].includes(e.domain)
+          ) {
             return false;
           }
         } else if (e.domain !== selectedDomain) {
@@ -366,7 +403,10 @@ function Page() {
       // 3. Action Code filter
       if (selectedActionCode !== "all") {
         const entryCode = (e.actionCode || "").toUpperCase();
-        if (!entryCode.includes(selectedActionCode.toUpperCase()) && !e.action.toUpperCase().includes(selectedActionCode.toUpperCase())) {
+        if (
+          !entryCode.includes(selectedActionCode.toUpperCase()) &&
+          !e.action.toUpperCase().includes(selectedActionCode.toUpperCase())
+        ) {
           return false;
         }
       }
@@ -404,7 +444,16 @@ function Page() {
 
       return true;
     });
-  }, [entries, selectedDomain, selectedUser, selectedActionCode, selectedCaseId, fromDate, toDate, search]);
+  }, [
+    entries,
+    selectedDomain,
+    selectedUser,
+    selectedActionCode,
+    selectedCaseId,
+    fromDate,
+    toDate,
+    search,
+  ]);
 
   const activeFiltersCount =
     (selectedDomain !== "all" ? 1 : 0) +
@@ -427,10 +476,14 @@ function Page() {
 
   // Export audit trail to JSON
   const handleExportJson = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filtered, null, 2));
+    const dataStr =
+      "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filtered, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `nyayasetu_audit_trail_${new Date().toISOString().slice(0, 10)}.json`);
+    downloadAnchor.setAttribute(
+      "download",
+      `nyayasetu_audit_trail_${new Date().toISOString().slice(0, 10)}.json`,
+    );
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -441,6 +494,32 @@ function Page() {
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
+
+  // Access Control Guard (placed after all hooks)
+  if (permissions.ready && !permissions.canViewAudit) {
+    return (
+      <div className="mx-auto w-full max-w-4xl px-4 py-16 text-center">
+        <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-destructive/10 text-destructive mb-4">
+          <Lock className="size-7" />
+        </div>
+        <Badge variant="destructive" className="mb-3 text-xs uppercase tracking-wider">
+          Access Restricted — 403 Forbidden
+        </Badge>
+        <h2 className="text-xl font-bold text-foreground">Audit Trail Inspection Restricted</h2>
+        <p className="mt-2 max-w-md mx-auto text-sm text-muted-foreground">
+          Your current authenticated role (<strong className="text-foreground">{staffRole}</strong>)
+          lacks <code className="font-mono text-xs">AUDIT_VIEW</code> security clearance. The
+          central judicial audit trail is restricted to supervisory registrars, investigating
+          officers, forensic authorities, and administrators.
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Button asChild variant="outline">
+            <Link to="/dashboard">Back to Dashboard</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-8 sm:py-10 space-y-6">
@@ -481,7 +560,10 @@ function Page() {
           <div className="flex items-center gap-2.5">
             <ShieldAlert className="size-5 shrink-0 text-destructive animate-pulse" />
             <p className="font-medium">
-              <strong className="font-bold">{domainCounts.security} Security & Integrity Events</strong> recorded in the audit trail (tamper alerts, lost assets, or unauthorized attempts).
+              <strong className="font-bold">
+                {domainCounts.security} Security & Integrity Events
+              </strong>{" "}
+              recorded in the audit trail (tamper alerts, lost assets, or unauthorized attempts).
             </p>
           </div>
           <Button
@@ -519,7 +601,16 @@ function Page() {
                   : "bg-card text-muted-foreground border-border/60 hover:bg-muted hover:text-foreground",
               )}
             >
-              <Icon className={cn("size-3.5", isSelected ? "text-current" : isSecurity ? "text-destructive" : "text-muted-foreground")} />
+              <Icon
+                className={cn(
+                  "size-3.5",
+                  isSelected
+                    ? "text-current"
+                    : isSecurity
+                      ? "text-destructive"
+                      : "text-muted-foreground",
+                )}
+              />
               <span>{tab.label}</span>
               <span
                 className={cn(
@@ -561,7 +652,9 @@ function Page() {
         <CardContent className="grid gap-3 pt-0 pb-4 px-4 sm:px-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           {/* Free Search */}
           <div className="lg:col-span-2">
-            <Label htmlFor="auditSearch" className="text-[11px] font-medium text-muted-foreground">Search text / hash / seal</Label>
+            <Label htmlFor="auditSearch" className="text-[11px] font-medium text-muted-foreground">
+              Search text / hash / seal
+            </Label>
             <Input
               id="auditSearch"
               aria-label="Search audit log by action, title, hash, or officer"
@@ -574,13 +667,21 @@ function Page() {
 
           {/* User Filter */}
           <div>
-            <Label htmlFor="auditUser" className="text-[11px] font-medium text-muted-foreground">Actor / User</Label>
+            <Label htmlFor="auditUser" className="text-[11px] font-medium text-muted-foreground">
+              Actor / User
+            </Label>
             <Select value={selectedUser} onValueChange={setSelectedUser}>
-              <SelectTrigger id="auditUser" aria-label="Filter audit log by actor or user" className="mt-1 h-9 text-xs">
+              <SelectTrigger
+                id="auditUser"
+                aria-label="Filter audit log by actor or user"
+                className="mt-1 h-9 text-xs"
+              >
                 <SelectValue placeholder="All users" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all" className="text-xs">All users ({users.length})</SelectItem>
+                <SelectItem value="all" className="text-xs">
+                  All users ({users.length})
+                </SelectItem>
                 {users.map((u) => (
                   <SelectItem key={u.id} value={u.id} className="text-xs">
                     {u.name} ({u.role})
@@ -592,13 +693,21 @@ function Page() {
 
           {/* Action Code Filter */}
           <div>
-            <Label htmlFor="auditAction" className="text-[11px] font-medium text-muted-foreground">Action Code</Label>
+            <Label htmlFor="auditAction" className="text-[11px] font-medium text-muted-foreground">
+              Action Code
+            </Label>
             <Select value={selectedActionCode} onValueChange={setSelectedActionCode}>
-              <SelectTrigger id="auditAction" aria-label="Filter audit log by action code" className="mt-1 h-9 text-xs">
+              <SelectTrigger
+                id="auditAction"
+                aria-label="Filter audit log by action code"
+                className="mt-1 h-9 text-xs"
+              >
                 <SelectValue placeholder="All actions" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all" className="text-xs">All actions</SelectItem>
+                <SelectItem value="all" className="text-xs">
+                  All actions
+                </SelectItem>
                 {availableActionCodes.map((code) => (
                   <SelectItem key={code} value={code} className="text-xs font-mono">
                     {code}
@@ -610,7 +719,9 @@ function Page() {
 
           {/* Case ID Filter */}
           <div>
-            <Label htmlFor="auditCaseId" className="text-[11px] font-medium text-muted-foreground">Case ID / Number</Label>
+            <Label htmlFor="auditCaseId" className="text-[11px] font-medium text-muted-foreground">
+              Case ID / Number
+            </Label>
             <Input
               id="auditCaseId"
               aria-label="Filter audit log by case ID or number"
@@ -624,7 +735,12 @@ function Page() {
           {/* Date Range: From / To */}
           <div className="flex items-center gap-1.5">
             <div className="flex-1">
-              <Label htmlFor="auditFromDate" className="text-[11px] font-medium text-muted-foreground">From</Label>
+              <Label
+                htmlFor="auditFromDate"
+                className="text-[11px] font-medium text-muted-foreground"
+              >
+                From
+              </Label>
               <Input
                 id="auditFromDate"
                 aria-label="Audit filter start date"
@@ -635,7 +751,12 @@ function Page() {
               />
             </div>
             <div className="flex-1">
-              <Label htmlFor="auditToDate" className="text-[11px] font-medium text-muted-foreground">To</Label>
+              <Label
+                htmlFor="auditToDate"
+                className="text-[11px] font-medium text-muted-foreground"
+              >
+                To
+              </Label>
               <Input
                 id="auditToDate"
                 aria-label="Audit filter end date"
@@ -661,7 +782,11 @@ function Page() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={ScrollText}
-          title={activeFiltersCount > 0 ? "No entries match your active filters" : "No recorded activity yet"}
+          title={
+            activeFiltersCount > 0
+              ? "No entries match your active filters"
+              : "No recorded activity yet"
+          }
           description={
             activeFiltersCount > 0
               ? "Widen your search term, reset the active domain tab, or expand the date range to inspect historical audit events."
@@ -679,11 +804,10 @@ function Page() {
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
             <span>
-              Showing <strong className="text-foreground">{filtered.length}</strong> recorded audit event{filtered.length !== 1 ? "s" : ""}.
+              Showing <strong className="text-foreground">{filtered.length}</strong> recorded audit
+              event{filtered.length !== 1 ? "s" : ""}.
             </span>
-            <span className="font-mono text-[11px]">
-              Ledger format: RFC-6962 SHA-256 Verified
-            </span>
+            <span className="font-mono text-[11px]">Ledger format: RFC-6962 SHA-256 Verified</span>
           </div>
 
           <div className="rounded-xl border border-border/80 bg-card shadow-xs overflow-hidden divide-y divide-border/60">
@@ -719,16 +843,26 @@ function Page() {
                       <div className="min-w-0 space-y-1.5">
                         {/* Domain & Action Badges */}
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <Badge className={cn("text-[10px] font-semibold border", domainInfo.tone)}>
+                          <Badge
+                            className={cn("text-[10px] font-semibold border", domainInfo.tone)}
+                          >
                             {domainInfo.label}
                           </Badge>
 
-                          <Badge className={cn("text-[10px] font-bold font-mono border", getActionTone(entry.actionCode, isAlert))}>
+                          <Badge
+                            className={cn(
+                              "text-[10px] font-bold font-mono border",
+                              getActionTone(entry.actionCode, isAlert),
+                            )}
+                          >
                             {entry.actionCode || "OPERATION"}
                           </Badge>
 
                           {isAlert && (
-                            <Badge variant="destructive" className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 animate-pulse">
+                            <Badge
+                              variant="destructive"
+                              className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 animate-pulse"
+                            >
                               <ShieldAlert className="size-2.5" />
                               Security Incident
                             </Badge>
@@ -743,13 +877,20 @@ function Page() {
                                 <span className="opacity-50">INITIAL</span>
                               )}
                               <ArrowRight className="size-3 opacity-60" />
-                              <span className="font-bold text-foreground">{entry.newState || "UPDATED"}</span>
+                              <span className="font-bold text-foreground">
+                                {entry.newState || "UPDATED"}
+                              </span>
                             </span>
                           )}
                         </div>
 
                         {/* Action Text */}
-                        <p className={cn("text-xs leading-relaxed font-medium", isAlert ? "text-destructive font-semibold" : "text-foreground")}>
+                        <p
+                          className={cn(
+                            "text-xs leading-relaxed font-medium",
+                            isAlert ? "text-destructive font-semibold" : "text-foreground",
+                          )}
+                        >
                           {entry.action}
                         </p>
 
@@ -769,9 +910,7 @@ function Page() {
                           )}
 
                           {entry.entityLabel && entry.entityLabel !== "—" && (
-                            <span className="text-muted-foreground">
-                              {entry.entityLabel}
-                            </span>
+                            <span className="text-muted-foreground">{entry.entityLabel}</span>
                           )}
                         </div>
                       </div>
@@ -786,7 +925,10 @@ function Page() {
                       <Badge variant="outline" className="text-[10px] font-mono capitalize">
                         {entry.userRole.replace(/_/g, " ")}
                       </Badge>
-                      <time dateTime={entry.timestamp} className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <time
+                        dateTime={entry.timestamp}
+                        className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5"
+                      >
                         <span>{formatRelativeAuditTime(entry.timestamp)}</span>
                         <span>•</span>
                         <span>{formatAuditTime(entry.timestamp)}</span>
@@ -803,8 +945,16 @@ function Page() {
                           onClick={() => setExpandedId(isExpanded ? null : entry.id)}
                           className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
                         >
-                          {isExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-                          <span>{isExpanded ? "Hide Audit Metadata" : "Inspect Cryptographic & Audit Metadata"}</span>
+                          {isExpanded ? (
+                            <ChevronDown className="size-3.5" />
+                          ) : (
+                            <ChevronRight className="size-3.5" />
+                          )}
+                          <span>
+                            {isExpanded
+                              ? "Hide Audit Metadata"
+                              : "Inspect Cryptographic & Audit Metadata"}
+                          </span>
                         </button>
 
                         {isExpanded && (

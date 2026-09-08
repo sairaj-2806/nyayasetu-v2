@@ -18,6 +18,7 @@ import {
   SlidersHorizontal,
   UserCog,
   Search,
+  PackageCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ export const benchNavSections: { label: string; items: NavItem[] }[] = [
       { title: "My Bench", to: "/bench", icon: GavelIcon },
       { title: "Global Search", to: "/search", icon: Search },
       { title: "Digital Documents", to: "/documents", icon: FileText },
+      { title: "Evidence Exhibits", to: "/evidence", icon: PackageCheck },
     ],
   },
 ];
@@ -49,6 +51,7 @@ export const navSections: { label: string; items: NavItem[] }[] = [
       { title: "Cases", to: "/cases", icon: Folder },
       { title: "Digital Documents", to: "/documents", icon: FileText },
       { title: "Police Assets", to: "/assets", icon: ShieldAlert },
+      { title: "Evidence", to: "/evidence", icon: PackageCheck },
       { title: "Judges", to: "/judges", icon: Gavel },
       { title: "Courtrooms", to: "/courtrooms", icon: DoorOpen },
       { title: "Calendar", to: "/calendar", icon: CalendarDays },

@@ -218,24 +218,12 @@ const CASE_CATEGORIES_CONFIG: Record<string, CategoryConfig> = {
   "Cheque / Financial Offence": {
     code: "CHQ",
     defaultDuration: 30,
-    subcategories: [
-      "Cheque Dishonour",
-      "Payment Default",
-      "Financial Fraud",
-      "Recovery",
-      "Other",
-    ],
+    subcategories: ["Cheque Dishonour", "Payment Default", "Financial Fraud", "Recovery", "Other"],
   },
   "Bail Application": {
     code: "BAL",
     defaultDuration: 30,
-    subcategories: [
-      "Regular Bail",
-      "Anticipatory Bail",
-      "Interim Bail",
-      "Default Bail",
-      "Other",
-    ],
+    subcategories: ["Regular Bail", "Anticipatory Bail", "Interim Bail", "Default Bail", "Other"],
   },
   "Writ / Constitutional Matter": {
     code: "WRT",
@@ -262,32 +250,17 @@ const CASE_CATEGORIES_CONFIG: Record<string, CategoryConfig> = {
   "Juvenile / Child Matters": {
     code: "JUV",
     defaultDuration: 30,
-    subcategories: [
-      "Child Protection",
-      "Juvenile Justice",
-      "Guardianship",
-      "Other",
-    ],
+    subcategories: ["Child Protection", "Juvenile Justice", "Guardianship", "Other"],
   },
   "Public / Administrative Matter": {
     code: "PUB",
     defaultDuration: 60,
-    subcategories: [
-      "Administrative Challenge",
-      "Municipal Matter",
-      "Service Dispute",
-      "Other",
-    ],
+    subcategories: ["Administrative Challenge", "Municipal Matter", "Service Dispute", "Other"],
   },
   "Miscellaneous / Other": {
     code: "MSC",
     defaultDuration: 30,
-    subcategories: [
-      "General Miscellaneous",
-      "Interim Application",
-      "Review Petition",
-      "Other",
-    ],
+    subcategories: ["General Miscellaneous", "Interim Application", "Review Petition", "Other"],
   },
 };
 
@@ -522,8 +495,7 @@ function RegisterCasePage() {
       size: "2.4 MB",
     },
   ]);
-  const [newDocType, setNewDocType] =
-    useState<DocumentRecord["type"]>("Supporting Documents");
+  const [newDocType, setNewDocType] = useState<DocumentRecord["type"]>("Supporting Documents");
 
   // Section 9: Administrative
   const [registrar, setRegistrar] = useState("auto");
@@ -704,8 +676,7 @@ function RegisterCasePage() {
     if (!duration || Number(duration) <= 0)
       errors["duration"] = "Valid estimated hearing duration is required.";
 
-    if (!filingAdvocateName.trim())
-      errors["filingAdvocate"] = "Filing Advocate Name is required.";
+    if (!filingAdvocateName.trim()) errors["filingAdvocate"] = "Filing Advocate Name is required.";
 
     // Validate email formats if entered
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -919,9 +890,15 @@ function RegisterCasePage() {
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Priority Tier</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Priority Tier
+                </p>
                 <div className="mt-1 flex items-center gap-2">
-                  <Badge variant={priority === "Critical" || priority === "High" ? "default" : "secondary"}>
+                  <Badge
+                    variant={
+                      priority === "Critical" || priority === "High" ? "default" : "secondary"
+                    }
+                  >
                     {priority} Priority
                   </Badge>
                 </div>
@@ -933,7 +910,9 @@ function RegisterCasePage() {
                 </Badge>
               </div>
               <div className="sm:col-span-2 md:col-span-4 border-t border-border pt-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Parties on Record</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Parties on Record
+                </p>
                 <p className="mt-1 text-sm font-medium text-foreground">{registeredCase.parties}</p>
               </div>
             </div>
@@ -966,8 +945,8 @@ function RegisterCasePage() {
                   <SparklesIcon className="size-4 text-primary shrink-0 mt-0.5" />
                   <div>
                     <span className="font-medium text-foreground">Smart Scheduling Handoff: </span>
-                    Evaluating judge specialization ({categoryName}), courtroom capacity, workload limits,
-                    and calendar availability for {registeredCase.case_number}.
+                    Evaluating judge specialization ({categoryName}), courtroom capacity, workload
+                    limits, and calendar availability for {registeredCase.case_number}.
                   </div>
                 </div>
                 <CaseSchedulingPanel caseRow={registeredCase} />
@@ -1026,7 +1005,8 @@ function RegisterCasePage() {
               Section 1 — Case Identification
             </CardTitle>
             <p className="text-xs text-muted-foreground">
-              Official filing references, category classifications, and statutory registration dates.
+              Official filing references, category classifications, and statutory registration
+              dates.
             </p>
           </CardHeader>
           <CardContent className="grid gap-5 pt-2 sm:grid-cols-2 md:grid-cols-3">
@@ -1041,20 +1021,27 @@ function RegisterCasePage() {
                 className="bg-muted font-mono font-medium tracking-wide"
               />
               <p className="text-[11px] text-muted-foreground">
-                Generated from category code ({CASE_CATEGORIES_CONFIG[categoryName]?.code || "CIV"}) and year.
+                Generated from category code ({CASE_CATEGORIES_CONFIG[categoryName]?.code || "CIV"})
+                and year.
               </p>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="cnr-number" className="text-foreground">
-                  16-Digit CNR Number <span className="text-xs text-primary font-semibold">(Indian Standard)</span>
+                  16-Digit CNR Number{" "}
+                  <span className="text-xs text-primary font-semibold">(Indian Standard)</span>
                 </Label>
                 <button
                   type="button"
                   onClick={() =>
                     setCnrNumber(
-                      generateCnrNumber("DL", "CT", "01", Math.floor(Math.random() * 89999 + 10000)),
+                      generateCnrNumber(
+                        "DL",
+                        "CT",
+                        "01",
+                        Math.floor(Math.random() * 89999 + 10000),
+                      ),
                     )
                   }
                   className="text-[11px] text-primary hover:underline font-medium"
@@ -1075,7 +1062,10 @@ function RegisterCasePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="filing-date" className="text-foreground flex items-center justify-between">
+              <Label
+                htmlFor="filing-date"
+                className="text-foreground flex items-center justify-between"
+              >
                 <span>
                   Filing Date <span className="text-destructive">*</span>
                 </span>
@@ -1115,7 +1105,10 @@ function RegisterCasePage() {
                 Case Category <span className="text-destructive">*</span>
               </Label>
               <Select value={categoryName} onValueChange={setCategoryName}>
-                <SelectTrigger id="case-category" className={validationErrors["category"] ? "border-destructive" : ""}>
+                <SelectTrigger
+                  id="case-category"
+                  className={validationErrors["category"] ? "border-destructive" : ""}
+                >
                   <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
@@ -1133,7 +1126,10 @@ function RegisterCasePage() {
                 Case Sub-category <span className="text-destructive">*</span>
               </Label>
               <Select value={subCategory} onValueChange={setSubCategory}>
-                <SelectTrigger id="case-subcategory" className={validationErrors["subCategory"] ? "border-destructive" : ""}>
+                <SelectTrigger
+                  id="case-subcategory"
+                  className={validationErrors["subCategory"] ? "border-destructive" : ""}
+                >
                   <SelectValue placeholder="Select Sub-category" />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
@@ -1153,9 +1149,7 @@ function RegisterCasePage() {
               <div className="flex items-center gap-2">
                 <Input id="pending-days" value={`${pending} days`} readOnly className="bg-muted" />
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                Elapsed days since filing date.
-              </p>
+              <p className="text-[11px] text-muted-foreground">Elapsed days since filing date.</p>
             </div>
           </CardContent>
         </Card>
@@ -1244,12 +1238,15 @@ function RegisterCasePage() {
                       Full Name / Entity Title <span className="text-destructive">*</span>
                     </Label>
                     <Input
-                      placeholder={idx === 0 ? "e.g. Aarav Industries Pvt. Ltd." : "e.g. Zenith Traders Ltd."}
+                      placeholder={
+                        idx === 0 ? "e.g. Aarav Industries Pvt. Ltd." : "e.g. Zenith Traders Ltd."
+                      }
                       value={party.name}
                       onChange={(e) => handlePartyChange(idx, "name", e.target.value)}
                       required={idx < 2}
                       className={`h-9 text-sm ${
-                        (idx === 0 && validationErrors["party1"]) || (idx === 1 && validationErrors["party2"])
+                        (idx === 0 && validationErrors["party1"]) ||
+                        (idx === 1 && validationErrors["party2"])
                           ? "border-destructive"
                           : ""
                       }`}
@@ -1399,7 +1396,8 @@ function RegisterCasePage() {
 
             <div className="space-y-2">
               <Label htmlFor="amount-involved" className="text-foreground">
-                Amount Involved (₹ INR) <span className="text-xs text-muted-foreground">(Optional)</span>
+                Amount Involved (₹ INR){" "}
+                <span className="text-xs text-muted-foreground">(Optional)</span>
               </Label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-xs text-muted-foreground font-semibold">
@@ -1444,7 +1442,10 @@ function RegisterCasePage() {
                 Jurisdiction / Court Forum <span className="text-destructive">*</span>
               </Label>
               <Select value={jurisdiction} onValueChange={(v) => setJurisdiction(v)}>
-                <SelectTrigger id="jurisdiction" className={validationErrors["jurisdiction"] ? "border-destructive" : ""}>
+                <SelectTrigger
+                  id="jurisdiction"
+                  className={validationErrors["jurisdiction"] ? "border-destructive" : ""}
+                >
                   <SelectValue placeholder="Select Jurisdiction" />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
@@ -1475,7 +1476,8 @@ function RegisterCasePage() {
           <CardContent className="space-y-5 pt-2">
             <div className="space-y-2">
               <Label className="text-foreground">
-                Applicable Acts / Enactments <span className="text-xs text-muted-foreground">(Select all that apply)</span>
+                Applicable Acts / Enactments{" "}
+                <span className="text-xs text-muted-foreground">(Select all that apply)</span>
               </Label>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {APPLICABLE_LAWS_OPTIONS.map((law) => {
@@ -1485,7 +1487,9 @@ function RegisterCasePage() {
                       key={law}
                       variant={selected ? "default" : "outline"}
                       className={`cursor-pointer transition-all ${
-                        selected ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"
+                        selected
+                          ? "bg-primary text-primary-foreground font-medium"
+                          : "hover:bg-muted"
                       }`}
                       onClick={() => handleToggleLaw(law)}
                     >
@@ -1499,9 +1503,7 @@ function RegisterCasePage() {
 
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
-                <Label className="text-foreground">
-                  Applicable Sections / Rules
-                </Label>
+                <Label className="text-foreground">Applicable Sections / Rules</Label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. Section 138, Section 9, Order 39 Rule 1"
@@ -1521,7 +1523,11 @@ function RegisterCasePage() {
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {sections.map((sec) => (
-                    <Badge key={sec} variant="secondary" className="gap-1.5 pl-2.5 pr-1.5 py-1 text-xs">
+                    <Badge
+                      key={sec}
+                      variant="secondary"
+                      className="gap-1.5 pl-2.5 pr-1.5 py-1 text-xs"
+                    >
                       {sec}
                       <button
                         type="button"
@@ -1586,7 +1592,8 @@ function RegisterCasePage() {
               Section 5 — Priority & Smart Scheduling Parameters
             </CardTitle>
             <p className="text-xs text-muted-foreground">
-              Critical inputs consumed by NyayaSetu's deterministic scheduling engine and conflict resolver.
+              Critical inputs consumed by NyayaSetu's deterministic scheduling engine and conflict
+              resolver.
             </p>
           </CardHeader>
           <CardContent className="space-y-6 pt-2">
@@ -1649,35 +1656,53 @@ function RegisterCasePage() {
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="border-primary/40 text-primary font-semibold text-xs">
+                  <Badge
+                    variant="outline"
+                    className="border-primary/40 text-primary font-semibold text-xs"
+                  >
                     Predictive Intelligence Model
                   </Badge>
-                  <span className="text-xs text-muted-foreground">Live duration & risk estimation</span>
+                  <span className="text-xs text-muted-foreground">
+                    Live duration & risk estimation
+                  </span>
                 </div>
                 <div className="flex items-center gap-3 text-xs">
                   <span className="text-muted-foreground">Model Confidence:</span>
-                  <span className="font-semibold text-foreground">{livePrediction.confidence}%</span>
+                  <span className="font-semibold text-foreground">
+                    {livePrediction.confidence}%
+                  </span>
                 </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 pt-1">
                 <div className="rounded-md border bg-card/80 p-3 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground font-medium">Predicted Duration</span>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      Predicted Duration
+                    </span>
                     <Badge variant="secondary" className="text-xs font-semibold">
                       {livePrediction.predictedMinutes} mins
                     </Badge>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Base category ({livePrediction.baseCategoryMinutes}m) adjusted for pendency ({pending}d) and {adjournments} prior deferrals.
+                    Base category ({livePrediction.baseCategoryMinutes}m) adjusted for pendency (
+                    {pending}d) and {adjournments} prior deferrals.
                   </p>
                 </div>
 
                 <div className="rounded-md border bg-card/80 p-3 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground font-medium">Adjournment Risk</span>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      Adjournment Risk
+                    </span>
                     <Badge
-                      variant={liveRisk.tier === "High" ? "destructive" : liveRisk.tier === "Moderate" ? "outline" : "secondary"}
+                      variant={
+                        liveRisk.tier === "High"
+                          ? "destructive"
+                          : liveRisk.tier === "Moderate"
+                            ? "outline"
+                            : "secondary"
+                      }
                       className="text-xs font-semibold"
                     >
                       {liveRisk.riskPercentage}% ({liveRisk.tier} Risk)
@@ -1712,7 +1737,10 @@ function RegisterCasePage() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <RadioGroupItem value="yes" id="urg-yes" />
-                    <Label htmlFor="urg-yes" className="cursor-pointer text-xs font-semibold text-primary">
+                    <Label
+                      htmlFor="urg-yes"
+                      className="cursor-pointer text-xs font-semibold text-primary"
+                    >
                       Yes (Urgent)
                     </Label>
                   </div>
@@ -1729,11 +1757,19 @@ function RegisterCasePage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Interim Relief Required">Interim Relief / Injunction Required</SelectItem>
-                      <SelectItem value="Risk of Irreparable Harm">Risk of Irreparable Harm / Demolition</SelectItem>
-                      <SelectItem value="Time-Sensitive Matter">Time-Sensitive Statutory Deadline</SelectItem>
+                      <SelectItem value="Interim Relief Required">
+                        Interim Relief / Injunction Required
+                      </SelectItem>
+                      <SelectItem value="Risk of Irreparable Harm">
+                        Risk of Irreparable Harm / Demolition
+                      </SelectItem>
+                      <SelectItem value="Time-Sensitive Matter">
+                        Time-Sensitive Statutory Deadline
+                      </SelectItem>
                       <SelectItem value="Custody Matter">Child Custody / Habeas Corpus</SelectItem>
-                      <SelectItem value="Medical Emergency">Medical Emergency / Compassionate Ground</SelectItem>
+                      <SelectItem value="Medical Emergency">
+                        Medical Emergency / Compassionate Ground
+                      </SelectItem>
                       <SelectItem value="Other">Other Documented Urgency</SelectItem>
                     </SelectContent>
                   </Select>
@@ -1745,7 +1781,8 @@ function RegisterCasePage() {
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="preferred-hearing-date" className="text-foreground">
-                  Preferred Hearing Date <span className="text-xs text-muted-foreground">(Optional)</span>
+                  Preferred Hearing Date{" "}
+                  <span className="text-xs text-muted-foreground">(Optional)</span>
                 </Label>
                 <Input
                   id="preferred-hearing-date"
@@ -1780,7 +1817,8 @@ function RegisterCasePage() {
                   Scheduling Constraints & Bench Preferences
                 </Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  The engine avoids listing during constraint periods and selects compliant courtrooms.
+                  The engine avoids listing during constraint periods and selects compliant
+                  courtrooms.
                 </p>
               </div>
 
@@ -1792,7 +1830,9 @@ function RegisterCasePage() {
                       key={sc.id}
                       onClick={() => handleToggleConstraint(sc.id)}
                       className={`flex items-start gap-2.5 rounded-md border p-2.5 transition-colors cursor-pointer text-xs ${
-                        checked ? "border-primary/50 bg-primary/5" : "border-border hover:bg-muted/30"
+                        checked
+                          ? "border-primary/50 bg-primary/5"
+                          : "border-border hover:bg-muted/30"
                       }`}
                     >
                       <Checkbox
@@ -1801,7 +1841,10 @@ function RegisterCasePage() {
                         onCheckedChange={() => handleToggleConstraint(sc.id)}
                         className="mt-0.5"
                       />
-                      <Label htmlFor={sc.id} className="cursor-pointer text-xs font-normal leading-snug">
+                      <Label
+                        htmlFor={sc.id}
+                        className="cursor-pointer text-xs font-normal leading-snug"
+                      >
                         {sc.label}
                       </Label>
                     </div>
@@ -1817,7 +1860,8 @@ function RegisterCasePage() {
                   Statutory Priority Categories
                 </Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Documented legal facts establishing statutory priority boosts under High Court guidelines.
+                  Documented legal facts establishing statutory priority boosts under High Court
+                  guidelines.
                 </p>
               </div>
 
@@ -1894,7 +1938,8 @@ function RegisterCasePage() {
               Section 6 — Judge & Courtroom Allocation
             </CardTitle>
             <p className="text-xs text-muted-foreground">
-              Select manual allocation or use Auto-Assignment driven by specialization, workload and availability.
+              Select manual allocation or use Auto-Assignment driven by specialization, workload and
+              availability.
             </p>
           </CardHeader>
           <CardContent className="grid gap-5 pt-2 sm:grid-cols-2">
@@ -1933,9 +1978,7 @@ function RegisterCasePage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
-                  <SelectItem value="auto">
-                    ✨ Auto Assign (Optimized Room Capacity)
-                  </SelectItem>
+                  <SelectItem value="auto">✨ Auto Assign (Optimized Room Capacity)</SelectItem>
                   {(courtroomsQuery.data ?? []).map((cr) => (
                     <SelectItem key={cr.id} value={cr.id}>
                       {cr.name} ({cr.type} · cap {cr.capacity})
@@ -2021,9 +2064,14 @@ function RegisterCasePage() {
             {/* Opposing Advocate */}
             <div className="rounded-lg border border-border bg-card p-4 space-y-3">
               <div className="flex items-center gap-2 border-b border-border pb-2">
-                <Badge variant="secondary" className="text-xs">Opposing Counsel</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  Opposing Counsel
+                </Badge>
                 <span className="text-xs font-semibold text-foreground">
-                  Advocate for Respondent / Defendant <span className="text-xs text-muted-foreground font-normal">(Optional if unrepresented)</span>
+                  Advocate for Respondent / Defendant{" "}
+                  <span className="text-xs text-muted-foreground font-normal">
+                    (Optional if unrepresented)
+                  </span>
                 </span>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -2099,8 +2147,12 @@ function RegisterCasePage() {
                     <SelectItem value="Evidence">Evidence / Affidavit in Chief</SelectItem>
                     <SelectItem value="Affidavit">Vakalatnama / Affidavit</SelectItem>
                     <SelectItem value="Supporting Documents">Supporting Documents</SelectItem>
-                    <SelectItem value="Previous Orders">Previous Orders / Impugned Order</SelectItem>
-                    <SelectItem value="Identity Documents">Identity / Authorization Proof</SelectItem>
+                    <SelectItem value="Previous Orders">
+                      Previous Orders / Impugned Order
+                    </SelectItem>
+                    <SelectItem value="Identity Documents">
+                      Identity / Authorization Proof
+                    </SelectItem>
                     <SelectItem value="Other">Other Attachment</SelectItem>
                   </SelectContent>
                 </Select>
@@ -2147,7 +2199,8 @@ function RegisterCasePage() {
                       <div className="min-w-0">
                         <p className="font-medium text-foreground truncate">{doc.name}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          {doc.type} · {doc.size} · Uploaded by {doc.uploadedBy} on {doc.uploadedDate}
+                          {doc.type} · {doc.size} · Uploaded by {doc.uploadedBy} on{" "}
+                          {doc.uploadedDate}
                         </p>
                       </div>
                     </div>
@@ -2193,7 +2246,9 @@ function RegisterCasePage() {
                   <SelectItem value="auto">Auto Assign (Registry Duty Officer)</SelectItem>
                   <SelectItem value="reg-1">Shri. K. Ramanathan (Registrar Judicial)</SelectItem>
                   <SelectItem value="reg-2">Smt. Sunita Verma (Joint Registrar)</SelectItem>
-                  <SelectItem value="reg-3">Shri. A. Kulkarni (Deputy Registrar Scrutiny)</SelectItem>
+                  <SelectItem value="reg-3">
+                    Shri. A. Kulkarni (Deputy Registrar Scrutiny)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2252,8 +2307,8 @@ function RegisterCasePage() {
               Priority Score & Tier are computed deterministically
             </span>{" "}
             on submission from category urgency ({categoryName}), pendency days ({pending} days),
-            previous adjournments ({adjournments}), statutory criteria, and urgency flags.
-            Once saved, the case is immediately ready for Smart Scheduling.
+            previous adjournments ({adjournments}), statutory criteria, and urgency flags. Once
+            saved, the case is immediately ready for Smart Scheduling.
           </p>
         </div>
 

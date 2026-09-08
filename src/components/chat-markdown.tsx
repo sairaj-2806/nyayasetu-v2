@@ -10,7 +10,9 @@ interface ChatMarkdownProps {
 
 export function ChatMarkdown({ content, className }: ChatMarkdownProps) {
   return (
-    <div className={cn("text-sm text-foreground leading-relaxed break-words space-y-2.5", className)}>
+    <div
+      className={cn("text-sm text-foreground leading-relaxed break-words space-y-2.5", className)}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -25,19 +27,13 @@ export function ChatMarkdown({ content, className }: ChatMarkdownProps) {
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-sm font-semibold text-foreground mt-2 mb-1">
-              {children}
-            </h3>
+            <h3 className="text-sm font-semibold text-foreground mt-2 mb-1">{children}</h3>
           ),
-          p: ({ children }) => (
-            <p className="leading-relaxed mb-2 last:mb-0">{children}</p>
-          ),
+          p: ({ children }) => <p className="leading-relaxed mb-2 last:mb-0">{children}</p>,
           strong: ({ children }) => (
             <strong className="font-semibold text-foreground">{children}</strong>
           ),
-          em: ({ children }) => (
-            <em className="italic text-foreground/90">{children}</em>
-          ),
+          em: ({ children }) => <em className="italic text-foreground/90">{children}</em>,
           ul: ({ children }) => (
             <ul className="list-disc list-outside pl-4 space-y-1 my-2 text-foreground/90">
               {children}
@@ -48,9 +44,7 @@ export function ChatMarkdown({ content, className }: ChatMarkdownProps) {
               {children}
             </ol>
           ),
-          li: ({ children }) => (
-            <li className="leading-relaxed pl-0.5">{children}</li>
-          ),
+          li: ({ children }) => <li className="leading-relaxed pl-0.5">{children}</li>,
           blockquote: ({ children }) => (
             <blockquote className="border-l-2 border-primary/60 pl-3 my-2 text-muted-foreground italic bg-muted/30 py-1 rounded-r">
               {children}

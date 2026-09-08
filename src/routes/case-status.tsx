@@ -218,7 +218,8 @@ function CaseStatusPage() {
               </p>
               <h1 className="text-2xl font-bold sm:text-3xl tracking-tight">Check Case Status</h1>
               <p className="text-sm text-primary-foreground/80">
-                Official public enquiry service for litigants, advocates, and citizens. No login required.
+                Official public enquiry service for litigants, advocates, and citizens. No login
+                required.
               </p>
             </div>
           </div>
@@ -242,7 +243,15 @@ function CaseStatusPage() {
           </div>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Enter your Case Number (e.g., <code className="font-mono text-xs font-semibold bg-muted px-1.5 py-0.5 rounded">LAB-2026-0037</code> or <code className="font-mono text-xs font-semibold bg-muted px-1.5 py-0.5 rounded">0037</code>) as printed on your registry filing slip.
+            Enter your Case Number (e.g.,{" "}
+            <code className="font-mono text-xs font-semibold bg-muted px-1.5 py-0.5 rounded">
+              LAB-2026-0037
+            </code>{" "}
+            or{" "}
+            <code className="font-mono text-xs font-semibold bg-muted px-1.5 py-0.5 rounded">
+              0037
+            </code>
+            ) as printed on your registry filing slip.
           </p>
 
           <form onSubmit={onSubmit} className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -309,7 +318,10 @@ function CaseStatusPage() {
               </div>
               <h3 className="mt-3 text-base font-semibold text-foreground">No Case Record Found</h3>
               <p className="mt-1 text-sm text-muted-foreground max-w-md mx-auto">
-                No active registry case matched <code className="font-mono font-medium text-foreground">{caseNumber}</code>. Please double-check your case number format or enquire at the District Court registry counter.
+                No active registry case matched{" "}
+                <code className="font-mono font-medium text-foreground">{caseNumber}</code>. Please
+                double-check your case number format or enquire at the District Court registry
+                counter.
               </p>
             </div>
           )}
@@ -335,7 +347,8 @@ function CaseStatusPage() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {result.categoryName ?? "General Civil / Criminal Matter"} • Filed on {result.filingDate ? formatDate(result.filingDate) : "Official Registry Record"}
+                    {result.categoryName ?? "General Civil / Criminal Matter"} • Filed on{" "}
+                    {result.filingDate ? formatDate(result.filingDate) : "Official Registry Record"}
                   </p>
                 </div>
 
@@ -372,7 +385,8 @@ function CaseStatusPage() {
                       <div>
                         <p className="text-xs text-muted-foreground">Sitting Time</p>
                         <p className="text-sm font-semibold text-foreground">
-                          {formatTime(result.nextHearing.startTime)} – {formatTime(result.nextHearing.endTime)}
+                          {formatTime(result.nextHearing.startTime)} –{" "}
+                          {formatTime(result.nextHearing.endTime)}
                         </p>
                       </div>
                     </div>
@@ -382,7 +396,8 @@ function CaseStatusPage() {
                       <div>
                         <p className="text-xs text-muted-foreground">Courtroom & Bench</p>
                         <p className="text-sm font-semibold text-foreground">
-                          {result.nextHearing.courtroomName ?? "Assigned Hall"} ({result.nextHearing.judgeName ?? "Presiding Judge"})
+                          {result.nextHearing.courtroomName ?? "Assigned Hall"} (
+                          {result.nextHearing.judgeName ?? "Presiding Judge"})
                         </p>
                       </div>
                     </div>
@@ -392,17 +407,24 @@ function CaseStatusPage() {
                 <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-3.5 flex items-center gap-2.5 text-xs text-amber-700 dark:text-amber-400">
                   <Info className="size-4 shrink-0" />
                   <span>
-                    This matter is currently in registry intake queue and has not been listed on a daily cause list yet. Please check back after 5:00 PM when the daily board is finalized.
+                    This matter is currently in registry intake queue and has not been listed on a
+                    daily cause list yet. Please check back after 5:00 PM when the daily board is
+                    finalized.
                   </span>
                 </div>
               )}
 
               {/* Complete Case Details Grid */}
               <dl className="divide-y text-sm">
-                <DetailRow label="Case Type / Category" value={result.categoryName ?? "General Jurisdiction"} />
+                <DetailRow
+                  label="Case Type / Category"
+                  value={result.categoryName ?? "General Jurisdiction"}
+                />
                 <DetailRow
                   label="Filing Date"
-                  value={result.filingDate ? formatDate(result.filingDate) : "Official Registry Record"}
+                  value={
+                    result.filingDate ? formatDate(result.filingDate) : "Official Registry Record"
+                  }
                 />
                 {result.nextHearing && (
                   <>
@@ -480,7 +502,8 @@ function CaseStatusPage() {
                       <p className="font-semibold text-foreground">{result.caseNumber}</p>
                       <p className="text-muted-foreground">{result.nextHearing.courtroomName}</p>
                       <p className="font-medium text-primary">
-                        {formatTime(result.nextHearing.startTime)} • {formatDate(result.nextHearing.date)}
+                        {formatTime(result.nextHearing.startTime)} •{" "}
+                        {formatDate(result.nextHearing.date)}
                       </p>
                       <p className="text-[11px] text-muted-foreground">
                         Show this pass at the court complex security checkpost.
@@ -490,7 +513,12 @@ function CaseStatusPage() {
                 </div>
 
                 <div className="mt-4 pt-3 border-t flex justify-end">
-                  <Button variant="secondary" size="sm" onClick={handlePrint} className="w-full text-xs gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handlePrint}
+                    className="w-full text-xs gap-2"
+                  >
                     <Printer className="size-3.5" />
                     Print Entry Pass
                   </Button>
@@ -510,15 +538,24 @@ function CaseStatusPage() {
                   <ul className="mt-3 space-y-2 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <span className="size-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                      <span><strong>Arrival Time:</strong> Litigants and advocates must report 20 minutes prior to {formatTime(result.nextHearing.startTime)}.</span>
+                      <span>
+                        <strong>Arrival Time:</strong> Litigants and advocates must report 20
+                        minutes prior to {formatTime(result.nextHearing.startTime)}.
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="size-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                      <span><strong>Vakalatnama:</strong> Ensure authorized legal representation is filed on registry record.</span>
+                      <span>
+                        <strong>Vakalatnama:</strong> Ensure authorized legal representation is
+                        filed on registry record.
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="size-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                      <span><strong>Court Decorum:</strong> Mobile devices must remain on silent mode inside the courtroom hall.</span>
+                      <span>
+                        <strong>Court Decorum:</strong> Mobile devices must remain on silent mode
+                        inside the courtroom hall.
+                      </span>
                     </li>
                   </ul>
                 </div>
@@ -539,7 +576,9 @@ function CaseStatusPage() {
                 Statutory Privacy & Protection Compliance
               </p>
               <p className="leading-relaxed">
-                In strict compliance with Supreme Court of India directives (<em>Nipun Saxena v. Union of India</em>) and Section 33(7) of the POCSO Act, personal details and sensitive records are redacted from public indexing.
+                In strict compliance with Supreme Court of India directives (
+                <em>Nipun Saxena v. Union of India</em>) and Section 33(7) of the POCSO Act,
+                personal details and sensitive records are redacted from public indexing.
               </p>
             </div>
           </div>

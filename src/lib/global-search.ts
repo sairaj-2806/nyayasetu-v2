@@ -1,6 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { SEED_POLICE_ASSETS, type PoliceAsset } from "@/lib/assets";
-import { getStoredDocuments, getDocumentVersions, type SecureDocument, type DocumentVersionRecord } from "@/lib/documents";
+import {
+  getStoredDocuments,
+  getDocumentVersions,
+  type SecureDocument,
+  type DocumentVersionRecord,
+} from "@/lib/documents";
 import { statusLabel, type CaseRow } from "@/lib/cases";
 
 export type SearchEntityType =
@@ -126,7 +131,8 @@ export const KNOWN_OFFICERS: OfficerProfile[] = [
     name: "Head Constable Ramesh Chand",
     role: "Malkhana Moharrir (Vault Custodian)",
     station: "District Court Central Malkhana",
-    assignedAssetsSummary: "Custodian for Exhibit EV-1045, 9mm Pistol (Exhibit A-1), Cold Storage DNA Kits",
+    assignedAssetsSummary:
+      "Custodian for Exhibit EV-1045, 9mm Pistol (Exhibit A-1), Cold Storage DNA Kits",
     assetCount: 4,
   },
   {
@@ -134,7 +140,8 @@ export const KNOWN_OFFICERS: OfficerProfile[] = [
     name: "Dr. Alok Verma",
     role: "Senior Scientific Officer (Forensics)",
     station: "Central Forensic Science Laboratory (CFSL), Rohini",
-    assignedAssetsSummary: "Forensic analysis authority for Digital Media, Ballistics & Cyber extractions",
+    assignedAssetsSummary:
+      "Forensic analysis authority for Digital Media, Ballistics & Cyber extractions",
     assetCount: 3,
   },
   {
@@ -159,7 +166,8 @@ export const KNOWN_OFFICERS: OfficerProfile[] = [
     name: "Sub-Inspector Kuldeep Malik",
     role: "Workshop In-charge",
     station: "Central Police Motor Transport Armory Workshop",
-    assignedAssetsSummary: "Custodian for Toyota Innova Forensic Van (POL-2026-VEH-0012) under repair",
+    assignedAssetsSummary:
+      "Custodian for Toyota Innova Forensic Van (POL-2026-VEH-0012) under repair",
     assetCount: 1,
   },
   {
@@ -183,7 +191,8 @@ export const KNOWN_OFFICERS: OfficerProfile[] = [
     name: "ACP Virender Kumar",
     role: "Assistant Commissioner of Police",
     station: "Special Cell Delhi Police",
-    assignedAssetsSummary: "Supervisory signatory for Charge Sheets CS-2024-00491 & Section 63 BSA filings",
+    assignedAssetsSummary:
+      "Supervisory signatory for Charge Sheets CS-2024-00491 & Section 63 BSA filings",
     assetCount: 2,
   },
 ];
@@ -203,7 +212,8 @@ export const KNOWN_LOCATIONS: FacilityLocation[] = [
     name: "State Cyber Forensic Laboratory, Rohini",
     type: "Forensic Lab",
     district: "North West Forensic Zone",
-    inventorySummary: "Houses Seized Western Digital 4TB Surveillance Hard Drive (POL-2026-DM-0811)",
+    inventorySummary:
+      "Houses Seized Western Digital 4TB Surveillance Hard Drive (POL-2026-DM-0811)",
     itemCount: 1,
   },
   {
@@ -227,7 +237,8 @@ export const KNOWN_LOCATIONS: FacilityLocation[] = [
     name: "Central Police Motor Transport Armory Workshop",
     type: "Armory Workshop",
     district: "District Police Lines, Kingsway Camp",
-    inventorySummary: "Houses Mobile Forensic Crime Scene Van (POL-2026-VEH-0012) under maintenance",
+    inventorySummary:
+      "Houses Mobile Forensic Crime Scene Van (POL-2026-VEH-0012) under maintenance",
     itemCount: 1,
   },
   {
@@ -235,7 +246,8 @@ export const KNOWN_LOCATIONS: FacilityLocation[] = [
     name: "Malkhana Secure Chemical Vault #3",
     type: "Malkhana Vault",
     district: "Crime Branch Narcotics Facility",
-    inventorySummary: "Houses Psychotropic Contraband Consignment (4.8 kg) under Seal #MHA-NARCO-SEAL-9982",
+    inventorySummary:
+      "Houses Psychotropic Contraband Consignment (4.8 kg) under Seal #MHA-NARCO-SEAL-9982",
     itemCount: 1,
   },
   {
@@ -252,7 +264,8 @@ export const KNOWN_LOCATIONS: FacilityLocation[] = [
 export const SEED_AUDIT_TRAIL: UnifiedAuditItem[] = [
   {
     id: "aud-01",
-    action: "Evidence Receipt Acknowledged & Digitally Signed with SHA-256 Manifest (Exhibit EV-1045)",
+    action:
+      "Evidence Receipt Acknowledged & Digitally Signed with SHA-256 Manifest (Exhibit EV-1045)",
     entityAffected: "asset:ast-seed-007 transfer:TRF-2026-DEL-1045",
     userName: "Head Constable Ramesh Chand",
     userRole: "registrar",
@@ -336,8 +349,10 @@ export async function executeUnifiedSearch(params: {
     const res = await withTimeout(
       dbClient
         .from("cases")
-        .select("id, case_number, category_id, filing_date, status, parties, priority_score, priority_tier, case_categories(name)")
-        .limit(100)
+        .select(
+          "id, case_number, category_id, filing_date, status, parties, priority_score, priority_tier, case_categories(name)",
+        )
+        .limit(100),
     );
     const { data: dbCases, error } = res as any;
 
@@ -350,7 +365,9 @@ export async function executeUnifiedSearch(params: {
         return {
           ...c,
           cnr_number: cnr,
-          case_categories: c.case_categories ? { id: "", name: c.case_categories.name, urgency_weight: 1 } : null,
+          case_categories: c.case_categories
+            ? { id: "", name: c.case_categories.name, urgency_weight: 1 }
+            : null,
         } as CaseRow;
       });
     }
@@ -385,7 +402,7 @@ export async function executeUnifiedSearch(params: {
   }
 
   // 3. Fetch Documents
-  let rawDocuments: SecureDocument[] = getStoredDocuments();
+  const rawDocuments: SecureDocument[] = getStoredDocuments();
 
   // 4. RLS & Authorization Gate
   let filteredOutCount = 0;
@@ -446,7 +463,10 @@ export async function executeUnifiedSearch(params: {
       const score = scoreMatch(caseTokens, 1.2);
       if (score > 0 || !q) {
         // Apply filters
-        if (filters.caseNumber && !c.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase())) {
+        if (
+          filters.caseNumber &&
+          !c.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase())
+        ) {
           continue;
         }
         if (filters.status && filters.status !== "all" && c.status !== filters.status) {
@@ -463,7 +483,10 @@ export async function executeUnifiedSearch(params: {
           description: `Category: ${c.case_categories?.name || "General"} · Priority: ${c.priority_tier || "Tier 2"} (Score ${c.priority_score ?? 50}) · Status: ${statusLabel[c.status]}`,
           date: c.filing_date,
           status: statusLabel[c.status],
-          statusBadgeClass: c.status === "scheduled" ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" : "bg-muted text-muted-foreground",
+          statusBadgeClass:
+            c.status === "scheduled"
+              ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+              : "bg-muted text-muted-foreground",
           caseNumber: c.case_number,
           route: "/cases/$caseId",
           routeParams: { caseId: c.id },
@@ -492,10 +515,18 @@ export async function executeUnifiedSearch(params: {
       const score = scoreMatch(docTokens, 1.1);
       if (score > 0 || !q) {
         // Apply filters
-        if (filters.caseNumber && (!d.case_number || !d.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase()))) {
+        if (
+          filters.caseNumber &&
+          (!d.case_number ||
+            !d.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase()))
+        ) {
           continue;
         }
-        if (filters.documentType && filters.documentType !== "all" && d.category.toLowerCase() !== filters.documentType.toLowerCase()) {
+        if (
+          filters.documentType &&
+          filters.documentType !== "all" &&
+          d.category.toLowerCase() !== filters.documentType.toLowerCase()
+        ) {
           continue;
         }
         if (filters.startDate && d.created_at < filters.startDate) continue;
@@ -514,14 +545,19 @@ export async function executeUnifiedSearch(params: {
           route: "/documents/$documentId",
           routeParams: { documentId: d.id },
           metadata: { category: d.category, sha256: d.latest_sha256 },
-          relevanceScore: score + (d.case_number && q.includes(d.case_number.toLowerCase()) ? 45 : 0),
+          relevanceScore:
+            score + (d.case_number && q.includes(d.case_number.toLowerCase()) ? 45 : 0),
         });
       }
     }
   }
 
   /* ---------------- C. DOCUMENT VERSIONS MATCHING ---------------- */
-  if (!filters.entityType || filters.entityType === "all" || filters.entityType === "document_version") {
+  if (
+    !filters.entityType ||
+    filters.entityType === "all" ||
+    filters.entityType === "document_version"
+  ) {
     for (const { doc, ver } of documentVersions) {
       const verTokens = [
         `version ${ver.version_number}`,
@@ -537,7 +573,11 @@ export async function executeUnifiedSearch(params: {
 
       const score = scoreMatch(verTokens, 1.0);
       if (score > 0 || (!q && ver.version_number > 1)) {
-        if (filters.caseNumber && (!doc.case_number || !doc.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase()))) {
+        if (
+          filters.caseNumber &&
+          (!doc.case_number ||
+            !doc.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase()))
+        ) {
           continue;
         }
 
@@ -562,7 +602,15 @@ export async function executeUnifiedSearch(params: {
 
   /* ----------------- D. EVIDENCE EXHIBITS MATCHING --------------- */
   if (!filters.entityType || filters.entityType === "all" || filters.entityType === "evidence") {
-    const evidenceAssets = assets.filter((a) => a.evidence_status != null || a.category_name?.toLowerCase().includes("evidence") || a.category_name?.toLowerCase().includes("media") || a.category_name?.toLowerCase().includes("weapons") || a.category_name?.toLowerCase().includes("narcotics") || a.category_name?.toLowerCase().includes("dna"));
+    const evidenceAssets = assets.filter(
+      (a) =>
+        a.evidence_status != null ||
+        a.category_name?.toLowerCase().includes("evidence") ||
+        a.category_name?.toLowerCase().includes("media") ||
+        a.category_name?.toLowerCase().includes("weapons") ||
+        a.category_name?.toLowerCase().includes("narcotics") ||
+        a.category_name?.toLowerCase().includes("dna"),
+    );
 
     for (const ev of evidenceAssets) {
       const evTokens = [
@@ -587,13 +635,26 @@ export async function executeUnifiedSearch(params: {
 
       const score = scoreMatch(evTokens, 1.25);
       if (score > 0 || !q) {
-        if (filters.caseNumber && (!ev.case_number || !ev.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase()))) {
+        if (
+          filters.caseNumber &&
+          (!ev.case_number ||
+            !ev.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase()))
+        ) {
           continue;
         }
-        if (filters.status && filters.status !== "all" && ev.evidence_status !== filters.status && ev.status !== filters.status) {
+        if (
+          filters.status &&
+          filters.status !== "all" &&
+          ev.evidence_status !== filters.status &&
+          ev.status !== filters.status
+        ) {
           continue;
         }
-        if (filters.location && filters.location !== "all" && !ev.current_location.toLowerCase().includes(filters.location.toLowerCase())) {
+        if (
+          filters.location &&
+          filters.location !== "all" &&
+          !ev.current_location.toLowerCase().includes(filters.location.toLowerCase())
+        ) {
           continue;
         }
 
@@ -612,14 +673,21 @@ export async function executeUnifiedSearch(params: {
           route: "/assets/$assetId",
           routeParams: { assetId: ev.id },
           metadata: { seal: ev.tamper_seal_number ?? null, stage: ev.evidence_status ?? null },
-          relevanceScore: score + (ev.asset_code.toLowerCase().includes(q) ? 60 : 0) + (ev.case_number && q.includes(ev.case_number.toLowerCase()) ? 40 : 0),
+          relevanceScore:
+            score +
+            (ev.asset_code.toLowerCase().includes(q) ? 60 : 0) +
+            (ev.case_number && q.includes(ev.case_number.toLowerCase()) ? 40 : 0),
         });
       }
     }
   }
 
   /* ------------------- E. POLICE ASSETS MATCHING ----------------- */
-  if (!filters.entityType || filters.entityType === "all" || filters.entityType === "police_asset") {
+  if (
+    !filters.entityType ||
+    filters.entityType === "all" ||
+    filters.entityType === "police_asset"
+  ) {
     for (const a of assets) {
       const assetTokens = [
         a.asset_code,
@@ -639,16 +707,28 @@ export async function executeUnifiedSearch(params: {
 
       const score = scoreMatch(assetTokens, 1.1);
       if (score > 0 || !q) {
-        if (filters.caseNumber && (!a.case_number || !a.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase()))) {
+        if (
+          filters.caseNumber &&
+          (!a.case_number ||
+            !a.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase()))
+        ) {
           continue;
         }
-        if (filters.assetType && filters.assetType !== "all" && a.category_name?.toLowerCase() !== filters.assetType.toLowerCase()) {
+        if (
+          filters.assetType &&
+          filters.assetType !== "all" &&
+          a.category_name?.toLowerCase() !== filters.assetType.toLowerCase()
+        ) {
           continue;
         }
         if (filters.status && filters.status !== "all" && a.status !== filters.status) {
           continue;
         }
-        if (filters.location && filters.location !== "all" && !a.current_location.toLowerCase().includes(filters.location.toLowerCase())) {
+        if (
+          filters.location &&
+          filters.location !== "all" &&
+          !a.current_location.toLowerCase().includes(filters.location.toLowerCase())
+        ) {
           continue;
         }
 
@@ -660,23 +740,37 @@ export async function executeUnifiedSearch(params: {
           description: `Location: ${a.current_location} · Custodian: ${a.current_custodian_name} · Assigned: ${a.assigned_officer_name || "Station Pool"}`,
           date: a.created_at,
           status: a.status,
-          statusBadgeClass: a.status === "MAINTENANCE" ? "bg-destructive/15 text-destructive border-destructive/30" : "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+          statusBadgeClass:
+            a.status === "MAINTENANCE"
+              ? "bg-destructive/15 text-destructive border-destructive/30"
+              : "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
           location: a.current_location,
           caseNumber: a.case_number || undefined,
           officerOrCustodian: a.assigned_officer_name || a.current_custodian_name,
           route: "/assets/$assetId",
           routeParams: { assetId: a.id },
           metadata: { serial: a.serial_number ?? null, condition: a.condition ?? null },
-          relevanceScore: score + (a.status === "MAINTENANCE" && q.includes("maintenance") ? 50 : 0),
+          relevanceScore:
+            score + (a.status === "MAINTENANCE" && q.includes("maintenance") ? 50 : 0),
         });
       }
     }
   }
 
   /* ---------------- F. OFFICERS & CUSTODIANS MATCHING ------------ */
-  if (!filters.entityType || filters.entityType === "all" || filters.entityType === "officer_custodian") {
+  if (
+    !filters.entityType ||
+    filters.entityType === "all" ||
+    filters.entityType === "officer_custodian"
+  ) {
     for (const off of KNOWN_OFFICERS) {
-      const offTokens = [off.name, off.role, off.badgeNumber || "", off.station, off.assignedAssetsSummary].join(" ");
+      const offTokens = [
+        off.name,
+        off.role,
+        off.badgeNumber || "",
+        off.station,
+        off.assignedAssetsSummary,
+      ].join(" ");
       const score = scoreMatch(offTokens, 1.0);
       if (score > 0 || (!q && off.name.includes("Vikram"))) {
         matchedItems.push({
@@ -703,7 +797,11 @@ export async function executeUnifiedSearch(params: {
       const locTokens = [loc.name, loc.type, loc.district, loc.inventorySummary].join(" ");
       const score = scoreMatch(locTokens, 1.0);
       if (score > 0 || (!q && loc.type.includes("Vault"))) {
-        if (filters.location && filters.location !== "all" && !loc.name.toLowerCase().includes(filters.location.toLowerCase())) {
+        if (
+          filters.location &&
+          filters.location !== "all" &&
+          !loc.name.toLowerCase().includes(filters.location.toLowerCase())
+        ) {
           continue;
         }
 
@@ -727,10 +825,21 @@ export async function executeUnifiedSearch(params: {
   /* ------------------- H. AUDIT EVENTS MATCHING ------------------ */
   if (!filters.entityType || filters.entityType === "all" || filters.entityType === "audit_event") {
     for (const aud of auditEntries) {
-      const audTokens = [aud.action, aud.entityAffected, aud.userName, aud.userRole, aud.caseNumber || "", aud.actionType].join(" ");
+      const audTokens = [
+        aud.action,
+        aud.entityAffected,
+        aud.userName,
+        aud.userRole,
+        aud.caseNumber || "",
+        aud.actionType,
+      ].join(" ");
       const score = scoreMatch(audTokens, 0.95);
       if (score > 0 || (!q && aud.caseNumber === "BNS/2026/0014")) {
-        if (filters.caseNumber && (!aud.caseNumber || !aud.caseNumber.toLowerCase().includes(filters.caseNumber.toLowerCase()))) {
+        if (
+          filters.caseNumber &&
+          (!aud.caseNumber ||
+            !aud.caseNumber.toLowerCase().includes(filters.caseNumber.toLowerCase()))
+        ) {
           continue;
         }
 
@@ -755,12 +864,14 @@ export async function executeUnifiedSearch(params: {
   // Deduplicate and Sort by Relevance Score
   const uniqueMap = new Map<string, SearchResultItem>();
   for (const item of matchedItems) {
-    if (!uniqueMap.has(item.id) || (uniqueMap.get(item.id)!.relevanceScore < item.relevanceScore)) {
+    if (!uniqueMap.has(item.id) || uniqueMap.get(item.id)!.relevanceScore < item.relevanceScore) {
       uniqueMap.set(item.id, item);
     }
   }
 
-  const sortedItems = Array.from(uniqueMap.values()).sort((a, b) => b.relevanceScore - a.relevanceScore);
+  const sortedItems = Array.from(uniqueMap.values()).sort(
+    (a, b) => b.relevanceScore - a.relevanceScore,
+  );
 
   // Compute by-entity count
   const byEntityCount: Record<SearchEntityType, number> = {

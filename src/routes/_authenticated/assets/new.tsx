@@ -115,7 +115,8 @@ function NewAssetPage() {
       if (!name.trim()) throw new Error("Please enter an asset name");
       if (!assetCode.trim()) throw new Error("Please provide a unique asset code");
       if (!categoryId) throw new Error("Please select an asset category");
-      if (!currentCustodianName.trim()) throw new Error("Please specify the current custodian name");
+      if (!currentCustodianName.trim())
+        throw new Error("Please specify the current custodian name");
 
       const selectedCat = (categories.data ?? []).find((c) => c.id === categoryId);
 
@@ -189,7 +190,10 @@ function NewAssetPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="assetCode" className="text-xs font-semibold flex items-center justify-between">
+                <Label
+                  htmlFor="assetCode"
+                  className="text-xs font-semibold flex items-center justify-between"
+                >
                   <span>Asset Unique Code *</span>
                   <button
                     type="button"
@@ -246,7 +250,10 @@ function NewAssetPage() {
                 <Label htmlFor="status" className="text-xs font-semibold">
                   Initial Status *
                 </Label>
-                <Select value={status} onValueChange={(val) => setStatus(val as AssetLifecycleStatus)}>
+                <Select
+                  value={status}
+                  onValueChange={(val) => setStatus(val as AssetLifecycleStatus)}
+                >
                   <SelectTrigger id="status">
                     <SelectValue />
                   </SelectTrigger>
@@ -264,7 +271,10 @@ function NewAssetPage() {
                 <Label htmlFor="condition" className="text-xs font-semibold">
                   Physical Condition *
                 </Label>
-                <Select value={condition} onValueChange={(val) => setCondition(val as AssetCondition)}>
+                <Select
+                  value={condition}
+                  onValueChange={(val) => setCondition(val as AssetCondition)}
+                >
                   <SelectTrigger id="condition">
                     <SelectValue />
                   </SelectTrigger>
@@ -273,7 +283,9 @@ function NewAssetPage() {
                     <SelectItem value="EXCELLENT">EXCELLENT (Flawless condition)</SelectItem>
                     <SelectItem value="GOOD">GOOD (Normal wear & tear)</SelectItem>
                     <SelectItem value="FAIR">FAIR (Operational with minor marks)</SelectItem>
-                    <SelectItem value="NEEDS_REPAIR">NEEDS_REPAIR (Faulty / requires service)</SelectItem>
+                    <SelectItem value="NEEDS_REPAIR">
+                      NEEDS_REPAIR (Faulty / requires service)
+                    </SelectItem>
                     <SelectItem value="DAMAGED">DAMAGED (Compromised / deformed)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -359,7 +371,8 @@ function NewAssetPage() {
               3. Case & Investigation Association (Optional)
             </CardTitle>
             <CardDescription>
-              Link this asset directly to a pending court case or FIR for automated cause-list tracking.
+              Link this asset directly to a pending court case or FIR for automated cause-list
+              tracking.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

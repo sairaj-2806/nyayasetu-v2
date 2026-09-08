@@ -2,10 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { recordAudit } from "@/lib/audit";
 import { calculateSha256 } from "@/lib/crypto-sha256";
 import { assertPermission } from "@/lib/rbac";
-import {
-  signEvidenceCustodyTransfer,
-  type DigitalSignatureRecord,
-} from "@/lib/digital-signature";
+import { signEvidenceCustodyTransfer, type DigitalSignatureRecord } from "@/lib/digital-signature";
 import type { Database } from "@/integrations/supabase/types";
 import type { CustodyTimelineEvent, EvidenceLifecycleStatus, PoliceAsset } from "@/lib/assets";
 
@@ -25,15 +22,47 @@ export const EVIDENCE_MILESTONES: {
   label: string;
   description: string;
 }[] = [
-  { status: "SEIZED", label: "Seized", description: "Seized at scene under panchnama / search memo" },
-  { status: "REGISTERED", label: "Registered", description: "Formally cataloged in police FIR & property register" },
-  { status: "SEALED", label: "Sealed", description: "Secured in tamper-evident container with official seal" },
+  {
+    status: "SEIZED",
+    label: "Seized",
+    description: "Seized at scene under panchnama / search memo",
+  },
+  {
+    status: "REGISTERED",
+    label: "Registered",
+    description: "Formally cataloged in police FIR & property register",
+  },
+  {
+    status: "SEALED",
+    label: "Sealed",
+    description: "Secured in tamper-evident container with official seal",
+  },
   { status: "STORED", label: "Stored", description: "Deposited in secure district malkhana vault" },
-  { status: "TRANSFERRED", label: "Transferred", description: "Dispatched under transit seal to laboratory or court" },
-  { status: "FORENSIC_EXAMINATION", label: "Forensic Exam", description: "Undergoing ballistics, DNA, or cyber analysis" },
-  { status: "RETURNED", label: "Returned", description: "Returned from laboratory back to malkhana custody" },
-  { status: "COURT_SUBMISSION", label: "Court Submission", description: "Produced as physical exhibit before presiding judge" },
-  { status: "DISPOSED", label: "Disposed", description: "Released on superdari bond or destroyed under court order" },
+  {
+    status: "TRANSFERRED",
+    label: "Transferred",
+    description: "Dispatched under transit seal to laboratory or court",
+  },
+  {
+    status: "FORENSIC_EXAMINATION",
+    label: "Forensic Exam",
+    description: "Undergoing ballistics, DNA, or cyber analysis",
+  },
+  {
+    status: "RETURNED",
+    label: "Returned",
+    description: "Returned from laboratory back to malkhana custody",
+  },
+  {
+    status: "COURT_SUBMISSION",
+    label: "Court Submission",
+    description: "Produced as physical exhibit before presiding judge",
+  },
+  {
+    status: "DISPOSED",
+    label: "Disposed",
+    description: "Released on superdari bond or destroyed under court order",
+  },
 ];
 
 export interface PendingEvidenceTransfer {
@@ -234,7 +263,9 @@ export async function acknowledgeEvidenceReceipt(payload: {
   }
 
   if (!payload.sealVerifiedIntact) {
-    throw new Error("Cannot acknowledge custody transfer when tamper seal is broken or compromised. Flag as incident immediately.");
+    throw new Error(
+      "Cannot acknowledge custody transfer when tamper seal is broken or compromised. Flag as incident immediately.",
+    );
   }
 
   const now = new Date().toISOString();
@@ -314,7 +345,9 @@ export async function acknowledgeEvidenceReceipt(payload: {
       tamper_seal_intact: true,
       tamper_seal_number: transfer.transitSealNumber,
       verification_hash: receiptSha256,
-      notes: payload.acknowledgmentNotes?.trim() || `Condition: ${payload.conditionConfirmed} (Digitally Signed / Approved: ${digitalSig?.signature_reference || "YES"})`,
+      notes:
+        payload.acknowledgmentNotes?.trim() ||
+        `Condition: ${payload.conditionConfirmed} (Digitally Signed / Approved: ${digitalSig?.signature_reference || "YES"})`,
     });
   } catch {
     // ignore
@@ -394,7 +427,11 @@ export function verifyChainOfCustody(
     const currentFrom = curr.from_custodian.trim().toLowerCase();
 
     // Allow flexible match if prior receiver is contained in current releasing or is generic malkhana
-    if (!currentFrom.includes(priorTo) && !priorTo.includes(currentFrom) && !currentFrom.includes("malkhana")) {
+    if (
+      !currentFrom.includes(priorTo) &&
+      !priorTo.includes(currentFrom) &&
+      !currentFrom.includes("malkhana")
+    ) {
       hasCustodyContinuity = false;
       brokenIndex = i;
       break;
@@ -455,10 +492,12 @@ export function verifyChainOfCustody(
 
   if (!allSealsIntact) {
     status = "TAMPER_DETECTED";
-    overallSummary = "WARNING: Tamper breach recorded in custody history. Evidence integrity may be compromised.";
+    overallSummary =
+      "WARNING: Tamper breach recorded in custody history. Evidence integrity may be compromised.";
   } else if (!hasCustodyContinuity) {
     status = "GAP_DETECTED";
-    overallSummary = "WARNING: Custodian discontinuity detected. A silent custody handover or unrecorded transfer exists.";
+    overallSummary =
+      "WARNING: Custodian discontinuity detected. A silent custody handover or unrecorded transfer exists.";
   } else if (!isChronological || !hasSignatures) {
     status = "INCOMPLETE_SEQUENCE";
     overallSummary = "NOTICE: Custody sequence contains incomplete timestamp or signature records.";
@@ -477,8 +516,10 @@ export function verifyChainOfCustody(
     totalDaysInCustody: daysInCustody,
     verifiedAt: now,
     verifiedBy: verifierName || "Central Evidence Integrity Scanner (BSA §63 Compliant)",
-    complianceClause: "Certified under Section 63, Bharatiya Sakshya Adhiniyam, 2023 / Section 65B Indian Evidence Act",
-    currentCustodian: asset?.current_custodian_name || lastEvent?.to_custodian || "Malkhana Custodian",
+    complianceClause:
+      "Certified under Section 63, Bharatiya Sakshya Adhiniyam, 2023 / Section 65B Indian Evidence Act",
+    currentCustodian:
+      asset?.current_custodian_name || lastEvent?.to_custodian || "Malkhana Custodian",
     currentLocation: asset?.current_location || "District Court Malkhana",
     chronologicalMonotonicity: isChronological,
     custodianContinuity: hasCustodyContinuity,
@@ -563,7 +604,9 @@ export async function advanceEvidenceMilestone(payload: {
       tamper_seal_intact: true,
       tamper_seal_number: payload.sealNumber || asset?.tamper_seal_number || "VERIFIED",
       verification_hash: `0x${Math.random().toString(16).substring(2, 10)}`,
-      notes: payload.notes || `Milestone transition executed by ${payload.actorName} (${payload.actorRole})`,
+      notes:
+        payload.notes ||
+        `Milestone transition executed by ${payload.actorName} (${payload.actorRole})`,
     });
   } catch {
     // continue
@@ -590,4 +633,3 @@ export async function advanceEvidenceMilestone(payload: {
     },
   });
 }
-
