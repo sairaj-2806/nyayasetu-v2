@@ -10,11 +10,19 @@ export type CurrentStaff = {
   email: string;
   fullName: string;
   role: StaffRole;
+  /** All authorized roles assigned to this user */
+  assignedRoles: StaffRole[];
   /** Judge record linked to this login, when the account is a bench account. */
   judgeId: string | null;
   judgeName: string | null;
   isOfflineSession?: boolean;
 };
+
+export function setUserActiveRole(newRole: StaffRole) {
+  if (typeof window !== "undefined") {
+    sessionStorage.setItem("nyayasetu:active-role", newRole);
+  }
+}
 
 export function useCurrentStaff() {
   return useQuery<CurrentStaff | null>({
@@ -31,36 +39,42 @@ export function useCurrentStaff() {
             supabase.from("judges").select("id, name").eq("user_id", user.id).maybeSingle(),
           ]);
 
-          const has = (r: string) => roles?.some((row) => row.role === r) ?? false;
-          let role: StaffRole = "police_officer";
+          const rawAssigned = (roles?.map((row) => normalizeRole(row.role)) || []) as StaffRole[];
+          if (bench?.id && !rawAssigned.includes("judge")) {
+            rawAssigned.push("judge");
+          }
+          const assignedRoles: StaffRole[] =
+            rawAssigned.length > 0 ? Array.from(new Set(rawAssigned)) : ["police_officer"];
 
-          if (has("admin")) {
-            role = "admin";
-          } else if (has("judge") || bench?.id) {
-            role = "judge";
-          } else if (has("investigating_officer")) {
-            role = "investigating_officer";
-          } else if (has("forensic_officer")) {
-            role = "forensic_officer";
-          } else if (has("evidence_custodian")) {
-            role = "evidence_custodian";
-          } else if (has("legal_officer")) {
-            role = "legal_officer";
-          } else if (has("document_officer")) {
-            role = "document_officer";
-          } else if (has("police_officer")) {
-            role = "police_officer";
-          } else if (has("registrar")) {
-            role = "registrar";
-          } else if (roles?.[0]?.role) {
-            role = normalizeRole(roles[0].role);
+          let defaultRole: StaffRole = assignedRoles[0] ?? "police_officer";
+          if (assignedRoles.includes("admin")) defaultRole = "admin";
+          else if (assignedRoles.includes("judge")) defaultRole = "judge";
+          else if (assignedRoles.includes("registrar")) defaultRole = "registrar";
+          else if (assignedRoles.includes("investigating_officer")) defaultRole = "investigating_officer";
+          else if (assignedRoles.includes("forensic_officer")) defaultRole = "forensic_officer";
+          else if (assignedRoles.includes("evidence_custodian")) defaultRole = "evidence_custodian";
+          else if (assignedRoles.includes("legal_officer")) defaultRole = "legal_officer";
+          else if (assignedRoles.includes("document_officer")) defaultRole = "document_officer";
+          else if (assignedRoles.includes("police_officer")) defaultRole = "police_officer";
+
+          // Active role can be selected if user has multiple assigned roles or is admin
+          let activeRole = defaultRole;
+          if (typeof window !== "undefined") {
+            const saved = sessionStorage.getItem("nyayasetu:active-role");
+            if (
+              saved &&
+              (assignedRoles.includes(saved as StaffRole) || assignedRoles.includes("admin"))
+            ) {
+              activeRole = saved as StaffRole;
+            }
           }
 
           const staffInfo: CurrentStaff = {
             id: user.id,
             email: user.email ?? "",
             fullName: profile?.full_name?.trim() || (user.email ?? "").split("@")[0] || "Staff",
-            role,
+            role: activeRole,
+            assignedRoles,
             judgeId: bench?.id ?? null,
             judgeName: bench?.name ?? null,
             isOfflineSession: false,
@@ -78,11 +92,13 @@ export function useCurrentStaff() {
       // Check offline session
       const offlineSession = getOfflineStaffSession();
       if (offlineSession) {
+        const norm = normalizeRole(offlineSession.role);
         return {
           id: offlineSession.id,
           email: offlineSession.email,
           fullName: offlineSession.fullName,
-          role: normalizeRole(offlineSession.role),
+          role: norm,
+          assignedRoles: [norm],
           judgeId: offlineSession.judgeId,
           judgeName: offlineSession.judgeName,
           isOfflineSession: true,

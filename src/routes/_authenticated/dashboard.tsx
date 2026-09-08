@@ -33,6 +33,10 @@ import {
   UserCheck,
   MessageSquare,
   ScrollText,
+  FileSearch,
+  Scale,
+  UserCog,
+  FileCheck2,
 } from "lucide-react";
 import {
   Bar,
@@ -402,6 +406,431 @@ function CourtReadiness({
   );
 }
 
+function RoleWorkspaceFocusSection({
+  role,
+  metrics,
+  dmsMetrics,
+  conflictsCount,
+}: {
+  role: string;
+  metrics: ReturnType<typeof computeDashboardMetrics> | null;
+  dmsMetrics: ReturnType<typeof computeDmsAndAssetMetrics>;
+  conflictsCount: number;
+}) {
+  const normRole = (role || "registrar").toLowerCase();
+
+  const config = useMemo(() => {
+    switch (normRole) {
+      case "police_officer":
+        return {
+          title: "Police Duty & Tactical Armory Workspace",
+          badge: "Law Enforcement & Field Duty",
+          description:
+            "Patrol vehicle fleet readiness, assigned firearms, bodycam equipment handovers, and station duty roster.",
+          icon: Shield,
+          accent: "text-blue-600 bg-blue-500/10 border-blue-500/30",
+          cards: [
+            {
+              title: "Patrol Fleet & Weapons",
+              value: `${dmsMetrics.assets.active} Active`,
+              detail: `${dmsMetrics.assets.maintenance} units under maintenance`,
+              to: "/assets",
+              cta: "Open Fleet & Armory",
+              icon: Shield,
+            },
+            {
+              title: "Equipment Handovers",
+              value: "Verified Protocol",
+              detail: "Two-officer release & recipient acknowledgment",
+              to: "/assets",
+              cta: "Transfer Asset",
+              icon: PackageCheck,
+            },
+            {
+              title: "Police Incident Reports",
+              value: "Private Vault",
+              detail: "Station diary copies, FIRs & seizure memos",
+              to: "/documents",
+              cta: "View Documents",
+              icon: FileText,
+            },
+            {
+              title: "Assigned Case Duties",
+              value: `${metrics?.pendingCases ?? 0} Listed`,
+              detail: "Station duty roster & beat patrol",
+              to: "/cases",
+              cta: "View Assigned Cases",
+              icon: Layers,
+            },
+          ],
+        };
+
+      case "investigating_officer":
+        return {
+          title: "Investigation & Case Officer (IO) Workspace",
+          badge: "Active Criminal Investigation",
+          description:
+            "BNSS case diary, panchnama seizures, witness statements under Section 180, and crime scene evidence custody.",
+          icon: FileSearch,
+          accent: "text-amber-600 bg-amber-500/10 border-amber-500/30",
+          cards: [
+            {
+              title: "My Investigation Cases",
+              value: `${metrics?.pendingCases ?? 0} Active`,
+              detail: "Track investigation stages & FIRs",
+              to: "/cases",
+              cta: "Open Case Dossiers",
+              icon: Layers,
+            },
+            {
+              title: "Panchnama Seizures",
+              value: `${dmsMetrics.documents.total} Records`,
+              detail: "Field recovery memos & digital proof",
+              to: "/documents",
+              cta: "Investigation Vault",
+              icon: FileText,
+            },
+            {
+              title: "Crime Scene Exhibits",
+              value: "Locker Logged",
+              detail: "Physical & digital seized evidence",
+              to: "/evidence",
+              cta: "Track Evidence",
+              icon: PackageCheck,
+            },
+            {
+              title: "Investigation Assets",
+              value: `${dmsMetrics.assets.active} Deployed`,
+              detail: "Body cameras, laptops & patrol vehicles",
+              to: "/assets",
+              cta: "Manage Equipment",
+              icon: Shield,
+            },
+          ],
+        };
+
+      case "forensic_officer":
+        return {
+          title: "Forensic Science Laboratory (FSL) Workspace",
+          badge: "Forensic Directorate",
+          description:
+            "Physical & cyber evidence intake, chemical/ballistic examination stages, chain of custody, and BSA §63 reports.",
+          icon: Sparkles,
+          accent: "text-purple-600 bg-purple-500/10 border-purple-500/30",
+          cards: [
+            {
+              title: "Evidence Received at FSL",
+              value: "Lab Intake Queue",
+              detail: "Sealed exhibits delivered from malkhana",
+              to: "/evidence",
+              cta: "Review Intake Queue",
+              icon: PackageCheck,
+            },
+            {
+              title: "Examination Stages",
+              value: "In Progress",
+              detail: "Pending → In Examination → Completed",
+              to: "/evidence",
+              cta: "Update Exam Status",
+              icon: Clock,
+            },
+            {
+              title: "Cryptographic FSL Reports",
+              value: "BSA §63 Proof",
+              detail: "Digital signatures & SHA-256 validation",
+              to: "/documents",
+              cta: "Upload FSL Report",
+              icon: FileText,
+            },
+            {
+              title: "Lab Custody Return",
+              value: "Chain of Custody",
+              detail: "Return completed exhibits to malkhana",
+              to: "/evidence",
+              cta: "Custody Handover",
+              icon: History,
+            },
+          ],
+        };
+
+      case "evidence_custodian":
+        return {
+          title: "Malkhana Secure Vault Workspace",
+          badge: "Malkhana Custodian",
+          description:
+            "Biometric evidence lockers, barcoded tamper-evident seals, transfer receipt acknowledgments, and BSA-2023 compliance.",
+          icon: PackageCheck,
+          accent: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30",
+          cards: [
+            {
+              title: "Malkhana Secure Inventory",
+              value: "Biometric Lockers",
+              detail: "All physical & digital sealed items",
+              to: "/evidence",
+              cta: "Open Inventory",
+              icon: PackageCheck,
+            },
+            {
+              title: "Pending Transfer Receipts",
+              value: "Sign-Off Needed",
+              detail: "Handovers awaiting recipient sign-off",
+              to: "/evidence",
+              cta: "Acknowledge Transfers",
+              icon: CheckCircle2,
+            },
+            {
+              title: "Seal & Hash Audits",
+              value: `${dmsMetrics.documents.pendingVerification} Checks`,
+              detail: "Tamper detection and hash verification",
+              to: "/evidence",
+              cta: "Run Seal Verification",
+              icon: ShieldCheck,
+            },
+            {
+              title: "Courtroom Production",
+              value: `${metrics?.scheduledHearings ?? 0} Listed`,
+              detail: "Exhibits summoned for trial today",
+              to: "/cause-list",
+              cta: "Cause List Exhibits",
+              icon: CalendarCheck,
+            },
+          ],
+        };
+
+      case "legal_officer":
+        return {
+          title: "Prosecution & Legal Counsel Workspace",
+          badge: "Public Prosecution",
+          description:
+            "Court filings under BNSS Section 193, charge sheets, witness lists, authorized investigation documents, and trial listings.",
+          icon: Scale,
+          accent: "text-indigo-600 bg-indigo-500/10 border-indigo-500/30",
+          cards: [
+            {
+              title: "Charge Sheets & Filings",
+              value: `${dmsMetrics.documents.total} Legal Docs`,
+              detail: "Police final reports & court petitions",
+              to: "/documents",
+              cta: "Access Court Filings",
+              icon: FileText,
+            },
+            {
+              title: "Today's Listed Trials",
+              value: `${metrics?.scheduledHearings ?? 0} Hearings`,
+              detail: "Listed matters across all courtrooms",
+              to: "/cause-list",
+              cta: "View Cause List",
+              icon: ListChecks,
+            },
+            {
+              title: "Authorized Case Evidence",
+              value: "Verified Exhibits",
+              detail: "Physical & digital proofs ready for trial",
+              to: "/evidence",
+              cta: "Review Evidence",
+              icon: PackageCheck,
+            },
+            {
+              title: "Case Docket & Precedents",
+              value: `${metrics?.pendingCases ?? 0} Matters`,
+              detail: "Assigned criminal and civil cases",
+              to: "/cases",
+              cta: "Open Case Dockets",
+              icon: Layers,
+            },
+          ],
+        };
+
+      case "document_officer":
+        return {
+          title: "Secure Document Vault & Records Workspace",
+          badge: "Chief Records Officer",
+          description:
+            "Digital document repository, version control (V1..Vn), SHA-256 cryptographic integrity verification, and digital approval workflows.",
+          icon: Folder,
+          accent: "text-sky-600 bg-sky-500/10 border-sky-500/30",
+          cards: [
+            {
+              title: "Encrypted Document Vault",
+              value: `${dmsMetrics.documents.total} Documents`,
+              detail: "15 canonical legal & police categories",
+              to: "/documents",
+              cta: "Open Document Vault",
+              icon: FileText,
+            },
+            {
+              title: "Cryptographic Integrity",
+              value: `${Math.max(0, dmsMetrics.documents.total - dmsMetrics.documents.pendingVerification)} Verified`,
+              detail: `${dmsMetrics.documents.pendingVerification} pending SHA-256 audit`,
+              to: "/documents",
+              cta: "Run Hash Audits",
+              icon: ShieldCheck,
+            },
+            {
+              title: "Digital Signatures",
+              value: "Version Tied",
+              detail: "Digital approvals tied to exact hash",
+              to: "/documents",
+              cta: "Pending Approvals",
+              icon: FileCheck2,
+            },
+            {
+              title: "Tamper Watchdog",
+              value: `${dmsMetrics.alerts.length} Alerts`,
+              detail: "Live immutable audit logs & hash logs",
+              to: "/activity-log",
+              cta: "View Audit Stream",
+              icon: History,
+            },
+          ],
+        };
+
+      case "admin":
+        return {
+          title: "Judicial System Administration Console",
+          badge: "Full Administrative RBAC",
+          description:
+            "User provisioning, role & permission assignments, security integrity alerts, department settings, and immutable audit logs.",
+          icon: UserCog,
+          accent: "text-purple-700 bg-purple-500/10 border-purple-500/30",
+          cards: [
+            {
+              title: "Users & RBAC Roles",
+              value: "Multi-Role Engine",
+              detail: "Manage user permissions across 9 roles",
+              to: "/admin",
+              cta: "Manage Staff Accounts",
+              icon: UserCheck,
+            },
+            {
+              title: "Security Watchdog Alerts",
+              value: `${dmsMetrics.alerts.length} Active`,
+              detail: "Tamper detection and mismatch alerts",
+              to: "/activity-log",
+              cta: "Security Log",
+              icon: ShieldAlert,
+            },
+            {
+              title: "Priority & Governance",
+              value: "Custom Weights",
+              detail: "BNS/BNSS statutory weighting thresholds",
+              to: "/priority-settings",
+              cta: "Adjust Settings",
+              icon: Target,
+            },
+            {
+              title: "Immutable Audit Trail",
+              value: "Full Oversight",
+              detail: "Complete chronological event records",
+              to: "/activity-log",
+              cta: "Audit Trail",
+              icon: History,
+            },
+          ],
+        };
+
+      case "judge":
+      case "registrar":
+      default:
+        return {
+          title: "Judicial Registry & Courtroom Operations Workspace",
+          badge: normRole === "judge" ? "Judicial Bench" : "Registry Master",
+          description:
+            "Deterministic smart scheduling engine, daily cause list publishing, courtroom capacity solver, and conflict mitigation.",
+          icon: Gavel,
+          accent: "text-primary bg-primary/10 border-primary/30",
+          cards: [
+            {
+              title: "Smart Court Scheduling",
+              value: `${metrics?.awaitingScheduling ?? 0} Awaiting`,
+              detail: "Multi-constraint solver with receipts",
+              to: "/smart-scheduling",
+              cta: "Run Scheduling Engine",
+              icon: CalendarCheck,
+            },
+            {
+              title: "Daily Cause List",
+              value: `${metrics?.scheduledHearings ?? 0} Hearings`,
+              detail: "Sequenced courtroom listings for today",
+              to: "/cause-list",
+              cta: "View Today's List",
+              icon: ListChecks,
+            },
+            {
+              title: "Conflict Detection",
+              value: conflictsCount === 0 ? "Clear" : `${conflictsCount} Detected`,
+              detail: "Judge, advocate & room clash mitigation",
+              to: "/conflicts",
+              cta: "Review Conflicts",
+              icon: AlertTriangle,
+            },
+            {
+              title: "What-If Simulation",
+              value: "Digital Twin",
+              detail: "Simulate judge/room/asset disruptions",
+              to: "/what-if-simulation",
+              cta: "Launch Simulator",
+              icon: Zap,
+            },
+          ],
+        };
+    }
+  }, [normRole, metrics, dmsMetrics, conflictsCount]);
+
+  const IconComponent = config.icon;
+
+  return (
+    <Card className="border-border shadow-xs bg-card/60 backdrop-blur-xs">
+      <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/60">
+        <div className="flex items-center gap-3">
+          <span className={cn("flex size-9 items-center justify-center rounded-lg border", config.accent)}>
+            <IconComponent className="size-4.5" />
+          </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm font-bold text-foreground">{config.title}</CardTitle>
+              <Badge variant="outline" className="text-[10px] font-semibold uppercase">
+                {config.badge}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">{config.description}</p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {config.cards.map((card, idx) => {
+            const CardIcon = card.icon;
+            return (
+              <div
+                key={idx}
+                className="group flex flex-col justify-between p-3.5 rounded-lg border border-border/70 bg-background/50 hover:bg-muted/40 hover:border-primary/40 transition-all"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-medium text-muted-foreground">{card.title}</span>
+                    <CardIcon className="size-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                  <p className="text-lg font-bold text-foreground tracking-tight">{card.value}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{card.detail}</p>
+                </div>
+                <div className="mt-3 pt-2.5 border-t border-border/50">
+                  <Button variant="ghost" size="sm" asChild className="h-7 w-full justify-between text-xs px-2 font-medium group-hover:bg-primary/10 group-hover:text-primary">
+                    <Link to={card.to as any}>
+                      <span>{card.cta}</span>
+                      <ArrowRight className="size-3" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function Page() {
   const data = useQuery(dashboardDataQuery);
   const conflictData = useQuery(conflictDataQuery);
@@ -646,6 +1075,16 @@ function Page() {
                 </Link>
               </Button>
             </div>
+          </div>
+
+          {/* ROLE-SPECIFIC WORKSPACE FOCUS PANEL */}
+          <div className="mt-6">
+            <RoleWorkspaceFocusSection
+              role={role}
+              metrics={metrics}
+              dmsMetrics={dmsMetrics}
+              conflictsCount={conflicts.length}
+            />
           </div>
 
           <div className="mt-7 grid gap-4">
