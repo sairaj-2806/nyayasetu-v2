@@ -21,6 +21,7 @@ import {
   Gavel,
   History,
   LayoutDashboard,
+  ListOrdered,
   Lock,
   MapPin,
   Package,
@@ -478,9 +479,9 @@ function CaseDossierPage() {
             <Users className="size-3.5" />
             Parties
           </TabsTrigger>
-          <TabsTrigger value="hearings" className="text-xs sm:text-sm gap-1.5">
-            <CalendarDays className="size-3.5" />
-            Hearings & Schedule
+          <TabsTrigger value="investigation" className="text-xs sm:text-sm gap-1.5">
+            <FileSearch className="size-3.5" />
+            Investigation
           </TabsTrigger>
           <TabsTrigger value="documents" className="text-xs sm:text-sm gap-1.5">
             <FileText className="size-3.5" />
@@ -494,9 +495,17 @@ function CaseDossierPage() {
             <ShieldAlert className="size-3.5" />
             Police Assets ({policeAssets.length})
           </TabsTrigger>
-          <TabsTrigger value="custody" className="text-xs sm:text-sm gap-1.5">
+          <TabsTrigger value="hearings" className="text-xs sm:text-sm gap-1.5">
+            <CalendarDays className="size-3.5" />
+            Hearings & Schedule
+          </TabsTrigger>
+          <TabsTrigger value="cause-list" className="text-xs sm:text-sm gap-1.5">
+            <ListOrdered className="size-3.5" />
+            Cause List
+          </TabsTrigger>
+          <TabsTrigger value="timeline" className="text-xs sm:text-sm gap-1.5">
             <History className="size-3.5" />
-            Chain of Custody
+            Timeline
           </TabsTrigger>
           <TabsTrigger value="audit" className="text-xs sm:text-sm gap-1.5">
             <ScrollText className="size-3.5" />
@@ -755,7 +764,108 @@ function CaseDossierPage() {
           </Card>
         </TabsContent>
 
-        {/* 3. HEARINGS & TIMELINE TAB */}
+        {/* 3. INVESTIGATION TAB */}
+        <TabsContent value="investigation" className="space-y-6 pt-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileSearch className="size-4 text-primary" />
+                  Police Investigation & Case Diary Particulars
+                </CardTitle>
+                <Badge variant="outline" className="font-mono text-xs text-amber-700 bg-amber-50 border-amber-300 dark:text-amber-400 dark:bg-amber-950/40">
+                  FIR No. 42/2026
+                </Badge>
+              </div>
+              <CardDescription className="text-xs">
+                Official investigation records compiled under Bharatiya Nagarik Suraksha Sanhita (BNSS, 2023) and Bharatiya Nyaya Sanhita (BNS, 2023).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-6 sm:grid-cols-2">
+              <div className="rounded-lg border p-4 space-y-3 bg-muted/20">
+                <div className="text-sm font-semibold text-primary flex items-center gap-2">
+                  <Building2 className="size-4" />
+                  FIR & Crime Scene Registration
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">FIR Number & Date:</span>
+                    <p className="font-medium text-foreground">FIR No. 42/2026 (Registered: 14-Feb-2026, 09:30 AM)</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Jurisdictional Police Station:</span>
+                    <p className="font-medium text-foreground">Special Cell Police Station, Lodhi Colony (North District)</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Statutory Acts & Sections Invoked:</span>
+                    <p className="font-mono text-xs font-semibold text-primary">
+                      BNS Sections 111 (Organised Crime), 318 (Cheating), 336 (Forgery)
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Place of Occurrence:</span>
+                    <p className="font-medium text-foreground">Commercial Complex B-Block, Sector 62, New Delhi</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Crime Scene Seizure Panchnama:</span>
+                    <p className="font-medium text-foreground">Executed under Section 105 BNSS in presence of independent panch witnesses</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-4 space-y-3 bg-muted/20">
+                <div className="text-sm font-semibold text-primary flex items-center gap-2">
+                  <UserCheck className="size-4" />
+                  Investigation Team & Diary Filings
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Lead Investigating Officer:</span>
+                    <p className="font-medium text-foreground">Inspector Vikram Rathore (Badge #8841)</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Field Assistant / Seizure Officer:</span>
+                    <p className="font-medium text-foreground">Sub-Inspector Sandeep Nain (Badge #3319)</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Witness Statements:</span>
+                    <p className="font-medium text-foreground">4 Statements recorded under Section 180 BNSS (SHA-256 verified)</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Charge Sheet Filing:</span>
+                    <Badge variant="outline" className="text-[10px] text-emerald-700 bg-emerald-50 border-emerald-300 dark:text-emerald-400">
+                      Final Report u/s 193 BNSS Filed on 28-Feb-2026
+                    </Badge>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Forensic Lab Dispatch:</span>
+                    <p className="font-medium text-foreground">Exhibits dispatched to CFSL Rohini under Road Certificate RC-8821</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="sm:col-span-2 rounded-lg border p-4 bg-background">
+                <p className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2">
+                  Seized Evidence Exhibits & Linked Police Assets
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2 text-xs">
+                  <div className="p-2.5 rounded border bg-muted/30">
+                    <span className="font-mono font-bold text-primary">EV-1045</span>
+                    <p className="text-foreground font-medium mt-0.5">Encrypted Samsung Galaxy S24 Ultra</p>
+                    <p className="text-[11px] text-muted-foreground">Tamper Seal: MHA-EV-1045-A · Custody: Malkhana Vault B</p>
+                  </div>
+                  <div className="p-2.5 rounded border bg-muted/30">
+                    <span className="font-mono font-bold text-primary">EV-1046</span>
+                    <p className="text-foreground font-medium mt-0.5">SanDisk Extreme 2TB Portable SSD</p>
+                    <p className="text-[11px] text-muted-foreground">Tamper Seal: MHA-EV-1046-B · Custody: Digital Forensic Locker #04</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 4. HEARINGS TAB */}
         <TabsContent value="hearings" className="space-y-6 pt-2">
           <Card>
             <CardHeader>
@@ -884,6 +994,98 @@ function CaseDossierPage() {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* 8. CAUSE LIST TAB */}
+        <TabsContent value="cause-list" className="space-y-6 pt-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ListOrdered className="size-4 text-primary" />
+                  Daily Cause List Listing Status
+                </CardTitle>
+                <Badge variant={current ? "default" : "secondary"}>
+                  {current ? "Listed in Daily Cause List" : "Pending Next Listing"}
+                </Badge>
+              </div>
+              <CardDescription className="text-xs">
+                Real-time position and courtroom listing details on the court's official daily cause list.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {current ? (
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-lg border p-3.5 bg-muted/20">
+                    <span className="text-xs text-muted-foreground font-medium">Cause List Position:</span>
+                    <p className="text-2xl font-bold text-primary mt-1">Item #04</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Regular Hearing Batch (Morning Session)</p>
+                  </div>
+                  <div className="rounded-lg border p-3.5 bg-muted/20">
+                    <span className="text-xs text-muted-foreground font-medium">Bench & Courtroom:</span>
+                    <p className="text-sm font-bold text-foreground mt-1">{current.judges?.name ?? "Presiding Judge"}</p>
+                    <p className="text-xs text-muted-foreground">{current.courtrooms?.name ?? "Courtroom Hall"}</p>
+                  </div>
+                  <div className="rounded-lg border p-3.5 bg-muted/20">
+                    <span className="text-xs text-muted-foreground font-medium">Scheduled Hearing Slot:</span>
+                    <p className="text-sm font-bold text-foreground mt-1">{formatSlot(current.hearing_slots)}</p>
+                    <p className="text-xs text-muted-foreground">Category: {record.case_categories?.name || "Criminal Trial"}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground">
+                  <ListOrdered className="size-8 mx-auto mb-2 text-muted-foreground/60" />
+                  <p className="text-sm font-medium text-foreground">Not listed on today's cause list</p>
+                  <p className="text-xs mt-1">This case is currently unlisted or pending registrar schedule confirmation.</p>
+                </div>
+              )}
+
+              {current && recommendation.data?.reasoning && (
+                <div className="rounded-lg border p-4 bg-muted/10 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Scale className="size-4 text-primary" />
+                    <span className="text-xs font-semibold text-foreground">
+                      Listing Rationale & Priority Optimization
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {recommendation.data.reasoning}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between border-t pt-4">
+                <span className="text-xs text-muted-foreground">
+                  Inspect the complete daily cause list for all courtrooms and judicial benches:
+                </span>
+                <Button size="sm" variant="outline" asChild className="gap-1.5 text-xs">
+                  <Link to="/cause-list">
+                    <ListOrdered className="size-3.5" />
+                    Open Daily Cause List
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 9. TIMELINE TAB */}
+        <TabsContent value="timeline" className="space-y-6 pt-2">
+          <CaseTimeline
+            caseData={record}
+            adjournments={adjournments.data ?? []}
+            nextHearingSlot={
+              current?.hearing_slots
+                ? {
+                    date: current.hearing_slots.date,
+                    start_time: current.hearing_slots.start_time,
+                    end_time: current.hearing_slots.end_time,
+                    judge_name: current.judges?.name ?? null,
+                    courtroom_name: current.courtrooms?.name ?? null,
+                  }
+                : null
+            }
+          />
         </TabsContent>
 
         {/* 4. DOCUMENTS TAB */}

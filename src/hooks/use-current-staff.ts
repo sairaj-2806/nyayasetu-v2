@@ -44,6 +44,10 @@ export function useCurrentStaff() {
             role = "forensic_officer";
           } else if (has("evidence_custodian")) {
             role = "evidence_custodian";
+          } else if (has("legal_officer")) {
+            role = "legal_officer";
+          } else if (has("document_officer")) {
+            role = "document_officer";
           } else if (has("police_officer")) {
             role = "police_officer";
           } else if (has("registrar")) {
@@ -104,6 +108,12 @@ export type StaffPermissions = {
   canSchedule: boolean;
   canEditAvailability: boolean;
   isJudge: boolean;
+  isLegalOfficer: boolean;
+  isDocumentOfficer: boolean;
+  isInvestigatingOfficer: boolean;
+  isForensicOfficer: boolean;
+  isEvidenceCustodian: boolean;
+  isPoliceOfficer: boolean;
 
   // Granular DMS, Asset, Evidence & Audit permissions
   canViewDocuments: boolean;
@@ -131,6 +141,12 @@ export function permissionsFor(role: StaffRole | null | undefined): StaffPermiss
     canSchedule: normRole === "admin" || normRole === "registrar",
     canEditAvailability: normRole === "admin" || normRole === "registrar",
     isJudge: normRole === "judge",
+    isLegalOfficer: normRole === "legal_officer",
+    isDocumentOfficer: normRole === "document_officer",
+    isInvestigatingOfficer: normRole === "investigating_officer",
+    isForensicOfficer: normRole === "forensic_officer",
+    isEvidenceCustodian: normRole === "evidence_custodian",
+    isPoliceOfficer: normRole === "police_officer",
 
     // Granular permissions
     canViewDocuments: hasPermission(normRole, "DOCUMENT_VIEW"),
@@ -164,4 +180,6 @@ export const roleLabel: Record<StaffRole, string> = {
   forensic_officer: ROLE_METADATA.forensic_officer.label,
   evidence_custodian: ROLE_METADATA.evidence_custodian.label,
   police_officer: ROLE_METADATA.police_officer.label,
+  legal_officer: ROLE_METADATA.legal_officer.label,
+  document_officer: ROLE_METADATA.document_officer.label,
 };

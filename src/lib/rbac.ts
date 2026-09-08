@@ -24,7 +24,9 @@ export type AppRole =
   | "investigating_officer"
   | "forensic_officer"
   | "evidence_custodian"
-  | "police_officer";
+  | "police_officer"
+  | "legal_officer"
+  | "document_officer";
 
 export const APP_ROLES: Record<string, AppRole> = {
   ADMIN: "admin",
@@ -34,6 +36,8 @@ export const APP_ROLES: Record<string, AppRole> = {
   FORENSIC_OFFICER: "forensic_officer",
   EVIDENCE_CUSTODIAN: "evidence_custodian",
   POLICE_OFFICER: "police_officer",
+  LEGAL_OFFICER: "legal_officer",
+  DOCUMENT_OFFICER: "document_officer",
 } as const;
 
 export const ALL_ROLES: AppRole[] = [
@@ -44,6 +48,8 @@ export const ALL_ROLES: AppRole[] = [
   "forensic_officer",
   "evidence_custodian",
   "police_officer",
+  "legal_officer",
+  "document_officer",
 ];
 
 // ============================================================================
@@ -204,6 +210,31 @@ export const ROLE_PERMISSIONS: Record<AppRole, ReadonlySet<Permission>> = {
     "ASSET_VIEW",
     "EVIDENCE_VIEW",
   ]),
+
+  /**
+   * Legal Officer / Public Prosecutor:
+   * Reviews charge sheets, trial filings, prosecution notices, authorized documents & evidence.
+   */
+  legal_officer: new Set<Permission>([
+    "DOCUMENT_VIEW",
+    "DOCUMENT_DOWNLOAD",
+    "DOCUMENT_SIGN",
+    "EVIDENCE_VIEW",
+    "AUDIT_VIEW",
+  ]),
+
+  /**
+   * Document & Records Vault Officer:
+   * Manages secure vault, version history, upload queue, digital integrity and signatures.
+   */
+  document_officer: new Set<Permission>([
+    "DOCUMENT_VIEW",
+    "DOCUMENT_UPLOAD",
+    "DOCUMENT_VERSION",
+    "DOCUMENT_DOWNLOAD",
+    "DOCUMENT_SIGN",
+    "AUDIT_VIEW",
+  ]),
 };
 
 // ============================================================================
@@ -221,6 +252,22 @@ export function normalizeRole(rawRole: string | null | undefined): AppRole {
     return "forensic_officer";
   if (clean === "evidence_custodian" || clean === "malkhana" || clean === "custodian")
     return "evidence_custodian";
+  if (
+    clean === "legal_officer" ||
+    clean === "prosecutor" ||
+    clean === "legal" ||
+    clean === "advocate" ||
+    clean === "counsel"
+  )
+    return "legal_officer";
+  if (
+    clean === "document_officer" ||
+    clean === "records" ||
+    clean === "records_officer" ||
+    clean === "document" ||
+    clean === "vault"
+  )
+    return "document_officer";
   if (clean === "police_officer" || clean === "officer" || clean === "constable")
     return "police_officer";
   return "police_officer";
@@ -228,44 +275,102 @@ export function normalizeRole(rawRole: string | null | undefined): AppRole {
 
 export const ROLE_METADATA: Record<
   AppRole,
-  { label: string; description: string; badgeColor: string }
+  { label: string; description: string; badgeColor: string; defaultWorkspace: string }
 > = {
   admin: {
     label: "Administrator",
     description: "Full system administration, user management, and security governance.",
     badgeColor: "bg-purple-500/15 text-purple-700 border-purple-500/30 dark:text-purple-400",
+    defaultWorkspace: "admin",
   },
   registrar: {
     label: "Court Registrar",
     description: "Case listing, cause list optimization, court document repository.",
     badgeColor: "bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400",
+    defaultWorkspace: "court",
   },
   judge: {
     label: "Judicial Officer / Judge",
     description: "Bench proceedings, judicial hearings, ruling endorsements.",
     badgeColor: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400",
+    defaultWorkspace: "court",
   },
   investigating_officer: {
     label: "Investigating Officer (IO)",
     description: "Case investigation, FIR & charge sheet filing, evidence seizure.",
     badgeColor: "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400",
+    defaultWorkspace: "investigation",
   },
   forensic_officer: {
     label: "Forensic Scientific Officer (FSL)",
     description: "Forensic examination, ballistic analysis, BSA Section 63 certification.",
     badgeColor: "bg-cyan-500/15 text-cyan-700 border-cyan-500/30 dark:text-cyan-400",
+    defaultWorkspace: "forensic",
   },
   evidence_custodian: {
     label: "Evidence Malkhana Custodian",
     description: "Malkhana secure storage, custody handoffs, tamper seal integrity.",
     badgeColor: "bg-indigo-500/15 text-indigo-700 border-indigo-500/30 dark:text-indigo-400",
+    defaultWorkspace: "evidence",
   },
   police_officer: {
     label: "Police Station Officer",
     description: "General patrol and field duty. Standard read-only access.",
     badgeColor: "bg-slate-500/15 text-slate-700 border-slate-500/30 dark:text-slate-400",
+    defaultWorkspace: "police",
+  },
+  legal_officer: {
+    label: "Legal Officer / Public Prosecutor",
+    description: "Prosecution review, court filings, legal notices, and exhibit scrutiny.",
+    badgeColor: "bg-teal-500/15 text-teal-700 border-teal-500/30 dark:text-teal-400",
+    defaultWorkspace: "legal",
+  },
+  document_officer: {
+    label: "Document & Records Vault Officer",
+    description: "Secure Document Vault management, cryptographic verification, and version control.",
+    badgeColor: "bg-sky-500/15 text-sky-700 border-sky-500/30 dark:text-sky-400",
+    defaultWorkspace: "documents",
   },
 };
+
+/**
+ * Validates whether a specific role has authorization to enter a chosen workspace.
+ * Prevents unauthorized users from accessing sensitive workspaces.
+ */
+export function canAccessWorkspace(
+  role: AppRole | string | null | undefined,
+  workspaceKey: string,
+): boolean {
+  const normRole = normalizeRole(role);
+  if (normRole === "admin") return true; // Admins have oversight across all workspaces
+
+  switch (workspaceKey.toLowerCase()) {
+    case "police":
+      return (
+        normRole === "police_officer" ||
+        normRole === "investigating_officer" ||
+        normRole === "evidence_custodian"
+      );
+    case "investigation":
+      return normRole === "investigating_officer";
+    case "forensic":
+      return normRole === "forensic_officer";
+    case "court":
+      return normRole === "judge" || normRole === "registrar";
+    case "legal":
+      return normRole === "legal_officer";
+    case "evidence":
+      return normRole === "evidence_custodian";
+    case "documents":
+      return normRole === "document_officer" || normRole === "registrar";
+    case "admin":
+      return true;
+    case "public":
+      return true;
+    default:
+      return true;
+  }
+}
 
 // ============================================================================
 // 5. PERMISSION EVALUATION & SECURITY ASSERTIONS

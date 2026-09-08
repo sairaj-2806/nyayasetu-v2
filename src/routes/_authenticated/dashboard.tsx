@@ -27,6 +27,12 @@ import {
   Trophy,
   Wrench,
   Zap,
+  Folder,
+  PackageCheck,
+  Sparkles,
+  UserCheck,
+  MessageSquare,
+  ScrollText,
 } from "lucide-react";
 import {
   Bar,
@@ -58,6 +64,9 @@ import { useLanguage } from "@/lib/i18n";
 import { secureDocumentsQuery } from "@/lib/documents";
 import { policeAssetsQuery } from "@/lib/assets";
 import { computeDmsAndAssetMetrics } from "@/lib/dms-asset-dashboard";
+import { useCurrentStaff } from "@/hooks/use-current-staff";
+import { ROLE_METADATA } from "@/lib/rbac";
+import { auditLogQuery, formatAuditTime } from "@/lib/audit";
 
 function formatJudgeShortName(fullName: string): string {
   const clean = (fullName || "")
@@ -409,6 +418,10 @@ function Page() {
 
   const docsQuery = useQuery(secureDocumentsQuery());
   const assetsQuery = useQuery(policeAssetsQuery);
+  const auditQuery = useQuery(auditLogQuery);
+  const staff = useCurrentStaff();
+  const role = staff.data?.role || "registrar";
+  const roleInfo = ROLE_METADATA[role];
 
   const metrics = useMemo(
     () => (data.data ? computeDashboardMetrics(data.data) : null),
@@ -426,7 +439,11 @@ function Page() {
   }, [docsQuery.data, assetsQuery.data]);
 
   const refreshing =
-    data.isFetching || conflictData.isFetching || docsQuery.isFetching || assetsQuery.isFetching;
+    data.isFetching ||
+    conflictData.isFetching ||
+    docsQuery.isFetching ||
+    assetsQuery.isFetching ||
+    auditQuery.isFetching;
 
   const briefing = useMemo(() => {
     if (!data.data || !metrics || conflictData.isLoading) return null;
@@ -466,6 +483,7 @@ function Page() {
               void conflictData.refetch();
               void docsQuery.refetch();
               void assetsQuery.refetch();
+              void auditQuery.refetch();
             }}
             disabled={refreshing}
           >
@@ -482,6 +500,7 @@ function Page() {
           onRetry={() => {
             void data.refetch();
             void conflictData.refetch();
+            void auditQuery.refetch();
           }}
           retrying={refreshing}
         />
@@ -493,6 +512,142 @@ function Page() {
         </div>
       ) : (
         <>
+          {/* ROLE WORKSPACE BANNER */}
+          <div className="mt-6 rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-background p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+            <div className="flex items-center gap-3.5">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
+                <Shield className="size-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold text-foreground">
+                    {staff.data?.fullName ? `Welcome, ${staff.data.fullName}` : "NyayaSetu Command Center"}
+                  </h2>
+                  <Badge variant="outline" className="text-[10px] font-semibold uppercase bg-background border-primary/30 text-primary">
+                    {roleInfo?.label || "Court Registry"}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {roleInfo?.description || "Central legal, police asset, forensic and judicial operations hub."}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background border text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="size-3" />
+                Vault Online
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background border text-[11px] font-mono text-primary">
+                <ShieldCheck className="size-3" />
+                BSA §63 Active
+              </span>
+            </div>
+          </div>
+
+          {/* TOP 6 COMMAND CENTER KPIS */}
+          <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+            <StatCard
+              className="registry-enter stagger-1"
+              label="Active Cases"
+              value={metrics.pendingCases}
+              hint={`${metrics.totalCases} total on file`}
+              icon={Layers}
+              to="/cases"
+            />
+            <StatCard
+              className="registry-enter stagger-2"
+              label="Today's Hearings"
+              value={metrics.scheduledHearings}
+              hint="Listed before benches"
+              icon={CalendarCheck}
+              to="/calendar"
+            />
+            <StatCard
+              className="registry-enter stagger-3"
+              label="Secure Documents"
+              value={dmsMetrics.documents.total}
+              hint={`${dmsMetrics.documents.pendingVerification} pending audit`}
+              icon={FileText}
+              to="/documents"
+            />
+            <StatCard
+              className="registry-enter stagger-4"
+              label="Police Assets"
+              value={dmsMetrics.assets.total}
+              hint={`${dmsMetrics.assets.active} active units`}
+              icon={Shield}
+              to="/assets"
+            />
+            <StatCard
+              className="registry-enter stagger-5"
+              label="Evidence Items"
+              value={dmsMetrics.evidence.total}
+              hint={`${dmsMetrics.evidence.inCustody} sealed in vault`}
+              icon={PackageCheck}
+              to="/evidence"
+            />
+            <StatCard
+              className="registry-enter stagger-6"
+              label="Security Alerts"
+              value={dmsMetrics.alerts.length + conflicts.length}
+              hint="Tamper & conflict alerts"
+              icon={AlertTriangle}
+              tone={dmsMetrics.alerts.length + conflicts.length > 0 ? "alert" : "default"}
+              to="/activity-log"
+            />
+          </div>
+
+          {/* QUICK ACTIONS TOOLBAR */}
+          <div className="mt-6 rounded-lg border border-border bg-card p-3 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
+              Quick Actions:
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1">
+                <Link to="/cases">
+                  <Folder className="size-3.5" />
+                  Register / View Cases
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1">
+                <Link to="/smart-scheduling">
+                  <CalendarCheck className="size-3.5 text-primary" />
+                  Smart Scheduling
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1">
+                <Link to="/cause-list">
+                  <ListChecks className="size-3.5" />
+                  Cause List
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1">
+                <Link to="/documents">
+                  <FileText className="size-3.5" />
+                  Upload Document
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1">
+                <Link to="/evidence">
+                  <PackageCheck className="size-3.5" />
+                  Evidence Vault
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1">
+                <Link to="/assets">
+                  <Shield className="size-3.5" />
+                  Police Assets
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1">
+                <Link to="/search">
+                  <Search className="size-3.5" />
+                  Global Search
+                </Link>
+              </Button>
+            </div>
+          </div>
+
           <div className="mt-7 grid gap-4">
             <CourtReadiness
               conflicts={conflicts.length}
@@ -1137,6 +1292,138 @@ function Page() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* 5. Live Recent Audit Activity & AI Assistant Intelligence Spotlight */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Live Audit Activity */}
+              <Card className="border-border shadow-2xs">
+                <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-8 items-center justify-center rounded-sm bg-secondary text-secondary-foreground">
+                      <History className="size-4" />
+                    </span>
+                    <div>
+                      <CardTitle className="text-sm font-semibold">
+                        Live Platform Audit Trail
+                      </CardTitle>
+                      <p className="text-[11px] text-muted-foreground">
+                        Real-time immutable chronological audit of case actions, transfers & integrity checks.
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" asChild className="h-7 text-xs font-medium">
+                    <Link to="/activity-log">
+                      <span>View Full Trail</span>
+                      <ExternalLink className="size-3 ml-1" />
+                    </Link>
+                  </Button>
+                </CardHeader>
+                <CardContent className="pt-1">
+                  {auditQuery.isLoading ? (
+                    <div className="space-y-3 py-2">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                    </div>
+                  ) : !auditQuery.data || auditQuery.data.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-muted-foreground">
+                      No recent audit events recorded.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {auditQuery.data.slice(0, 5).map((log) => (
+                        <div key={log.id} className="py-2.5 first:pt-0 last:pb-0 flex items-start justify-between gap-3 text-xs">
+                          <div className="space-y-0.5 min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[10px] uppercase font-mono px-1.5 py-0">
+                                {log.domain}
+                              </Badge>
+                              <span className="font-semibold text-foreground truncate">
+                                {log.action}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              {log.entityLabel || log.entity_affected} • By <span className="font-medium text-foreground">{log.userName}</span> ({log.userRole})
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-[10px] text-muted-foreground/80 font-mono">
+                            {formatAuditTime(log.timestamp)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* AI Assistant & Copilot Queries */}
+              <Card className="border-border shadow-2xs bg-gradient-to-br from-card via-card to-primary/[0.03]">
+                <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-8 items-center justify-center rounded-sm bg-primary/10 text-primary">
+                      <Sparkles className="size-4" />
+                    </span>
+                    <div>
+                      <CardTitle className="text-sm font-semibold">
+                        NyayaSetu AI Assistant & Copilot
+                      </CardTitle>
+                      <p className="text-[11px] text-muted-foreground">
+                        Live grounded intelligence across cases, cause-lists, documents, custody & assets.
+                      </p>
+                    </div>
+                  </div>
+                  <Button size="sm" asChild className="h-7 text-xs font-medium gap-1">
+                    <Link to={"/ai-assistant" as any}>
+                      <span>Open Copilot</span>
+                      <ArrowRight className="size-3" />
+                    </Link>
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Try asking common legal, police and judicial questions directly verified against current database records:
+                  </p>
+                  <div className="grid grid-cols-1 gap-2">
+                    {[
+                      {
+                        prompt: "Summarize Case BNS/2026/0014 and its critical evidence.",
+                        badge: "Case Dossier",
+                      },
+                      {
+                        prompt: "Where is evidence EV-1045 and what is its chain of custody?",
+                        badge: "Malkhana",
+                      },
+                      {
+                        prompt: "Which police assets are currently under maintenance or transferred?",
+                        badge: "Armory & Fleet",
+                      },
+                      {
+                        prompt: "List documents awaiting digital signature or SHA-256 integrity verification.",
+                        badge: "DMS Vault",
+                      },
+                      {
+                        prompt: "Which hearings are listed for today across all courtrooms?",
+                        badge: "Cause List",
+                      },
+                    ].map((item, idx) => (
+                      <Link
+                        key={idx}
+                        to={"/ai-assistant" as any}
+                        className="group flex items-center justify-between p-2.5 rounded-lg border border-border/80 bg-background/60 hover:bg-accent/15 hover:border-primary/40 transition-all text-xs"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <MessageSquare className="size-3.5 text-primary shrink-0 group-hover:scale-110 transition-transform" />
+                          <span className="font-medium text-foreground truncate">{item.prompt}</span>
+                        </div>
+                        <Badge variant="secondary" className="text-[10px] shrink-0 font-normal">
+                          {item.badge}
+                        </Badge>
+                      </Link>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </>
       )}

@@ -15,9 +15,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { benchNavSections, navSections } from "@/lib/nav";
+import { benchNavSections, getNavSectionsForRole, navSections } from "@/lib/nav";
 import { useCurrentStaff } from "@/hooks/use-current-staff";
 import { useLanguage, type TranslationKey } from "@/lib/i18n";
+import { ROLE_METADATA } from "@/lib/rbac";
 
 export function AppSidebar() {
   const { state, isMobile, setOpenMobile } = useSidebar();
@@ -26,12 +27,23 @@ export function AppSidebar() {
   const staff = useCurrentStaff();
   const { t } = useLanguage();
   const isAdmin = staff.data?.role === "admin";
-  const isJudge = staff.data?.role === "judge";
+  const role = staff.data?.role || "registrar";
+  const roleInfo = ROLE_METADATA[role];
 
   const sectionLabelKey: Record<string, TranslationKey> = {
     Overview: "nav.overview",
     Scheduling: "nav.scheduling",
     Administration: "nav.administration",
+    "Court Operations": "nav.scheduling",
+    "Secure Vault": "nav.documents",
+    "Investigation & Evidence": "nav.evidence",
+    "Police Assets": "nav.assets",
+    "Evidence & Custody": "nav.evidence",
+    "Investigation & Documents": "nav.documents",
+    "Forensic Records": "nav.documents",
+    "Malkhana Vault": "nav.evidence",
+    "Custody Records": "nav.documents",
+    "Legal Vault": "nav.documents",
     "My bench": "nav.overview",
   };
 
@@ -59,7 +71,7 @@ export function AppSidebar() {
     "/case-status": "nav.case-status",
   };
 
-  const sections = (isJudge ? benchNavSections : navSections)
+  const sections = getNavSectionsForRole(staff.data?.role)
     .map((section) => ({ ...section, items: section.items.filter((i) => !i.adminOnly || isAdmin) }))
     .filter((section) => section.items.length > 0);
 
@@ -82,8 +94,8 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-sidebar-foreground">NyayaSetu</p>
-              <p className="truncate text-[11px] tracking-wide text-sidebar-foreground/60 uppercase">
-                Court Scheduling
+              <p className="truncate text-[10.5px] tracking-wide text-primary font-medium">
+                {roleInfo?.label || "Court Registry"}
               </p>
             </div>
           )}
@@ -92,9 +104,11 @@ export function AppSidebar() {
 
       <SidebarContent>
         {sections.map((section) => (
-          <SidebarGroup key={section.label} className="py-3">
-            <SidebarGroupLabel className="text-[11px] tracking-[0.12em] text-sidebar-foreground/50 uppercase">
-              {t((sectionLabelKey[section.label] ?? "nav.overview") as TranslationKey)}
+          <SidebarGroup key={section.label} className="py-2.5">
+            <SidebarGroupLabel className="text-[11px] tracking-[0.1em] text-sidebar-foreground/50 uppercase">
+              {sectionLabelKey[section.label]
+                ? t(sectionLabelKey[section.label] as TranslationKey)
+                : section.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -128,9 +142,10 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border">
         {!collapsed && (
-          <p className="px-2 py-1 text-[11px] text-sidebar-foreground/50">
-            Internal NyayaSetu workspace
-          </p>
+          <div className="px-2 py-1 text-[11px] text-sidebar-foreground/60 flex items-center justify-between">
+            <span className="truncate">{roleInfo?.label || "National Justice Core"}</span>
+            <span className="font-mono text-[10px] text-primary font-semibold">BSA §63</span>
+          </div>
         )}
       </SidebarFooter>
     </Sidebar>
