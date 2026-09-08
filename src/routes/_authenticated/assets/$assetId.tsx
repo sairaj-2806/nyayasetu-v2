@@ -997,14 +997,15 @@ function AssetDetailPage() {
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs gap-1"
-                          onClick={() =>
-                            alert(
-                              `Document ${doc.document_number}\nHash: ${doc.latest_sha256}\nCertified under Bharatiya Sakshya Adhiniyam, 2023.`,
-                            )
-                          }
+                          asChild
                         >
-                          <FileCheck className="size-3.5 text-emerald-600" />
-                          Verify
+                          <Link
+                            to="/documents/$documentId"
+                            params={{ documentId: doc.id }}
+                          >
+                            <FileCheck className="size-3.5 text-emerald-600" />
+                            View & Verify
+                          </Link>
                         </Button>
                       </TableCell>
                     </TableRow>

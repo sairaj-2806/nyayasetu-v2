@@ -28,6 +28,15 @@ type Turn =
   | { role: "error"; id: string; text: string };
 
 /**
+ * Global helper to open the AI Judicial Copilot sheet from anywhere (e.g. TopBar, navigation, cards).
+ */
+export function openAiCopilot() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("nyayasetu:open-copilot"));
+  }
+}
+
+/**
  * Registry Assistant — a decision-support lookup panel. Every answer is the
  * result of a real query against the live registry; unmatched questions are
  * declined rather than guessed at. Conversation is session-only by design.
@@ -42,6 +51,14 @@ export function AssistantPanel() {
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleOpenEvent() {
+      setOpen(true);
+    }
+    window.addEventListener("nyayasetu:open-copilot", handleOpenEvent);
+    return () => window.removeEventListener("nyayasetu:open-copilot", handleOpenEvent);
+  }, []);
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 80);
@@ -109,11 +126,11 @@ export function AssistantPanel() {
           type="button"
           aria-label="Open AI Registry Copilot"
           className={cn(
-            "fixed bottom-6 right-6 z-40",
-            "group flex items-center gap-2.5 rounded-full px-4 py-3 sm:px-4.5 sm:py-3.5",
+            "fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-3 sm:bottom-6 sm:right-6 z-40",
+            "group flex items-center gap-2 rounded-full px-3.5 py-2.5 sm:px-4.5 sm:py-3.5",
             "bg-primary text-primary-foreground font-semibold text-xs sm:text-sm",
-            "shadow-xl shadow-primary/25 border border-primary/20",
-            "hover:shadow-2xl hover:shadow-primary/35 hover:-translate-y-0.5 active:translate-y-0",
+            "shadow-xl shadow-primary/30 border border-primary/20",
+            "hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-0.5 active:scale-95 active:translate-y-0",
             "transition-all duration-200 cursor-pointer select-none",
             "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
             open && "opacity-0 pointer-events-none",
@@ -236,7 +253,7 @@ export function AssistantPanel() {
         </div>
 
         <form
-          className="flex items-center gap-2 p-3 sm:p-4 border-t border-border/80 bg-card/90 backdrop-blur shrink-0"
+          className="flex items-center gap-2 p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border/80 bg-card/90 backdrop-blur shrink-0"
           onSubmit={(e) => {
             e.preventDefault();
             void ask(value);

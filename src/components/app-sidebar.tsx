@@ -69,6 +69,7 @@ export function AppSidebar() {
     "/priority-settings": "nav.priority-settings",
     "/bench": "nav.bench",
     "/case-status": "nav.case-status",
+    "/ai-assistant": "nav.ai-assistant",
   };
 
   const sections = getNavSectionsForRole(staff.data?.role)

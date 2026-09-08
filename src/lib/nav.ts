@@ -20,6 +20,7 @@ import {
   Search,
   PackageCheck,
   Scale,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { AppRole, normalizeRole } from "@/lib/rbac";
@@ -42,6 +43,7 @@ export const benchNavSections: NavSection[] = [
     label: "My bench",
     items: [
       { title: "My Bench", to: "/bench", icon: GavelIcon },
+      { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
       { title: "Global Search", to: "/search", icon: Search },
       { title: "Cases", to: "/cases", icon: Folder },
       { title: "Digital Documents", to: "/documents", icon: FileText },
@@ -56,6 +58,7 @@ export const navSections: NavSection[] = [
     label: "Overview",
     items: [
       { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+      { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
       { title: "Global Search", to: "/search", icon: Search },
       { title: "Cases", to: "/cases", icon: Folder },
     ],
@@ -130,6 +133,7 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
         label: "Overview",
         items: [
           { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+          { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
           { title: "Global Search", to: "/search", icon: Search },
           { title: "Cases", to: "/cases", icon: Folder },
         ],
@@ -175,6 +179,7 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
         label: "Overview",
         items: [
           { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+          { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
           { title: "Global Search", to: "/search", icon: Search },
           { title: "My Cases", to: "/cases", icon: Folder },
         ],
@@ -204,6 +209,7 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
         label: "Overview",
         items: [
           { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+          { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
           { title: "Global Search", to: "/search", icon: Search },
           { title: "Cases", to: "/cases", icon: Folder },
         ],
@@ -233,6 +239,7 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
         label: "Overview",
         items: [
           { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+          { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
           { title: "Global Search", to: "/search", icon: Search },
           { title: "Cases", to: "/cases", icon: Folder },
         ],
@@ -262,6 +269,7 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
         label: "Overview",
         items: [
           { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+          { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
           { title: "Global Search", to: "/search", icon: Search },
           { title: "Assigned Cases", to: "/cases", icon: Folder },
         ],
@@ -294,6 +302,7 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
         label: "Overview",
         items: [
           { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+          { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
           { title: "Global Search", to: "/search", icon: Search },
           { title: "Cases", to: "/cases", icon: Folder },
         ],
@@ -322,6 +331,7 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
       label: "Overview",
       items: [
         { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+        { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
         { title: "Global Search", to: "/search", icon: Search },
         { title: "Assigned Cases", to: "/cases", icon: Folder },
       ],

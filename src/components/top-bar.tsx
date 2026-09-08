@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Languages, LogOut, Search, Shield, UserCheck } from "lucide-react";
+import { Languages, LogOut, Search, Shield, Sparkles, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -28,6 +28,7 @@ import { NetworkBadge } from "@/components/network-badge";
 import { GlobalSearchDialog } from "@/components/global-search-dialog";
 import { switchActiveStaffPersona } from "@/lib/offline-auth";
 import { ALL_ROLES, AppRole, ROLE_METADATA } from "@/lib/rbac";
+import { openAiCopilot } from "@/components/assistant-panel";
 
 export function TopBar() {
   const { data: staff } = useCurrentStaff();
@@ -77,7 +78,7 @@ export function TopBar() {
   }
 
   return (
-    <header className="sticky top-0 z-20 flex h-13 items-center gap-2 border-b border-border bg-card/95 px-3 backdrop-blur-sm sm:px-5">
+    <header className="sticky top-0 z-20 flex h-13 items-center gap-1.5 sm:gap-2 border-b border-border bg-card/95 px-2.5 backdrop-blur-sm sm:px-5">
       <SidebarTrigger />
       <Separator orientation="vertical" className="mx-1 hidden h-6 sm:block" />
       <div className="hidden min-w-0 items-center gap-2 md:flex">
@@ -96,15 +97,16 @@ export function TopBar() {
       </div>
 
       {/* Global Search Quick Launcher Button */}
-      <div className="mx-2 flex-1 max-w-sm">
+      <div className="mx-1 sm:mx-2 flex-1 max-w-[140px] xs:max-w-[200px] sm:max-w-sm">
         <button
           type="button"
           onClick={() => navigate({ to: "/search" })}
-          className="group flex w-full items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted/60 hover:text-foreground"
+          className="group flex w-full items-center gap-1.5 sm:gap-2 rounded-lg border border-border/70 bg-muted/30 px-2 sm:px-3 py-1.5 text-xs text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted/60 hover:text-foreground"
           title="Search registry (Ctrl+K or ⌘K)"
         >
-          <Search className="size-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-          <span className="truncate">Search cases, exhibits, documents...</span>
+          <Search className="size-3.5 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
+          <span className="truncate hidden sm:inline">Search cases, exhibits...</span>
+          <span className="truncate sm:hidden text-[11px]">Search</span>
           <kbd
             onClick={(e) => {
               e.stopPropagation();
@@ -121,6 +123,19 @@ export function TopBar() {
       <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        {/* Prominent AI Copilot Button in TopBar */}
+        <button
+          type="button"
+          onClick={() => openAiCopilot()}
+          className="flex items-center gap-1 sm:gap-1.5 rounded-full border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-amber-500/15 px-2 sm:px-2.5 py-1 text-xs font-semibold text-primary transition-all hover:border-primary/60 hover:bg-primary/20 hover:shadow-xs active:scale-95 cursor-pointer shrink-0"
+          title="Open AI Judicial Copilot (Ask questions about cases, schedules, evidence, and documents)"
+          aria-label="Open AI Copilot"
+        >
+          <Sparkles className="size-3.5 text-amber-500 fill-amber-500/20 animate-pulse shrink-0" />
+          <span className="hidden xs:inline">AI Copilot</span>
+          <span className="xs:hidden">Copilot</span>
+        </button>
+
         <NetworkBadge />
         {staff?.role !== "judge" && <NotificationsBell />}
 
@@ -128,12 +143,16 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => setLang(lang === "en" ? "hi" : "en")}
-          className="flex items-center gap-1.5 rounded-md border border-border/70 bg-background/80 px-2 py-1 text-xs font-medium transition-all hover:bg-muted hover:border-primary/40 cursor-pointer shadow-2xs"
-          title={lang === "en" ? "Switch interface to Hindi (हिन्दी में बदलें)" : "Switch interface to English (अंग्रेजी में बदलें)"}
+          className="flex items-center gap-1 rounded-md border border-border/70 bg-background/80 px-1.5 sm:px-2 py-1 text-xs font-medium transition-all hover:bg-muted hover:border-primary/40 cursor-pointer shadow-2xs shrink-0"
+          title={
+            lang === "en"
+              ? "Switch interface to Hindi (हिन्दी में बदलें)"
+              : "Switch interface to English (अंग्रेजी में बदलें)"
+          }
         >
-          <Languages className="size-3.5 text-primary" />
+          <Languages className="size-3.5 text-primary shrink-0" />
           <span
-            className={`px-1 py-0.2 rounded text-[11px] font-semibold transition-colors ${
+            className={`px-1 py-0.2 rounded text-[10px] sm:text-[11px] font-semibold transition-colors ${
               lang === "en"
                 ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                 : "text-muted-foreground hover:text-foreground"
@@ -141,9 +160,9 @@ export function TopBar() {
           >
             EN
           </span>
-          <span className="text-muted-foreground/30 text-[10px]">|</span>
+          <span className="text-muted-foreground/30 text-[9px]">|</span>
           <span
-            className={`px-1 py-0.2 rounded text-[11px] font-semibold transition-colors ${
+            className={`px-1 py-0.2 rounded text-[10px] sm:text-[11px] font-semibold transition-colors ${
               lang === "hi"
                 ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                 : "text-muted-foreground hover:text-foreground"

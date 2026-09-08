@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertTriangle, FileText, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 
 import { PageHeader } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
@@ -213,6 +213,29 @@ function Page() {
                         Case {c.caseNumber} · {c.judgeName ?? "No judge"} ·{" "}
                         {c.courtroomName ?? "No courtroom"} · {c.slotLabel}
                       </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {c.caseId ? (
+                          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" asChild>
+                            <Link to="/cases/$caseId" params={{ caseId: c.caseId }}>
+                              <FileText className="size-3.5" />
+                              View Case
+                            </Link>
+                          </Button>
+                        ) : c.caseNumber && c.caseNumber !== "—" ? (
+                          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" asChild>
+                            <Link to="/cases" search={{ search: c.caseNumber }}>
+                              <FileText className="size-3.5" />
+                              View Case
+                            </Link>
+                          </Button>
+                        ) : null}
+                        <Button size="sm" className="h-7 text-xs gap-1.5" asChild>
+                          <Link to="/smart-scheduling">
+                            <Sparkles className="size-3.5 text-accent" />
+                            Resolve in Smart Scheduling
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

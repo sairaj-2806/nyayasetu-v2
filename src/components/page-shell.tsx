@@ -13,15 +13,23 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="registry-enter registry-rule flex flex-col gap-3 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
-      <div className="max-w-2xl">
-        {eyebrow && <p className="text-eyebrow mb-2">{eyebrow}</p>}
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">{title}</h1>
+    <div className="registry-enter registry-rule flex flex-col gap-4 border-b border-border pb-5 sm:pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="max-w-2xl min-w-0">
+        {eyebrow && <p className="text-eyebrow mb-1.5 sm:mb-2">{eyebrow}</p>}
+        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl break-words tracking-tight">
+          {title}
+        </h1>
         {description && (
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
+          <p className="mt-2 text-xs sm:text-sm leading-relaxed text-muted-foreground break-words">
+            {description}
+          </p>
         )}
       </div>
-      {actions}
+      {actions && (
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,15 +1,17 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Calendar,
   CheckCircle2,
   Clock,
+  Download,
   GripVertical,
   Info,
   Layers,
   ListOrdered,
+  Printer,
   RotateCcw,
   Sparkles,
 } from "lucide-react";
@@ -62,6 +64,8 @@ import {
   resetManualOrder,
   type CauseListEntry,
 } from "@/lib/cause-list";
+import { downloadSchedulePdf } from "@/lib/pdf";
+import type { CalendarEntry } from "@/lib/calendar";
 
 export const Route = createFileRoute("/_authenticated/cause-list")({
   head: () => ({
@@ -102,6 +106,7 @@ function Page() {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const [batchModalOpen, setBatchModalOpen] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const settings = useQuery(prioritySettingsQuery);
   const judges = useQuery(judgesQuery);
@@ -221,6 +226,54 @@ function Page() {
     setOverIndex(null);
   }
 
+  const handleDownloadPdf = async () => {
+    if (entries.length === 0) {
+      toast.info("No listings to export for the selected date.");
+      return;
+    }
+    setDownloadingPdf(true);
+    try {
+      const calendarEntries: CalendarEntry[] = entries.map((e) => ({
+        id: e.scheduleId,
+        status: e.status,
+        date: e.date,
+        startTime: e.startTime,
+        endTime: e.endTime,
+        slotId: null,
+        caseId: e.caseId,
+        caseNumber: e.caseNumber,
+        caseStatus: null,
+        parties: e.parties,
+        priorityScore: e.score,
+        categoryName: e.tier,
+        judgeId: e.judgeId,
+        judgeName: e.judgeName,
+        courtroomId: e.courtroomId,
+        courtroomName: e.courtroomName,
+      }));
+
+      await downloadSchedulePdf({
+        title: `Official Daily Cause List — ${date}`,
+        rangeLabel: date,
+        scopeLabel,
+        entries: calendarEntries,
+      });
+      toast.success(`Official Cause List PDF for ${date} downloaded.`);
+    } catch (err: any) {
+      toast.error(err.message || "Could not generate cause list PDF.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handlePrint = () => {
+    if (entries.length === 0) {
+      toast.info("No listings to print for the selected date.");
+      return;
+    }
+    window.print();
+  };
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 sm:py-10">
       <PageHeader
@@ -229,6 +282,26 @@ function Page() {
         description="The proposed hearing order for the selected date, ranked by priority tier and score."
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf || entries.length === 0}
+            >
+              <Download className="size-4" />
+              {downloadingPdf ? "Generating PDF..." : "Export PDF"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handlePrint}
+              disabled={entries.length === 0}
+            >
+              <Printer className="size-4" />
+              Print
+            </Button>
             {canReorder && (
               <Button
                 variant="default"
@@ -558,7 +631,17 @@ function CauseListRow({
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium text-foreground">{entry.caseNumber}</span>
+          {entry.caseId ? (
+            <Link
+              to="/cases/$caseId"
+              params={{ caseId: entry.caseId }}
+              className="font-medium text-foreground hover:text-primary hover:underline transition-colors"
+            >
+              {entry.caseNumber}
+            </Link>
+          ) : (
+            <span className="font-medium text-foreground">{entry.caseNumber}</span>
+          )}
           <span
             className={cn(
               "rounded-md border px-2 py-0.5 text-xs font-medium",

@@ -81,6 +81,7 @@ export const translations = {
   "nav.search": { en: "Global Search", hi: "एकीकृत रजिस्ट्री खोज" },
   "nav.bench": { en: "My Bench", hi: "मेरी न्यायपीठ" },
   "nav.case-status": { en: "Case Status", hi: "वाद स्थिति एवं सीएनआर खोज" },
+  "nav.ai-assistant": { en: "AI Judicial Copilot", hi: "एआई न्यायिक कोपायलट" },
 
   // Dashboard
   "dash.pending-cases": { en: "Pending cases", hi: "लंबित वाद / विचाराधीन प्रकरण" },

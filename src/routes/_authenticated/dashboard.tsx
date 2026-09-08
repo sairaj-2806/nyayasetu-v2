@@ -140,24 +140,26 @@ function StatCard({
 }) {
   const body = (
     <Card className={cn("registry-interactive h-full", className)}>
-      <CardContent className="flex items-start justify-between gap-4 p-5">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <CardContent className="flex items-start justify-between gap-2 p-3.5 sm:p-5">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] sm:text-xs font-medium uppercase tracking-wide text-muted-foreground truncate">
             {label}
           </p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">{value}</p>
-          {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+          <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-semibold tabular-nums text-foreground">
+            {value}
+          </p>
+          {hint && <p className="mt-1 text-[11px] sm:text-xs text-muted-foreground line-clamp-1">{hint}</p>}
         </div>
         <span
           className={
             tone === "alert"
-              ? "flex size-9 shrink-0 items-center justify-center rounded-sm bg-destructive/10 text-destructive"
+              ? "flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-sm bg-destructive/10 text-destructive"
               : tone === "gold"
-                ? "flex size-9 shrink-0 items-center justify-center rounded-sm bg-accent text-accent-foreground"
-                : "flex size-9 shrink-0 items-center justify-center rounded-sm bg-secondary text-secondary-foreground"
+                ? "flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-sm bg-accent text-accent-foreground"
+                : "flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-sm bg-secondary text-secondary-foreground"
           }
         >
-          <Icon className="size-4" />
+          <Icon className="size-3.5 sm:size-4" />
         </span>
       </CardContent>
     </Card>
@@ -942,32 +944,32 @@ function Page() {
       ) : (
         <>
           {/* ROLE WORKSPACE BANNER */}
-          <div className="mt-6 rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-background p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
-            <div className="flex items-center gap-3.5">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
-                <Shield className="size-5" />
+          <div className="mt-6 rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-background p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-4 shadow-2xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex size-10 sm:size-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
+                <Shield className="size-4.5 sm:size-5" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base font-bold text-foreground">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h2 className="text-sm sm:text-base font-bold text-foreground break-words">
                     {staff.data?.fullName ? `Welcome, ${staff.data.fullName}` : "NyayaSetu Command Center"}
                   </h2>
-                  <Badge variant="outline" className="text-[10px] font-semibold uppercase bg-background border-primary/30 text-primary">
+                  <Badge variant="outline" className="text-[9px] sm:text-[10px] font-semibold uppercase bg-background border-primary/30 text-primary shrink-0">
                     {roleInfo?.label || "Court Registry"}
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">
                   {roleInfo?.description || "Central legal, police asset, forensic and judicial operations hub."}
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background border text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="size-3" />
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
+              <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md bg-background border text-[10px] sm:text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="size-3 shrink-0" />
                 Vault Online
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background border text-[11px] font-mono text-primary">
-                <ShieldCheck className="size-3" />
+              <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md bg-background border text-[10px] sm:text-[11px] font-mono text-primary">
+                <ShieldCheck className="size-3 shrink-0" />
                 BSA §63 Active
               </span>
             </div>

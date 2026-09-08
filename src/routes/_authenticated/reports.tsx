@@ -5,6 +5,7 @@ import {
   Activity,
   ArrowRight,
   CheckCircle2,
+  Download,
   ExternalLink,
   FileText,
   FlaskConical,
@@ -12,6 +13,7 @@ import {
   Info,
   Layers,
   Lock,
+  Printer,
   RefreshCw,
   Search,
   Shield,
@@ -22,6 +24,7 @@ import {
   UserCheck,
   Wrench,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Bar,
   BarChart,
@@ -186,6 +189,34 @@ function Page() {
       ]
     : [];
 
+  const handleExportCsv = () => {
+    if (!metrics) return;
+    const lines = [
+      "Category,Metric,Value",
+      `Court Operations,Conflicts Avoided,${metrics.conflictsAvoided}`,
+      `Court Operations,Average Scheduling Time (min),${metrics.averageSchedulingMinutes}`,
+      `Court Operations,Decision Outcomes - Accepted,${metrics.accepted}`,
+      `Court Operations,Decision Outcomes - Modified,${metrics.modified}`,
+      `Court Operations,Decision Outcomes - Rejected,${metrics.rejected}`,
+      `Document Vault,Total Secure Documents,${dmsAnalytics.documents.total}`,
+      `Police Assets,Total Tracked Assets,${dmsAnalytics.assets.total}`,
+      `Evidence Custody,Total Tracked Evidence,${dmsAnalytics.evidence.total}`,
+      `Security Audit,Integrity Alert Categories,${dmsAnalytics.security.integrityAlerts.length}`,
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nyayasetu-registry-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Registry analytics report exported as CSV.");
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 sm:py-10">
       <PageHeader
@@ -194,7 +225,27 @@ function Page() {
         description="Impact of the deterministic scheduling engine on the records currently held in this environment."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleExportCsv}
+              disabled={!metrics}
+            >
+              <Download className="size-4" />
+              Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handlePrint}
+              disabled={!metrics}
+            >
+              <Printer className="size-4" />
+              Print / PDF
+            </Button>
+            <Button variant="outline" size="sm" asChild>
               <Link to="/governance">
                 <ShieldCheck className="size-4" />
                 Governance & Compliance
@@ -202,6 +253,7 @@ function Page() {
             </Button>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => {
                 void reports.refetch();
                 void conflictData.refetch();

@@ -92,6 +92,16 @@ function Page() {
   const [ranCase, setRanCase] = useState<CaseRow | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlCaseId = urlParams.get("caseId");
+      if (urlCaseId) {
+        setCaseId(urlCaseId);
+      }
+    }
+  }, []);
+
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   const pending = useMemo(

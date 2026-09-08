@@ -56,21 +56,28 @@ function AuthenticatedLayout() {
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <BenchScopeGuard />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
           <TopBar />
-          <main className="flex-1">
-            <div key={pathname} className="registry-enter">
+          <main className="flex-1 w-full min-w-0 overflow-x-hidden">
+            <div key={pathname} className="registry-enter w-full min-w-0">
               <Outlet />
             </div>
           </main>
         </div>
-        {staff?.role !== "judge" && <AssistantPanel />}
+        <AssistantPanel />
       </div>
     </SidebarProvider>
   );
 }
 
-const JUDGE_ALLOWED_PREFIXES = ["/bench", "/search", "/documents", "/evidence", "/case-status"];
+const JUDGE_ALLOWED_PREFIXES = [
+  "/bench",
+  "/search",
+  "/documents",
+  "/evidence",
+  "/case-status",
+  "/ai-assistant",
+];
 
 /**
  * Bench (judge) accounts are scoped to judicial views. Row-level security is the

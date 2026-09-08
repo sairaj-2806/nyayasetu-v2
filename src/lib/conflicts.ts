@@ -49,6 +49,7 @@ export type ScheduleOccupancy = {
   judge_id: string | null;
   courtroom_id: string | null;
   slot_id: string | null;
+  case_id?: string | null;
   case_number: string;
   judge_name: string | null;
   courtroom_name: string | null;
@@ -188,6 +189,7 @@ export function detectAssignmentConflicts(params: {
 
 export type FlaggedConflict = Conflict & {
   scheduleId: string;
+  caseId?: string | null;
   caseNumber: string;
   judgeName: string | null;
   courtroomName: string | null;
@@ -212,6 +214,7 @@ export function scanSystemConflicts(input: ConflictScanInput): FlaggedConflict[]
     found.push({
       ...conflict,
       scheduleId: s.id,
+      caseId: s.case_id ?? null,
       caseNumber: s.case_number,
       judgeName: s.judge_name,
       courtroomName: s.courtroom_name,
@@ -324,7 +327,7 @@ export function scanSystemConflicts(input: ConflictScanInput): FlaggedConflict[]
 /* ---------------------------------------------------------------- queries */
 
 const OCCUPANCY_SELECT =
-  "id, status, judge_id, courtroom_id, slot_id, cases(case_number, estimated_duration_minutes), judges(name), courtrooms(name), hearing_slots(id, date, start_time, end_time)";
+  "id, status, judge_id, courtroom_id, slot_id, cases(id, case_number, estimated_duration_minutes), judges(name), courtrooms(name), hearing_slots(id, date, start_time, end_time)";
 
 type OccupancyRaw = {
   id: string;
@@ -332,7 +335,7 @@ type OccupancyRaw = {
   judge_id: string | null;
   courtroom_id: string | null;
   slot_id: string | null;
-  cases: { case_number: string; estimated_duration_minutes: number } | null;
+  cases: { id: string; case_number: string; estimated_duration_minutes: number } | null;
   judges: { name: string } | null;
   courtrooms: { name: string } | null;
   hearing_slots: Slot | null;
@@ -358,6 +361,7 @@ export async function fetchConflictData(dbOrContext?: any) {
     judge_id: r.judge_id,
     courtroom_id: r.courtroom_id,
     slot_id: r.slot_id,
+    case_id: r.cases?.id ?? null,
     case_number: r.cases?.case_number ?? "—",
     judge_name: r.judges?.name ?? null,
     courtroom_name: r.courtrooms?.name ?? null,
