@@ -84,5 +84,33 @@ function patchServerIndex(serverDir) {
   }
 }
 
+function patchWranglerConfig(serverDir) {
+  const wranglerPath = join(serverDir, "wrangler.json");
+  try {
+    if (existsSync(wranglerPath)) {
+      const parsed = JSON.parse(readFileSync(wranglerPath, "utf8"));
+      const r2Buckets = parsed.r2_buckets || [];
+      const hasVault = r2Buckets.some(
+        (b) => b.binding === "VAULT_BUCKET" || b.bucket_name === "nyayasetu-vault",
+      );
+      if (!hasVault) {
+        parsed.r2_buckets = [
+          ...r2Buckets,
+          {
+            binding: "VAULT_BUCKET",
+            bucket_name: "nyayasetu-vault",
+          },
+        ];
+        writeFileSync(wranglerPath, JSON.stringify(parsed, null, 2));
+        console.log(`[patch] ✅ Added VAULT_BUCKET binding to ${wranglerPath}`);
+      }
+    }
+  } catch (err) {
+    // ignore
+  }
+}
+
 patchServerIndex(".output/server");
 patchServerIndex("dist/_worker.js");
+patchWranglerConfig(".output/server");
+patchWranglerConfig("dist/_worker.js");

@@ -198,6 +198,9 @@ export interface SecureDocument {
   file_format: string;
   file_size_bytes: number;
   storage_path: string;
+  r2_object_key?: string | undefined;
+  r2_bucket?: string | undefined;
+  status?: string | undefined;
   latest_sha256: string;
   is_sealed: boolean;
   is_tampered: boolean;
@@ -772,6 +775,53 @@ export const secureDocumentsQuery = (
   queryFn: async (): Promise<SecureDocument[]> => {
     let docs = getStoredDocuments();
 
+    try {
+      const { data: dbRows } = await supabase
+        .from("case_documents")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (dbRows && dbRows.length > 0) {
+        const liveDocs: SecureDocument[] = dbRows.map((r: any) => ({
+          id: r.id,
+          document_number: r.document_number,
+          title: r.title,
+          category: r.category as DocumentCategory,
+          fir_number: r.fir_number,
+          police_station: r.police_station,
+          sensitivity_tier: (r.sensitivity_tier === "RESTRICTED" ? "CONFIDENTIAL" : r.sensitivity_tier) as DocumentSensitivityTier,
+          current_version: r.current_version || 1,
+          file_name: r.file_name,
+          file_format: r.file_format,
+          file_size_bytes: Number(r.file_size_bytes || 0),
+          storage_path: r.storage_path,
+          r2_object_key: (r.metadata as any)?.r2_object_key || r.storage_path,
+          r2_bucket: (r.metadata as any)?.r2_bucket || "nyayasetu-vault",
+          status: (r.metadata as any)?.status || "ACTIVE",
+          latest_sha256: r.latest_sha256,
+          is_sealed: r.is_sealed,
+          is_tampered: r.is_tampered,
+          originating_agency: r.originating_agency,
+          case_id: r.case_id,
+          case_number: (r.metadata as any)?.case_number || null,
+          asset_id: null,
+          asset_code: null,
+          relationship_type: null,
+          uploaded_by_name: (r.metadata as any)?.uploaded_by_name || "Authorized Staff",
+          uploaded_by_role: "registrar",
+          content_text: (r.metadata as any)?.contentText || undefined,
+          metadata: (r.metadata as Record<string, unknown>) || {},
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+        }));
+
+        const existingDocNumbers = new Set(liveDocs.map((d) => d.document_number));
+        docs = [...liveDocs, ...docs.filter((d) => !existingDocNumbers.has(d.document_number))];
+      }
+    } catch {
+      // Graceful fallback to local cache
+    }
+
     if (filters?.userRole) {
       docs = docs.filter((d) =>
         canAccessDocumentRecord(filters.userRole, d, filters?.judgeId, filters?.assignedCaseIds),
@@ -1015,7 +1065,54 @@ export const secureDocumentDetailQuery = (documentId: string) => ({
   queryKey: ["secure-document-detail", documentId],
   queryFn: async (): Promise<SecureDocumentDetail | null> => {
     const docs = getStoredDocuments();
-    const doc = docs.find((d) => d.id === documentId || d.document_number === documentId);
+    let doc = docs.find((d) => d.id === documentId || d.document_number === documentId);
+
+    try {
+      const isUuid = Boolean(documentId.match(/^[0-9a-fA-F-]{36}$/));
+      const { data: dbDoc } = await supabase
+        .from("case_documents")
+        .select("*")
+        .or(isUuid ? `id.eq.${documentId},document_number.eq.${documentId}` : `document_number.eq.${documentId}`)
+        .maybeSingle();
+
+      if (dbDoc) {
+        doc = {
+          id: dbDoc.id,
+          document_number: dbDoc.document_number,
+          title: dbDoc.title,
+          category: dbDoc.category as DocumentCategory,
+          fir_number: dbDoc.fir_number,
+          police_station: dbDoc.police_station,
+          sensitivity_tier: (dbDoc.sensitivity_tier === "RESTRICTED" ? "CONFIDENTIAL" : dbDoc.sensitivity_tier) as DocumentSensitivityTier,
+          current_version: dbDoc.current_version || 1,
+          file_name: dbDoc.file_name,
+          file_format: dbDoc.file_format,
+          file_size_bytes: Number(dbDoc.file_size_bytes || 0),
+          storage_path: dbDoc.storage_path,
+          r2_object_key: (dbDoc.metadata as any)?.r2_object_key || dbDoc.storage_path,
+          r2_bucket: (dbDoc.metadata as any)?.r2_bucket || "nyayasetu-vault",
+          status: (dbDoc.metadata as any)?.status || "ACTIVE",
+          latest_sha256: dbDoc.latest_sha256,
+          is_sealed: dbDoc.is_sealed,
+          is_tampered: dbDoc.is_tampered,
+          originating_agency: dbDoc.originating_agency,
+          case_id: dbDoc.case_id,
+          case_number: (dbDoc.metadata as any)?.case_number || null,
+          asset_id: null,
+          asset_code: null,
+          relationship_type: null,
+          uploaded_by_name: (dbDoc.metadata as any)?.uploaded_by_name || "Authorized Staff",
+          uploaded_by_role: "registrar",
+          content_text: (dbDoc.metadata as any)?.contentText || undefined,
+          metadata: (dbDoc.metadata as Record<string, unknown>) || {},
+          created_at: dbDoc.created_at,
+          updated_at: dbDoc.updated_at,
+        };
+      }
+    } catch {
+      // Fallback
+    }
+
     if (!doc) return null;
 
     // Fetch immutable versions from version store

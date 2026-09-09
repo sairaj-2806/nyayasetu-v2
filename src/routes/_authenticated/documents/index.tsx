@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { uploadDocumentToR2, type UploadDocumentOutput } from "@/lib/documents.functions";
 import {
   AlertTriangle,
   Archive,
@@ -197,6 +199,7 @@ function DocumentsListPage() {
 
   // Upload Modal State
   const [isUploadOpen, setIsUploadOpen] = useState(Boolean(searchParams?.upload));
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<DocumentCategory>("FIR");
   const [sensitivityTier, setSensitivityTier] = useState<DocumentSensitivityTier>("PUBLIC");
@@ -207,6 +210,8 @@ function DocumentsListPage() {
   const [fileName, setFileName] = useState("");
   const [contentText, setContentText] = useState("");
   const [notes, setNotes] = useState("");
+
+  const uploadToR2 = useServerFn(uploadDocumentToR2);
 
   // Verification Modal State
   const [selectedDocToVerify, setSelectedDocToVerify] = useState<SecureDocument | null>(null);
@@ -246,36 +251,60 @@ function DocumentsListPage() {
     }
   };
 
-  const uploadMutation = useMutation({
+  const uploadMutation = useMutation<UploadDocumentOutput, Error>({
     mutationFn: async () => {
       if (!title.trim()) throw new Error("Document title is required.");
       if (!fileName.trim()) throw new Error("File attachment name is required.");
 
-      return uploadSecureDocument({
-        title: title.trim(),
-        category,
-        firNumber: firNumber.trim() || undefined,
-        policeStation: policeStation.trim() || undefined,
-        sensitivityTier,
-        fileName: fileName.trim().endsWith(".pdf") ? fileName.trim() : `${fileName.trim()}.pdf`,
-        fileFormat: "PDF/A",
-        fileSizeBytes: Math.floor(250000 + Math.random() * 2500000),
-        caseNumber: caseNumber.trim() || undefined,
-        caseId: caseNumber.trim() ? "demo-case" : undefined,
-        assetCode: assetCode.trim() || undefined,
-        assetId: assetCode.trim() ? "ast_ev_01" : undefined,
-        originatingAgency: "State Criminal Registry & CCTNS Portal",
-        notes: notes.trim() || undefined,
-        contentText: contentText.trim() || undefined,
-        uploadedByName: staffName,
-        uploadedByRole: staffRole,
+      let fileBase64 = "";
+      let actualSize = 0;
+      let format = "PDF";
+
+      if (selectedFile) {
+        actualSize = selectedFile.size;
+        format = selectedFile.name.split(".").pop()?.toUpperCase() || "PDF";
+        const buffer = await selectedFile.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]!);
+        }
+        fileBase64 = btoa(binary);
+      } else {
+        const textPayload =
+          contentText.trim() ||
+          `NyayaSetu Certified Legal Archive Record: ${title.trim()} (${category})\nPolice Station: ${policeStation}\nFIR: ${firNumber || "N/A"}\nDeposited by: ${staffName} (${staffRole})`;
+        fileBase64 = btoa(unescape(encodeURIComponent(textPayload)));
+        actualSize = fileBase64.length;
+        format = "PDF";
+      }
+
+      const res = await uploadToR2({
+        data: {
+          fileBase64,
+          fileName: fileName.trim().includes(".") ? fileName.trim() : `${fileName.trim()}.pdf`,
+          fileType: format,
+          fileSizeBytes: actualSize,
+          title: title.trim(),
+          category,
+          sensitivityTier,
+          caseNumber: caseNumber.trim() || undefined,
+          firNumber: firNumber.trim() || undefined,
+          policeStation: policeStation.trim() || undefined,
+          originatingAgency: "State Criminal Registry & CCTNS Portal",
+          notes: notes.trim() || undefined,
+          contentText: contentText.trim() || undefined,
+        },
       });
+
+      return res as UploadDocumentOutput;
     },
-    onSuccess: (newDoc) => {
+    onSuccess: (newDoc: UploadDocumentOutput) => {
       toast.success(
-        `Document ${newDoc.document_number} uploaded securely with SHA-256 integrity digest.`,
+        `Document ${newDoc.document_number} stored in Cloudflare R2 vault (${newDoc.r2_object_key}) with verified SHA-256 digest.`,
       );
       setIsUploadOpen(false);
+      setSelectedFile(null);
       setTitle("");
       setFileName("");
       setContentText("");
@@ -819,6 +848,7 @@ function DocumentsListPage() {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
+                      setSelectedFile(file);
                       setFileName(file.name);
                       if (!title.trim()) {
                         setTitle(file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "));
@@ -837,7 +867,11 @@ function DocumentsListPage() {
                 />
                 <UploadCloud className="size-6 text-primary mx-auto mb-1 opacity-80" />
                 <p className="text-xs font-medium text-foreground">
-                  {fileName ? (
+                  {selectedFile ? (
+                    <span className="text-emerald-600 font-semibold">
+                      {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                    </span>
+                  ) : fileName ? (
                     <span className="text-emerald-600 font-semibold">{fileName}</span>
                   ) : (
                     "Click to select file from device or drag and drop"

@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getDocumentFile } from "@/lib/documents.functions";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -622,8 +624,41 @@ function DocumentDetailPage() {
   const staffName = staff.data?.fullName || "Registry Staff";
   const staffRole = staff.data?.role || "police_officer";
   const permissions = usePermissions();
+  const fetchDocumentFile = useServerFn(getDocumentFile);
 
   const [activeTab, setActiveTab] = useState("preview");
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
+  const handleLoadPreviewBytes = async (ver: DocumentVersionRecord) => {
+    if (!detailQuery.data?.document) return;
+    const doc = detailQuery.data.document;
+    setIsLoadingPreview(true);
+    try {
+      const res = await fetchDocumentFile({
+        data: {
+          documentId: doc.id,
+          versionNumber: ver.version_number,
+          action: "VIEW",
+        },
+      });
+      if (res?.base64) {
+        const binaryString = atob(res.base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: res.contentType || "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        setPreviewBlobUrl(url);
+        toast.success(`Authentic R2 stream loaded for "${res.fileName}".`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load document preview from Cloudflare R2.");
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
 
   // Tamper Simulation Confirmation State
   const [isTamperConfirmOpen, setIsTamperConfirmOpen] = useState(false);
@@ -816,7 +851,7 @@ function DocumentDetailPage() {
     if (!detailQuery.data?.document) return;
     const doc = detailQuery.data.document;
 
-    // 1. Record access log for zero silent leaks
+    // 1. Record client access log for zero silent leaks
     await recordDocumentAccess({
       documentId: doc.id,
       documentNumber: doc.document_number,
@@ -825,7 +860,43 @@ function DocumentDetailPage() {
       userRole: staffRole,
     });
 
-    // 2. Generate simulated secure blob download with cryptographic manifest
+    // 2. Fetch authentic file bytes from Cloudflare R2 vault
+    try {
+      const fileRes = await fetchDocumentFile({
+        data: {
+          documentId: doc.id,
+          versionNumber: ver.version_number,
+          action: "DOWNLOAD",
+        },
+      });
+
+      if (fileRes && fileRes.base64) {
+        const binaryString = atob(fileRes.base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const blob = new Blob([bytes], { type: fileRes.contentType || "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileRes.fileName || ver.file_name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        toast.success(
+          `Authentic file "${fileRes.fileName}" downloaded from Cloudflare R2 vault with verified SHA-256 digest.`,
+        );
+        return;
+      }
+    } catch (r2Err: any) {
+      console.warn("[R2 File Retrieval Fallback]:", r2Err?.message || r2Err);
+    }
+
+    // 3. Fallback to certified legal manifest if binary is not stored in R2 (legacy records)
     const content = ver.content_text
       ? `${doc.title} — Version v${ver.version_number}\nDocument Number: ${doc.document_number}\nVersion: v${ver.version_number}\nFile Reference: ${ver.file_reference}\nUploaded By: ${ver.uploaded_by_name} (${ver.uploaded_by_role})\nTimestamp: ${ver.created_at}\nMIME Type: ${ver.mime_type}\nSHA-256 Digest: ${ver.sha256_hash}\nDigital Signature: ${ver.digital_signature || "N/A"}\n\nOperative Content:\n${ver.content_text}`
       : `NyayaSetu Certified Legal Document Record\n${doc.title} — Version v${ver.version_number}\nRef: ${doc.document_number}\nFile Reference: ${ver.file_reference}\nSHA-256: ${ver.sha256_hash}`;
@@ -1328,6 +1399,21 @@ function DocumentDetailPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => handleLoadPreviewBytes(activeVersion)}
+                  disabled={isLoadingPreview}
+                  className="text-xs h-8 gap-1 text-primary border-primary/30 hover:bg-primary/10"
+                >
+                  {isLoadingPreview ? (
+                    <RefreshCw className="size-3 animate-spin" />
+                  ) : (
+                    <Eye className="size-3" />
+                  )}
+                  Stream R2 View
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleDownloadVersion(activeVersion)}
                   className="text-xs h-8 gap-1"
                 >
@@ -1337,9 +1423,54 @@ function DocumentDetailPage() {
             </CardHeader>
 
             <CardContent className="p-6">
-              {activeVersion.content_text ? (
-                <div className="rounded-lg border border-border bg-muted/20 p-6 font-mono text-xs leading-relaxed text-foreground whitespace-pre-wrap max-h-[550px] overflow-y-auto">
-                  {activeVersion.content_text}
+              {previewBlobUrl ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between bg-muted/40 p-2.5 rounded-lg border border-border/80 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px]">
+                        AUTHENTIC R2 STREAM ACTIVE
+                      </Badge>
+                      <span className="font-mono text-muted-foreground">{activeVersion.file_name}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+                        setPreviewBlobUrl(null);
+                      }}
+                    >
+                      Close Stream View
+                    </Button>
+                  </div>
+                  <iframe
+                    src={previewBlobUrl}
+                    className="w-full h-[650px] rounded-lg border border-border shadow-xs bg-white"
+                    title="Authenticated Document Viewer"
+                  />
+                </div>
+              ) : activeVersion.content_text ? (
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-border bg-muted/20 p-6 font-mono text-xs leading-relaxed text-foreground whitespace-pre-wrap max-h-[550px] overflow-y-auto">
+                    {activeVersion.content_text}
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleLoadPreviewBytes(activeVersion)}
+                      disabled={isLoadingPreview}
+                      className="text-xs gap-1.5"
+                    >
+                      {isLoadingPreview ? (
+                        <RefreshCw className="size-3 animate-spin" />
+                      ) : (
+                        <Eye className="size-3" />
+                      )}
+                      Stream Binary Bytes from R2 Vault
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
@@ -1348,18 +1479,34 @@ function DocumentDetailPage() {
                     {activeVersion.file_name}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground max-w-md mx-auto">
-                    This file version is stored in encrypted vault storage (
-                    {activeVersion.storage_path}). Click below to download and inspect.
+                    Stored in private Cloudflare R2 vault (
+                    {activeVersion.storage_path}). Authenticate session to stream or download.
                   </p>
-                  <Button
-                    onClick={() => handleDownloadVersion(activeVersion)}
-                    className="mt-4 gap-1.5 text-xs"
-                    size="sm"
-                  >
-                    <Download className="size-3.5" />
-                    Download Version v{activeVersion.version_number} (
-                    {(activeVersion.file_size_bytes / 1024).toFixed(0)} KB)
-                  </Button>
+                  <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                    <Button
+                      onClick={() => handleLoadPreviewBytes(activeVersion)}
+                      disabled={isLoadingPreview}
+                      className="gap-1.5 text-xs"
+                      size="sm"
+                    >
+                      {isLoadingPreview ? (
+                        <RefreshCw className="size-3.5 animate-spin" />
+                      ) : (
+                        <Eye className="size-3.5" />
+                      )}
+                      Stream PDF from R2 Vault
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleDownloadVersion(activeVersion)}
+                      className="gap-1.5 text-xs"
+                      size="sm"
+                    >
+                      <Download className="size-3.5" />
+                      Download Version v{activeVersion.version_number} (
+                      {(activeVersion.file_size_bytes / 1024).toFixed(0)} KB)
+                    </Button>
+                  </div>
                 </div>
               )}
 
