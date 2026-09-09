@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sairaj-2806-nyayasetu-v2",
+  "main": "index.mjs",
+  "compatibility_date": "2026-09-09",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "r2_buckets": [
+    {
+      "binding": "VAULT_BUCKET",
+      "bucket_name": "nyayasetu-vault"
+    }
+  ]
+}
