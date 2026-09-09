@@ -408,11 +408,11 @@ function AdminPanelPage() {
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <SummaryCard label="Administrators" value={counts.admins} icon={ShieldCheck} />
-        <SummaryCard label="Registrars" value={counts.registrars} icon={Users} />
-        <SummaryCard label="Judicial Bench" value={counts.bench} icon={Gavel} />
-        <SummaryCard label="Officers & Custody" value={counts.officers} icon={Briefcase} />
-        <SummaryCard label="Never signed in" value={counts.dormant} icon={UserPlus} />
+        <SummaryCard label="Administrators" value={counts.admins} icon={ShieldCheck} loading={accounts.isLoading} />
+        <SummaryCard label="Registrars" value={counts.registrars} icon={Users} loading={accounts.isLoading} />
+        <SummaryCard label="Judicial Bench" value={counts.bench} icon={Gavel} loading={accounts.isLoading} />
+        <SummaryCard label="Officers & Custody" value={counts.officers} icon={Briefcase} loading={accounts.isLoading} />
+        <SummaryCard label="Never signed in" value={counts.dormant} icon={UserPlus} loading={accounts.isLoading} />
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="mt-8">
@@ -1223,10 +1223,12 @@ function SummaryCard({
   label,
   value,
   icon: Icon,
+  loading = false,
 }: {
   label: string;
   value: number;
   icon: typeof Users;
+  loading?: boolean;
 }) {
   return (
     <Card>
@@ -1235,7 +1237,11 @@ function SummaryCard({
           <Icon className="size-5" />
         </span>
         <div>
-          <p className="text-2xl font-semibold text-foreground">{value}</p>
+          {loading ? (
+            <Skeleton className="my-1 h-7 w-12" />
+          ) : (
+            <p className="text-2xl font-semibold text-foreground">{value}</p>
+          )}
           <p className="text-xs text-muted-foreground">{label}</p>
         </div>
       </CardContent>

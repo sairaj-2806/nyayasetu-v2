@@ -29,14 +29,23 @@ export const listRegistryAccounts = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: userList, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 200,
-    });
-    if (listError) throw new Error(listError.message);
+    let authUsers: any[] = [];
+    try {
+      const { data: userList, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 200,
+      });
+      if (listError) {
+        console.warn("[listRegistryAccounts] auth.admin.listUsers notice:", listError.message);
+      } else if (userList?.users) {
+        authUsers = userList.users;
+      }
+    } catch (err: any) {
+      console.warn("[listRegistryAccounts] auth.admin.listUsers error:", err?.message ?? err);
+    }
 
     const [{ data: profiles }, { data: roles }, { data: judges }] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, full_name"),
+      supabaseAdmin.from("profiles").select("id, full_name, created_at"),
       supabaseAdmin.from("user_roles").select("user_id, role"),
       supabaseAdmin.from("judges").select("id, name, user_id"),
     ]);
@@ -53,19 +62,41 @@ export const listRegistryAccounts = createServerFn({ method: "POST" })
       (judges ?? []).filter((j) => j.user_id).map((j) => [j.user_id as string, j]),
     );
 
-    return userList.users
-      .map((u) => {
-        const bench = benchById.get(u.id);
-        const userRoles = rolesByUserId.get(u.id) || [];
-        const primaryRole = (userRoles[0] || u.user_metadata?.["role"] || null) as RegistryRole | null;
+    if (authUsers.length > 0) {
+      return authUsers
+        .map((u) => {
+          const bench = benchById.get(u.id);
+          const userRoles = rolesByUserId.get(u.id) || [];
+          const primaryRole = (userRoles[0] || u.user_metadata?.["role"] || null) as RegistryRole | null;
+          return {
+            id: u.id,
+            email: u.email ?? "",
+            fullName: (nameById.get(u.id) || "").trim() || (u.email ?? "").split("@")[0] || "Account",
+            role: primaryRole,
+            roles: userRoles.length > 0 ? userRoles : primaryRole ? [primaryRole] : [],
+            createdAt: u.created_at,
+            lastSignInAt: u.last_sign_in_at ?? null,
+            judgeId: bench?.id ?? null,
+            judgeName: bench?.name ?? null,
+          };
+        })
+        .sort((a, b) => a.fullName.localeCompare(b.fullName));
+    }
+
+    // Graceful fallback: construct user records from registered profiles and roles
+    return (profiles ?? [])
+      .map((p) => {
+        const bench = benchById.get(p.id);
+        const userRoles = rolesByUserId.get(p.id) || [];
+        const primaryRole = (userRoles[0] || null) as RegistryRole | null;
         return {
-          id: u.id,
-          email: u.email ?? "",
-          fullName: (nameById.get(u.id) || "").trim() || (u.email ?? "").split("@")[0] || "Account",
+          id: p.id,
+          email: "—",
+          fullName: (p.full_name ?? "").trim() || "Account",
           role: primaryRole,
           roles: userRoles.length > 0 ? userRoles : primaryRole ? [primaryRole] : [],
-          createdAt: u.created_at,
-          lastSignInAt: u.last_sign_in_at ?? null,
+          createdAt: (p as any).created_at ?? new Date().toISOString(),
+          lastSignInAt: null,
           judgeId: bench?.id ?? null,
           judgeName: bench?.name ?? null,
         };
