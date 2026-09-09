@@ -10,6 +10,8 @@ import { MAX_JUDGE_WORKLOAD } from "@/lib/registry";
 import type { CaseRow } from "@/lib/cases";
 import { formatSlotLabel, slotMinutes, type Candidate } from "@/lib/scheduling";
 import { detectAssignmentConflicts, fetchConflictData, type Conflict } from "@/lib/conflicts";
+import { recordSchedulingDecision } from "@/lib/scheduling.functions";
+import { recordAudit } from "@/lib/audit";
 
 /** Thrown when a scheduling action would violate a hard constraint. */
 export class ConflictError extends Error {
@@ -124,8 +126,12 @@ const actionVerb: Record<DecisionAction, string> = {
 };
 
 /**
- * Records the human decision: creates the schedule, stores the reasoning against it
- * in ai_recommendations with the chosen status, and writes an audit_logs entry.
+ * Records the human decision: creates or updates the schedule, stores the reasoning
+ * in ai_recommendations, and logs to the audit trail.
+ *
+ * Employs a server function using service-role privileges with atomic update logic
+ * so existing active schedules for the case are updated in-place without triggering
+ * `schedules_one_active_per_case` unique constraint violations.
  */
 export async function recordDecision(params: {
   caseRow: CaseRow;
@@ -135,8 +141,51 @@ export async function recordDecision(params: {
 }) {
   const { caseRow, candidate, action, userId } = params;
   const reasons = buildReasoning(candidate, caseRow);
+  const reasoningText = reasoningToText(candidate, caseRow, reasons);
 
-  // Re-validate against live data — a conflict may have appeared since the engine ran.
+  // 1. Attempt the server function with elevated service role & atomic update logic
+  try {
+    const res = await recordSchedulingDecision({
+      data: {
+        caseId: caseRow.id,
+        caseNumber: caseRow.case_number,
+        estimatedDurationMinutes: caseRow.estimated_duration_minutes,
+        judge: candidate.judge,
+        courtroom: candidate.courtroom,
+        slot: candidate.slot,
+        action,
+        userId,
+        reasoningText,
+      },
+    });
+
+    if (res && res.conflict) {
+      throw new ConflictError(res.conflicts);
+    }
+
+    if (res && res.success && res.scheduleId) {
+      void recordAudit({
+        action: `${actionVerb[action]} — ${candidate.judge.name} / ${candidate.courtroom.name} / ${formatSlotLabel(candidate.slot)}`,
+        entityType: "case",
+        entityId: caseRow.case_number,
+        caseId: caseRow.id,
+        userId,
+        metadata: {
+          scheduleId: res.scheduleId,
+          judge: candidate.judge.name,
+          courtroom: candidate.courtroom.name,
+          slot: formatSlotLabel(candidate.slot),
+          score: candidate.score,
+        },
+      });
+      return { scheduleId: res.scheduleId };
+    }
+  } catch (err) {
+    if (err instanceof ConflictError) throw err;
+    console.warn("Server scheduling decision failed, attempting client fallback:", err);
+  }
+
+  // 2. Client-side fallback with idempotent update/insert logic
   if (action !== "rejected") {
     const data = await fetchConflictData();
     const conflicts = detectAssignmentConflicts({
@@ -153,40 +202,118 @@ export async function recordDecision(params: {
     if (conflicts.length > 0) throw new ConflictError(conflicts);
   }
 
-  const { data: schedule, error: scheduleError } = await supabase
+  const { data: existingActive } = await supabase
     .from("schedules")
-    .insert({
-      case_id: caseRow.id,
-      judge_id: candidate.judge.id,
-      courtroom_id: candidate.courtroom.id,
-      slot_id: candidate.slot.id,
-      // A rejected recommendation is kept as a cancelled schedule so the reasoning
-      // and the human decision stay auditable.
-      status: action === "rejected" ? "cancelled" : "proposed",
-    })
-    .select("id")
-    .single();
-  if (scheduleError) throw scheduleError;
+    .select("id, status")
+    .eq("case_id", caseRow.id)
+    .in("status", ["proposed", "confirmed"]);
 
-  const { error: recError } = await supabase.from("ai_recommendations").insert({
-    schedule_id: schedule.id,
-    reasoning: reasoningToText(candidate, caseRow, reasons),
-    status: action,
-  });
-  if (recError) throw recError;
+  let scheduleId: string;
 
-  if (action !== "rejected") {
+  if (action === "rejected") {
+    if (existingActive && existingActive.length > 0) {
+      for (const s of existingActive) {
+        await supabase
+          .from("schedules")
+          .update({ status: "cancelled", updated_at: new Date().toISOString() })
+          .eq("id", s.id);
+      }
+      scheduleId = existingActive[0].id;
+    } else {
+      const { data: cancelledSched, error: cancelError } = await supabase
+        .from("schedules")
+        .insert({
+          case_id: caseRow.id,
+          judge_id: candidate.judge.id,
+          courtroom_id: candidate.courtroom.id,
+          slot_id: candidate.slot.id,
+          status: "cancelled",
+        })
+        .select("id")
+        .single();
+      if (cancelError) throw cancelError;
+      scheduleId = cancelledSched.id;
+    }
+  } else {
+    if (existingActive && existingActive.length > 0) {
+      const primary = existingActive[0];
+      const { error: updateError } = await supabase
+        .from("schedules")
+        .update({
+          judge_id: candidate.judge.id,
+          courtroom_id: candidate.courtroom.id,
+          slot_id: candidate.slot.id,
+          status: "confirmed",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", primary.id);
+      if (updateError) throw updateError;
+      scheduleId = primary.id;
+
+      for (let i = 1; i < existingActive.length; i++) {
+        await supabase
+          .from("schedules")
+          .update({ status: "cancelled", updated_at: new Date().toISOString() })
+          .eq("id", existingActive[i].id);
+      }
+    } else {
+      const { data: schedule, error: scheduleError } = await supabase
+        .from("schedules")
+        .insert({
+          case_id: caseRow.id,
+          judge_id: candidate.judge.id,
+          courtroom_id: candidate.courtroom.id,
+          slot_id: candidate.slot.id,
+          status: "confirmed",
+        })
+        .select("id")
+        .single();
+      if (scheduleError) throw scheduleError;
+      scheduleId = schedule.id;
+    }
+
     await supabase.from("cases").update({ status: "scheduled" }).eq("id", caseRow.id);
   }
 
-  const { error: auditError } = await supabase.from("audit_logs").insert({
-    user_id: userId,
-    action: `${actionVerb[action]} — ${candidate.judge.name} / ${candidate.courtroom.name} / ${formatSlotLabel(candidate.slot)}`,
-    entity_affected: `case:${caseRow.case_number} schedule:${schedule.id}`,
-  });
-  if (auditError) throw auditError;
+  const { data: existingRec } = await supabase
+    .from("ai_recommendations")
+    .select("id")
+    .eq("schedule_id", scheduleId)
+    .maybeSingle();
 
-  return { scheduleId: schedule.id };
+  if (existingRec?.id) {
+    await supabase
+      .from("ai_recommendations")
+      .update({
+        reasoning: reasoningText,
+        status: action,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existingRec.id);
+  } else {
+    await supabase.from("ai_recommendations").insert({
+      schedule_id: scheduleId,
+      reasoning: reasoningText,
+      status: action,
+    });
+  }
+
+  void recordAudit({
+    action: `${actionVerb[action]} — ${candidate.judge.name} / ${candidate.courtroom.name} / ${formatSlotLabel(candidate.slot)}`,
+    entityType: "case",
+    entityId: caseRow.case_number,
+    caseId: caseRow.id,
+    userId,
+    metadata: {
+      scheduleId,
+      judge: candidate.judge.name,
+      courtroom: candidate.courtroom.name,
+      slot: formatSlotLabel(candidate.slot),
+      score: candidate.score,
+    },
+  });
+
+  return { scheduleId };
 }
 
 /** Fetches the stored scheduling recommendation (reasoning + human decision) for a schedule. */

@@ -98,7 +98,10 @@ export function detectAssignmentConflicts(params: {
   const { caseNumber, judge, courtroom, slot, availability, maxJudgeWorkload, courtHolidays } =
     params;
   const active = params.schedules.filter(
-    (s) => isActiveSchedule(s.status) && s.case_number !== caseNumber,
+    (s) =>
+      isActiveSchedule(s.status) &&
+      s.case_number !== caseNumber &&
+      (!params.caseId || s.case_id !== params.caseId),
   );
   const conflicts: Conflict[] = [];
   const when = formatSlotLabel(slot);
