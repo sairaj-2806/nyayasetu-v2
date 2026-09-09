@@ -13,21 +13,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuPortal,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { useCurrentStaff, roleLabel, setUserActiveRole } from "@/hooks/use-current-staff";
+import { useCurrentStaff, roleLabel } from "@/hooks/use-current-staff";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { useLanguage } from "@/lib/i18n";
 import { NetworkBadge } from "@/components/network-badge";
 import { GlobalSearchDialog } from "@/components/global-search-dialog";
-import { switchActiveStaffPersona } from "@/lib/offline-auth";
-import { ALL_ROLES, AppRole, ROLE_METADATA } from "@/lib/rbac";
+import { clearOfflineStaffSession } from "@/lib/offline-auth";
+import { ROLE_METADATA } from "@/lib/rbac";
 
 export function TopBar() {
   const { data: staff } = useCurrentStaff();
@@ -47,33 +43,13 @@ export function TopBar() {
   async function handleSignOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
+    clearOfflineStaffSession();
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("nyayasetu:active-role");
+    }
     await supabase.auth.signOut();
+    toast.success("Signed out successfully");
     navigate({ to: "/auth", replace: true });
-  }
-
-  const assigned = staff?.assignedRoles || (staff ? [staff.role] : []);
-  const isSuperAdminOrOffline = staff?.role === "admin" || staff?.isOfflineSession;
-  const switchableRoles = isSuperAdminOrOffline ? ALL_ROLES : assigned;
-
-  function handleSwitchPersona(targetRole: AppRole) {
-    if (staff?.isOfflineSession) {
-      const acc = switchActiveStaffPersona(targetRole);
-      queryClient.invalidateQueries({ queryKey: ["current-staff"] });
-      toast.success("Active Staff Persona Switched", {
-        description: `Now acting as ${acc.fullName} (${ROLE_METADATA[targetRole].label}). Permissions updated.`,
-        icon: <UserCheck className="size-4 text-emerald-500" />,
-      });
-    } else {
-      setUserActiveRole(targetRole);
-      queryClient.invalidateQueries({ queryKey: ["current-staff"] });
-      toast.success("Active Role & Workspace Switched", {
-        description: `Switched to ${ROLE_METADATA[targetRole].label} workspace. Permissions updated.`,
-        icon: <UserCheck className="size-4 text-emerald-500" />,
-      });
-    }
-    if (targetRole === "judge") {
-      navigate({ to: "/bench" });
-    }
   }
 
   return (
@@ -184,56 +160,11 @@ export function TopBar() {
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-
-            {/* Persona/role switcher: only shows assigned roles for regular multi-role users, or all roles for admin/evaluator */}
-            {switchableRoles.length > 1 && (
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="text-xs">
-                  <UserCheck className="size-3.5 mr-2 text-primary" />
-                  {isSuperAdminOrOffline ? "Switch Role Persona" : "Switch Authorized Role"}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuPortal>
-                  <DropdownMenuSubContent className="w-60">
-                    <DropdownMenuLabel className="text-[11px] text-muted-foreground">
-                      {isSuperAdminOrOffline
-                        ? "Simulate Official Persona"
-                        : `Your Assigned Roles (${assigned.length})`}
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {switchableRoles.map((r) => {
-                      const meta = ROLE_METADATA[r];
-                      const isCurrent = staff?.role === r;
-                      return (
-                        <DropdownMenuItem
-                          key={r}
-                          onSelect={() => handleSwitchPersona(r)}
-                          className={`text-xs ${isCurrent ? "font-semibold bg-accent text-accent-foreground" : ""}`}
-                        >
-                          <div className="flex flex-col gap-0.5">
-                            <span className="flex items-center gap-1.5">
-                              {meta.label}
-                              {isCurrent && (
-                                <span className="text-[10px] text-primary">✓ Active</span>
-                              )}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground line-clamp-1">
-                              {meta.description}
-                            </span>
-                          </div>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuSubContent>
-                </DropdownMenuPortal>
-              </DropdownMenuSub>
-            )}
-
-            <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={handleSignOut}
-              className="text-destructive focus:text-destructive"
+              className="text-destructive focus:text-destructive cursor-pointer"
             >
-              <LogOut className="size-4" />
+              <LogOut className="size-4 mr-2" />
               Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>

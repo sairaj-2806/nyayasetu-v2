@@ -72,6 +72,8 @@ function AuthenticatedLayout() {
 
 const JUDGE_ALLOWED_PREFIXES = [
   "/bench",
+  "/cases",
+  "/calendar",
   "/search",
   "/documents",
   "/evidence",

@@ -57,17 +57,8 @@ export function useCurrentStaff() {
           else if (assignedRoles.includes("document_officer")) defaultRole = "document_officer";
           else if (assignedRoles.includes("police_officer")) defaultRole = "police_officer";
 
-          // Active role can be selected if user has multiple assigned roles or is admin
-          let activeRole = defaultRole;
-          if (typeof window !== "undefined") {
-            const saved = sessionStorage.getItem("nyayasetu:active-role");
-            if (
-              saved &&
-              (assignedRoles.includes(saved as StaffRole) || assignedRoles.includes("admin"))
-            ) {
-              activeRole = saved as StaffRole;
-            }
-          }
+          // Deterministic role: assigned role without client-side spoofing
+          const activeRole = defaultRole;
 
           const staffInfo: CurrentStaff = {
             id: user.id,
