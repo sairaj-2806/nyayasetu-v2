@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Languages, LogOut, Search, Shield, Sparkles, UserCheck } from "lucide-react";
+import { Languages, LogOut, Search, Shield, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -28,7 +28,6 @@ import { NetworkBadge } from "@/components/network-badge";
 import { GlobalSearchDialog } from "@/components/global-search-dialog";
 import { switchActiveStaffPersona } from "@/lib/offline-auth";
 import { ALL_ROLES, AppRole, ROLE_METADATA } from "@/lib/rbac";
-import { openAiCopilot } from "@/components/assistant-panel";
 
 export function TopBar() {
   const { data: staff } = useCurrentStaff();
@@ -123,19 +122,6 @@ export function TopBar() {
       <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        {/* Prominent AI Copilot Button in TopBar */}
-        <button
-          type="button"
-          onClick={() => openAiCopilot()}
-          className="flex items-center gap-1 sm:gap-1.5 rounded-full border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-amber-500/15 px-2 sm:px-2.5 py-1 text-xs font-semibold text-primary transition-all hover:border-primary/60 hover:bg-primary/20 hover:shadow-xs active:scale-95 cursor-pointer shrink-0"
-          title="Open AI Judicial Copilot (Ask questions about cases, schedules, evidence, and documents)"
-          aria-label="Open AI Copilot"
-        >
-          <Sparkles className="size-3.5 text-amber-500 fill-amber-500/20 animate-pulse shrink-0" />
-          <span className="hidden xs:inline">AI Copilot</span>
-          <span className="xs:hidden">Copilot</span>
-        </button>
-
         <NetworkBadge />
         {staff?.role !== "judge" && <NotificationsBell />}
 
