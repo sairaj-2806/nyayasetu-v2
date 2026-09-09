@@ -1397,18 +1397,25 @@ function DocumentDetailPage() {
                 </Button>
 
                 <Button
-                  variant="outline"
+                  variant={previewBlobUrl ? "secondary" : "outline"}
                   size="sm"
-                  onClick={() => handleLoadPreviewBytes(activeVersion)}
+                  onClick={() => {
+                    if (previewBlobUrl) {
+                      URL.revokeObjectURL(previewBlobUrl);
+                      setPreviewBlobUrl(null);
+                    } else {
+                      handleLoadPreviewBytes(activeVersion);
+                    }
+                  }}
                   disabled={isLoadingPreview}
-                  className="text-xs h-8 gap-1 text-primary border-primary/30 hover:bg-primary/10"
+                  className="text-xs h-8 gap-1.5 text-primary border-primary/30 hover:bg-primary/10"
                 >
                   {isLoadingPreview ? (
                     <RefreshCw className="size-3 animate-spin" />
                   ) : (
                     <Eye className="size-3" />
                   )}
-                  Stream R2 View
+                  {previewBlobUrl ? "Close Preview" : "Preview Document"}
                 </Button>
 
                 <Button

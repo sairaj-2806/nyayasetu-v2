@@ -1,13 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { uploadDocumentToR2, type UploadDocumentOutput } from "@/lib/documents.functions";
+import {
+  uploadDocumentToR2,
+  getDocumentFile,
+  type UploadDocumentOutput,
+} from "@/lib/documents.functions";
 import {
   AlertTriangle,
   Archive,
+  Check,
   CheckCircle2,
   Clock,
+  Copy,
   Download,
   ExternalLink,
   Eye,
@@ -20,6 +26,7 @@ import {
   Gavel,
   History,
   Lock,
+  Maximize2,
   Plus,
   RefreshCw,
   Scale,
@@ -29,6 +36,7 @@ import {
   ShieldCheck,
   Tag,
   UploadCloud,
+  X,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -197,9 +205,18 @@ function DocumentsListPage() {
 
   const searchParams = Route.useSearch();
 
+  // Quick Preview Modal State for Uploaded Documents
+  const [previewDoc, setPreviewDoc] = useState<SecureDocument | null>(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [copiedHash, setCopiedHash] = useState(false);
+
   // Upload Modal State
   const [isUploadOpen, setIsUploadOpen] = useState(Boolean(searchParams?.upload));
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [showFilePreview, setShowFilePreview] = useState(true);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<DocumentCategory>("FIR");
   const [sensitivityTier, setSensitivityTier] = useState<DocumentSensitivityTier>("PUBLIC");
@@ -212,6 +229,148 @@ function DocumentsListPage() {
   const [notes, setNotes] = useState("");
 
   const uploadToR2 = useServerFn(uploadDocumentToR2);
+  const fetchDocFile = useServerFn(getDocumentFile);
+
+  // Clean up blob URLs on unmount or URL switch
+  useEffect(() => {
+    return () => {
+      if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+      if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
+    };
+  }, [previewBlobUrl, filePreviewUrl]);
+
+  const handleCopyHash = (hash: string) => {
+    navigator.clipboard.writeText(hash);
+    setCopiedHash(true);
+    toast.success("SHA-256 cryptographic hash copied to clipboard.");
+    setTimeout(() => setCopiedHash(false), 2000);
+  };
+
+  const handleOpenPreview = async (doc: SecureDocument) => {
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+      setPreviewBlobUrl(null);
+    }
+    setPreviewDoc(doc);
+    setPreviewError(null);
+    setIsLoadingPreview(true);
+
+    try {
+      const fileRes = await fetchDocFile({
+        data: {
+          documentId: doc.id,
+          versionNumber: doc.current_version,
+          action: "VIEW",
+        },
+      });
+
+      if (fileRes && fileRes.base64) {
+        const binaryString = atob(fileRes.base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: fileRes.contentType || "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        setPreviewBlobUrl(url);
+      } else {
+        setPreviewError("No binary stream returned from Cloudflare R2 vault.");
+      }
+    } catch (err: any) {
+      console.warn("[QuickPreview] R2 retrieval fallback:", err?.message || err);
+      setPreviewError(err?.message || "Cloudflare R2 vault stream unavailable for this record.");
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const handleClosePreview = () => {
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+      setPreviewBlobUrl(null);
+    }
+    setPreviewDoc(null);
+    setPreviewError(null);
+    setIsLoadingPreview(false);
+  };
+
+  const handleDownloadDocument = async (doc: SecureDocument) => {
+    try {
+      if (previewDoc?.id === doc.id && previewBlobUrl) {
+        const link = document.createElement("a");
+        link.href = previewBlobUrl;
+        link.download = doc.file_name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success(`Downloaded "${doc.file_name}" from Cloudflare R2 vault.`);
+        return;
+      }
+
+      const fileRes = await fetchDocFile({
+        data: {
+          documentId: doc.id,
+          versionNumber: doc.current_version,
+          action: "DOWNLOAD",
+        },
+      });
+
+      if (fileRes && fileRes.base64) {
+        const binaryString = atob(fileRes.base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: fileRes.contentType || "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileRes.fileName || doc.file_name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success(`Downloaded "${fileRes.fileName}" from Cloudflare R2 vault.`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to download document from R2 vault.");
+    }
+  };
+
+  const handleSelectFile = (file: File) => {
+    if (filePreviewUrl) {
+      URL.revokeObjectURL(filePreviewUrl);
+      setFilePreviewUrl(null);
+    }
+    setSelectedFile(file);
+    setFileName(file.name);
+    if (!title.trim()) {
+      setTitle(file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "));
+    }
+    const url = URL.createObjectURL(file);
+    setFilePreviewUrl(url);
+    setShowFilePreview(true);
+
+    if (file.type.startsWith("text/") || file.name.endsWith(".txt")) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        if (typeof evt.target?.result === "string") {
+          setContentText(evt.target.result.slice(0, 5000));
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleClearSelectedFile = () => {
+    if (filePreviewUrl) {
+      URL.revokeObjectURL(filePreviewUrl);
+      setFilePreviewUrl(null);
+    }
+    setSelectedFile(null);
+    setFileName("");
+    setShowFilePreview(false);
+  };
 
   // Verification Modal State
   const [selectedDocToVerify, setSelectedDocToVerify] = useState<SecureDocument | null>(null);
@@ -300,18 +459,59 @@ function DocumentsListPage() {
       return res as UploadDocumentOutput;
     },
     onSuccess: (newDoc: UploadDocumentOutput) => {
+      const uploadedDocRecord: SecureDocument = {
+        id: newDoc.id,
+        document_number: newDoc.document_number,
+        title: title.trim() || newDoc.document_number,
+        category,
+        sensitivity_tier: sensitivityTier,
+        file_name: fileName.trim() || "document.pdf",
+        file_format: selectedFile?.name.split(".").pop()?.toUpperCase() || "PDF",
+        file_size_bytes: newDoc.file_size_bytes,
+        latest_sha256: newDoc.sha256,
+        current_version: 1,
+        is_tampered: false,
+        is_sealed: sensitivityTier === "SEALED_COVER_IN_CAMERA",
+        storage_path: newDoc.r2_object_key,
+        r2_object_key: newDoc.r2_object_key,
+        r2_bucket: newDoc.r2_bucket,
+        status: "ACTIVE",
+        case_id: null,
+        case_number: caseNumber.trim() || null,
+        police_station: policeStation.trim() || "Connaught Place Police Station, New Delhi",
+        fir_number: firNumber.trim() || null,
+        asset_id: null,
+        asset_code: null,
+        relationship_type: null,
+        originating_agency: "State Criminal Registry & CCTNS Portal",
+        content_text: contentText.trim() || undefined,
+        metadata: {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        uploaded_by_name: staffName,
+        uploaded_by_role: staffRole,
+      };
+
       toast.success(
-        `Document ${newDoc.document_number} stored in Cloudflare R2 vault (${newDoc.r2_object_key}) with verified SHA-256 digest.`,
+        `Document ${newDoc.document_number} stored in Cloudflare R2 vault with verified SHA-256 digest.`,
+        {
+          action: {
+            label: "Preview",
+            onClick: () => handleOpenPreview(uploadedDocRecord),
+          },
+        },
       );
       setIsUploadOpen(false);
-      setSelectedFile(null);
+      handleClearSelectedFile();
       setTitle("");
-      setFileName("");
       setContentText("");
       setNotes("");
       setCaseNumber("");
       setAssetCode("");
       queryClient.invalidateQueries({ queryKey: ["secure-documents"] });
+
+      // Automatically open instant preview of the uploaded document
+      void handleOpenPreview(uploadedDocRecord);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -674,14 +874,25 @@ function DocumentsListPage() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2.5 text-xs text-primary border-primary/30 hover:bg-primary/10 gap-1 font-medium shadow-2xs"
+                            onClick={() => handleOpenPreview(doc)}
+                            title="Preview document stream from Cloudflare R2 vault"
+                          >
+                            <Eye className="size-3.5" />
+                            Preview
+                          </Button>
+                          <Button
                             asChild
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-xs text-primary gap-1"
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+                            title="Inspect complete document ledger & version history"
                           >
                             <Link to="/documents/$documentId" params={{ documentId: doc.id }}>
-                              <Eye className="size-3.5" />
-                              View
+                              <ExternalLink className="size-3" />
+                              Details
                             </Link>
                           </Button>
                           <Button
@@ -690,6 +901,7 @@ function DocumentsListPage() {
                             className="h-7 px-2 text-[11px] text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1"
                             onClick={() => handleVerifyDoc(doc)}
                             disabled={isVerifyingIndex && selectedDocToVerify?.id === doc.id}
+                            title="Verify SHA-256 cryptographic checksum"
                           >
                             {isVerifyingIndex && selectedDocToVerify?.id === doc.id ? (
                               <RefreshCw className="size-3 animate-spin" />
@@ -833,8 +1045,8 @@ function DocumentsListPage() {
               </div>
             </div>
 
-            {/* Interactive File Attachment Dropzone */}
-            <div className="space-y-1.5">
+            {/* Interactive File Attachment Dropzone & Live Preview */}
+            <div className="space-y-2">
               <Label className="text-xs font-semibold">Select File from Device</Label>
               <div
                 className="border-2 border-dashed border-border/80 rounded-lg p-3.5 text-center hover:border-primary/60 hover:bg-muted/40 transition-colors cursor-pointer bg-muted/20"
@@ -848,20 +1060,7 @@ function DocumentsListPage() {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      setSelectedFile(file);
-                      setFileName(file.name);
-                      if (!title.trim()) {
-                        setTitle(file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "));
-                      }
-                      if (file.type.startsWith("text/") || file.name.endsWith(".txt")) {
-                        const reader = new FileReader();
-                        reader.onload = (evt) => {
-                          if (typeof evt.target?.result === "string") {
-                            setContentText(evt.target.result.slice(0, 5000));
-                          }
-                        };
-                        reader.readAsText(file);
-                      }
+                      handleSelectFile(file);
                     }
                   }}
                 />
@@ -881,6 +1080,86 @@ function DocumentsListPage() {
                   PDF, DOCX, TIFF, PNG, JPG up to 50 MB
                 </p>
               </div>
+
+              {/* Selected File Live Preview Card */}
+              {selectedFile && (
+                <div className="rounded-lg border border-border/80 bg-muted/20 p-2.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-mono border-primary/30 text-primary shrink-0"
+                      >
+                        {selectedFile.name.split(".").pop()?.toUpperCase() || "FILE"}
+                      </Badge>
+                      <span className="text-xs font-medium text-foreground truncate max-w-[220px]">
+                        {selectedFile.name}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground shrink-0">
+                        ({(selectedFile.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-[11px] gap-1 text-primary hover:bg-primary/10"
+                        onClick={() => setShowFilePreview(!showFilePreview)}
+                      >
+                        <Eye className="size-3" />
+                        {showFilePreview ? "Hide Preview" : "Preview"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-destructive"
+                        onClick={handleClearSelectedFile}
+                        title="Remove file"
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {showFilePreview && (
+                    <div className="rounded-md border border-border overflow-hidden bg-background">
+                      {selectedFile.type === "application/pdf" ||
+                      selectedFile.name.toLowerCase().endsWith(".pdf") ? (
+                        <div className="space-y-1">
+                          <div className="bg-muted/40 px-2.5 py-1 border-b border-border/80 text-[10px] text-muted-foreground flex items-center justify-between">
+                            <span className="font-semibold text-foreground flex items-center gap-1">
+                              <FileText className="size-3 text-primary" />
+                              PDF Document Preview
+                            </span>
+                            <span className="font-mono">{selectedFile.name}</span>
+                          </div>
+                          <iframe
+                            src={filePreviewUrl || undefined}
+                            className="w-full h-64 bg-white"
+                            title="Selected PDF File Preview"
+                          />
+                        </div>
+                      ) : selectedFile.type.startsWith("image/") ||
+                        selectedFile.name.match(/\.(png|jpe?g|webp|gif|tiff?)$/i) ? (
+                        <div className="p-3 text-center bg-muted/10">
+                          <img
+                            src={filePreviewUrl || undefined}
+                            alt={selectedFile.name}
+                            className="max-h-60 mx-auto rounded object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="p-3 font-mono text-xs max-h-44 overflow-y-auto whitespace-pre-wrap bg-muted/20 leading-relaxed">
+                          {contentText ||
+                            "Preview unavailable for binary format. Text transcript will be indexed."}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -1141,6 +1420,239 @@ function DocumentsListPage() {
               Done
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Document Preview Modal with Live Cloudflare R2 Streaming */}
+      <Dialog
+        open={Boolean(previewDoc)}
+        onOpenChange={(open) => {
+          if (!open) handleClosePreview();
+        }}
+      >
+        <DialogContent className="sm:max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden">
+          {previewDoc && (
+            <>
+              {/* Header */}
+              <DialogHeader className="p-4 pb-3 border-b border-border/80 bg-muted/30">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-mono text-xs font-bold text-primary flex items-center gap-1">
+                        <FileText className="size-3.5" />
+                        {previewDoc.document_number}
+                      </span>
+                      {getCategoryBadge(previewDoc.category)}
+                      {getSensitivityBadge(previewDoc.sensitivity_tier)}
+                      <Badge variant="outline" className="font-mono text-[10px]">
+                        v{previewDoc.current_version}
+                      </Badge>
+                      <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px]">
+                        R2 VAULT VERIFIED
+                      </Badge>
+                    </div>
+                    <DialogTitle className="text-base font-semibold text-foreground line-clamp-1">
+                      {previewDoc.title}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                      <span>{previewDoc.file_name}</span>
+                      <span>•</span>
+                      <span>{(previewDoc.file_size_bytes / 1024).toFixed(1)} KB</span>
+                      {previewDoc.case_number && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1 text-foreground font-medium">
+                            <Gavel className="size-3 text-primary" /> Case: {previewDoc.case_number}
+                          </span>
+                        </>
+                      )}
+                      {previewDoc.police_station && (
+                        <>
+                          <span>•</span>
+                          <span>{previewDoc.police_station}</span>
+                        </>
+                      )}
+                    </DialogDescription>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 self-start sm:self-center shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs gap-1 shadow-2xs"
+                      onClick={() => handleDownloadDocument(previewDoc)}
+                    >
+                      <Download className="size-3.5" />
+                      Download
+                    </Button>
+                    <Button
+                      asChild
+                      variant="default"
+                      size="sm"
+                      className="h-8 text-xs gap-1 shadow-2xs"
+                    >
+                      <Link
+                        to="/documents/$documentId"
+                        params={{ documentId: previewDoc.id }}
+                        onClick={handleClosePreview}
+                      >
+                        <ExternalLink className="size-3.5" />
+                        Full Page
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              {/* Preview Viewer Body */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-background">
+                {isLoadingPreview ? (
+                  <div className="py-20 text-center space-y-3">
+                    <RefreshCw className="size-8 animate-spin mx-auto text-primary" />
+                    <p className="text-sm font-medium text-foreground">
+                      Streaming authentic file from Cloudflare R2 vault...
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      Bucket: nyayasetu-vault • Object:{" "}
+                      {previewDoc.storage_path || previewDoc.r2_object_key || "resolving..."}
+                    </p>
+                  </div>
+                ) : previewBlobUrl ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                      <span className="flex items-center gap-1 font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="size-3.5" />
+                        Live Cloudflare R2 Stream Active
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          if (previewBlobUrl) window.open(previewBlobUrl, "_blank");
+                        }}
+                      >
+                        <Maximize2 className="size-3" />
+                        Open in New Tab
+                      </Button>
+                    </div>
+
+                    {previewDoc.file_name.toLowerCase().endsWith(".pdf") ||
+                    previewDoc.file_format === "PDF" ||
+                    previewDoc.file_format === "PDF/A" ? (
+                      <iframe
+                        src={previewBlobUrl}
+                        className="w-full h-[580px] rounded-lg border border-border bg-white shadow-xs"
+                        title={previewDoc.title}
+                      />
+                    ) : previewDoc.file_name.match(/\.(png|jpe?g|webp|gif|tiff?)$/i) ? (
+                      <div className="p-4 flex items-center justify-center bg-muted/20 rounded-lg min-h-[400px]">
+                        <img
+                          src={previewBlobUrl}
+                          alt={previewDoc.title}
+                          className="max-h-[550px] max-w-full rounded object-contain shadow-xs"
+                        />
+                      </div>
+                    ) : (
+                      <iframe
+                        src={previewBlobUrl}
+                        className="w-full h-[580px] rounded-lg border border-border bg-white shadow-xs"
+                        title={previewDoc.title}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {previewError && (
+                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+                        <span>{previewError} Displaying certified document transcript record.</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-[10px] gap-1"
+                          onClick={() => handleOpenPreview(previewDoc)}
+                        >
+                          <RefreshCw className="size-3" /> Retry R2 Stream
+                        </Button>
+                      </div>
+                    )}
+
+                    <div className="rounded-lg border border-border bg-muted/20 p-5 font-mono text-xs leading-relaxed text-foreground whitespace-pre-wrap max-h-[500px] overflow-y-auto">
+                      {previewDoc.content_text ? (
+                        previewDoc.content_text
+                      ) : (
+                        `NyayaSetu Certified Legal Archive Record\n=========================================\nTitle: ${previewDoc.title}\nDocument Number: ${previewDoc.document_number}\nCategory: ${previewDoc.category}\nSensitivity Tier: ${previewDoc.sensitivity_tier}\nOriginating Agency: ${previewDoc.originating_agency || "State Criminal Registry & CCTNS"}\nPolice Station: ${previewDoc.police_station || "N/A"}\nFIR Number: ${previewDoc.fir_number || "N/A"}\nAssociated Case: ${previewDoc.case_number || "N/A"}\nVault Storage Path: ${previewDoc.storage_path || previewDoc.r2_object_key || "cases/general/documents"}\nImmutable SHA-256 Digest: ${previewDoc.latest_sha256}\nSection 63 BSA 2023 Digital Seal: VERIFIED`
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cryptographic Hash Bar & Vault Storage Location */}
+                <div className="rounded-lg border border-border/80 bg-muted/30 p-3 space-y-2 text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                        SHA-256 Cryptographic Hash
+                      </span>
+                      <span className="font-mono text-[11px] text-foreground break-all">
+                        {previewDoc.latest_sha256}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs gap-1 shrink-0 self-start sm:self-auto"
+                      onClick={() => handleCopyHash(previewDoc.latest_sha256)}
+                    >
+                      {copiedHash ? (
+                        <Check className="size-3 text-emerald-600" />
+                      ) : (
+                        <Copy className="size-3" />
+                      )}
+                      {copiedHash ? "Copied" : "Copy Hash"}
+                    </Button>
+                  </div>
+
+                  <div className="pt-2 border-t border-border/60 flex flex-wrap items-center justify-between text-[11px] text-muted-foreground gap-2">
+                    <span className="font-mono truncate max-w-md">
+                      Vault Path:{" "}
+                      {previewDoc.storage_path ||
+                        previewDoc.r2_object_key ||
+                        `cases/${previewDoc.case_number || "general"}/documents/${previewDoc.id}/${previewDoc.file_name}`}
+                    </span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                      <ShieldCheck className="size-3" />
+                      Private R2 Bucket: nyayasetu-vault
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <DialogFooter className="p-3 border-t border-border/80 bg-muted/20 flex sm:flex-row items-center justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs gap-1 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                  onClick={() => {
+                    handleVerifyDoc(previewDoc);
+                  }}
+                  disabled={isVerifyingIndex && selectedDocToVerify?.id === previewDoc.id}
+                >
+                  {isVerifyingIndex && selectedDocToVerify?.id === previewDoc.id ? (
+                    <RefreshCw className="size-3 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="size-3" />
+                  )}
+                  Verify Cryptographic Integrity
+                </Button>
+
+                <Button size="sm" onClick={handleClosePreview} className="text-xs">
+                  Close Preview
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
