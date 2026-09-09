@@ -1053,7 +1053,7 @@ function Page() {
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1">
-                <Link to="/documents">
+                <Link to="/documents" search={{ upload: true }}>
                   <FileText className="size-3.5" />
                   Upload Document
                 </Link>

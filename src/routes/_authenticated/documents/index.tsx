@@ -79,7 +79,19 @@ import { getAllDigitalSignatures } from "@/lib/digital-signature";
 import { ErrorState } from "@/components/states";
 import { cn } from "@/lib/utils";
 
+export type DocumentRouteSearch = {
+  upload?: boolean | undefined;
+  caseNumber?: string | undefined;
+};
+
 export const Route = createFileRoute("/_authenticated/documents/")({
+  validateSearch: (search: Record<string, unknown>): DocumentRouteSearch => ({
+    upload:
+      search["upload"] === true || search["upload"] === "true" || search["upload"] === "1"
+        ? true
+        : undefined,
+    caseNumber: typeof search["caseNumber"] === "string" ? (search["caseNumber"] as string) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Digital Documents & Pleadings — NyayaSetu" },
@@ -181,14 +193,16 @@ function DocumentsListPage() {
     }),
   );
 
+  const searchParams = Route.useSearch();
+
   // Upload Modal State
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(Boolean(searchParams?.upload));
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<DocumentCategory>("FIR");
   const [sensitivityTier, setSensitivityTier] = useState<DocumentSensitivityTier>("PUBLIC");
   const [firNumber, setFirNumber] = useState("");
   const [policeStation, setPoliceStation] = useState("Connaught Place Police Station, New Delhi");
-  const [caseNumber, setCaseNumber] = useState("");
+  const [caseNumber, setCaseNumber] = useState(searchParams?.caseNumber || "");
   const [assetCode, setAssetCode] = useState("");
   const [fileName, setFileName] = useState("");
   const [contentText, setContentText] = useState("");
@@ -323,8 +337,10 @@ function DocumentsListPage() {
         title="Secure Digital Document Repository"
         description="Encrypted, tamper-evident document vault for FIRs, police charge sheets, forensic certificates, seizure memos, and court pleadings."
         actions={
-          permissions.canUploadDocuments ? (
-            <Button onClick={() => setIsUploadOpen(true)} className="gap-1.5 text-xs">
+          staff.isLoading ? (
+            <Skeleton className="h-9 w-32" />
+          ) : permissions.canUploadDocuments || permissions.isAdmin || staff.data?.role === "admin" || staff.data?.role === "registrar" ? (
+            <Button onClick={() => setIsUploadOpen(true)} className="gap-1.5 text-xs shadow-xs">
               <UploadCloud className="size-4" />
               Upload Document
             </Button>
@@ -508,8 +524,18 @@ function DocumentsListPage() {
                 No documents matched filter criteria
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Try adjusting your category or search query.
+                Try adjusting your category or search query, or upload a new record.
               </p>
+              {(permissions.canUploadDocuments || permissions.isAdmin || staff.data?.role === "admin" || staff.data?.role === "registrar") && (
+                <Button
+                  onClick={() => setIsUploadOpen(true)}
+                  size="sm"
+                  className="mt-4 gap-1.5 text-xs shadow-xs"
+                >
+                  <UploadCloud className="size-3.5" />
+                  Upload Document
+                </Button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -775,6 +801,51 @@ function DocumentsListPage() {
                   onChange={(e) => setPoliceStation(e.target.value)}
                   placeholder="e.g. Connaught Place PS"
                 />
+              </div>
+            </div>
+
+            {/* Interactive File Attachment Dropzone */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Select File from Device</Label>
+              <div
+                className="border-2 border-dashed border-border/80 rounded-lg p-3.5 text-center hover:border-primary/60 hover:bg-muted/40 transition-colors cursor-pointer bg-muted/20"
+                onClick={() => document.getElementById("fileAttachmentPicker")?.click()}
+              >
+                <input
+                  id="fileAttachmentPicker"
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.docx,.doc,.tiff,.png,.jpg,.jpeg,.txt"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setFileName(file.name);
+                      if (!title.trim()) {
+                        setTitle(file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "));
+                      }
+                      if (file.type.startsWith("text/") || file.name.endsWith(".txt")) {
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                          if (typeof evt.target?.result === "string") {
+                            setContentText(evt.target.result.slice(0, 5000));
+                          }
+                        };
+                        reader.readAsText(file);
+                      }
+                    }
+                  }}
+                />
+                <UploadCloud className="size-6 text-primary mx-auto mb-1 opacity-80" />
+                <p className="text-xs font-medium text-foreground">
+                  {fileName ? (
+                    <span className="text-emerald-600 font-semibold">{fileName}</span>
+                  ) : (
+                    "Click to select file from device or drag and drop"
+                  )}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  PDF, DOCX, TIFF, PNG, JPG up to 50 MB
+                </p>
               </div>
             </div>
 

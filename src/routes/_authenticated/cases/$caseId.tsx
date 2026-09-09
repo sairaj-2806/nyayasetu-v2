@@ -1107,7 +1107,7 @@ function CaseDossierPage() {
                   </CardDescription>
                 </div>
                 <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs self-start">
-                  <Link to="/documents">
+                  <Link to="/documents" search={{ upload: true, caseNumber: record.case_number }}>
                     <Plus className="size-3.5" />
                     Attach Document
                   </Link>
@@ -1126,7 +1126,7 @@ function CaseDossierPage() {
                     in the digital document repository.
                   </p>
                   <Button asChild size="sm" variant="outline" className="mt-4 gap-1.5 text-xs">
-                    <Link to="/documents">
+                    <Link to="/documents" search={{ upload: true, caseNumber: record.case_number }}>
                       <Plus className="size-3.5" /> Upload First Document
                     </Link>
                   </Button>
