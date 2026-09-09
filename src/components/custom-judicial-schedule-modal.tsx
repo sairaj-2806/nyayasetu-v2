@@ -35,6 +35,7 @@ import { useCurrentStaff, permissionsFor } from "@/hooks/use-current-staff";
 import { formatSlotLabel, schedulingDataQuery, slotMinutes } from "@/lib/scheduling";
 import { conflictDataQuery, detectAssignmentConflicts, type Conflict } from "@/lib/conflicts";
 import { recordAudit } from "@/lib/audit";
+import { customJudicialScheduleServerFn } from "@/lib/scheduling.functions";
 import type { CaseRow } from "@/lib/cases";
 import { MAX_JUDGE_WORKLOAD } from "@/lib/registry";
 
@@ -116,48 +117,109 @@ export function CustomJudicialScheduleModal({
 
     setSubmitting(true);
     try {
-      // 1. Insert into schedules
-      const { data: schedule, error: scheduleError } = await supabase
-        .from("schedules")
-        .insert({
-          case_id: caseRow.id,
-          judge_id: selectedJudge.id,
-          courtroom_id: selectedCourtroom.id,
-          slot_id: selectedSlot.id,
-          status: "confirmed",
-        })
-        .select("id")
-        .single();
+      try {
+        await customJudicialScheduleServerFn({
+          data: {
+            caseId: caseRow.id,
+            caseNumber: caseRow.case_number,
+            parties: caseRow.parties,
+            judge: selectedJudge,
+            courtroom: selectedCourtroom,
+            slot: selectedSlot,
+            directiveReason,
+            customNote,
+            preflightConflicts,
+            userId: staff.data.id,
+            userName: staff.data.fullName,
+            userRole: staff.data.role,
+          },
+        });
+      } catch (srvErr) {
+        console.warn("Server custom schedule failed, attempting client fallback:", srvErr);
 
-      if (scheduleError) throw scheduleError;
+        // Client fallback with idempotent update-or-insert to avoid 23505
+        const { data: existingActive } = await supabase
+          .from("schedules")
+          .select("id, status")
+          .eq("case_id", caseRow.id)
+          .in("status", ["proposed", "confirmed"]);
 
-      // 2. Format detailed judicial directive audit reasoning
-      const noteText = customNote.trim() ? ` — Note: ${customNote.trim()}` : "";
-      const reasoning = [
-        `⚖️ Judicial Directive / Custom Scheduling by ${staff.data.fullName} (${staff.data.role}):`,
-        `- Directive Reason: ${directiveReason}${noteText}`,
-        `- Presiding Bench: ${selectedJudge.name} (${selectedJudge.specialisation || "General"})`,
-        `- Courtroom: ${selectedCourtroom.name} (Cap: ${selectedCourtroom.capacity})`,
-        `- Listing Slot: ${formatSlotLabel(selectedSlot)}`,
-        `- Case: ${caseRow.case_number} (${caseRow.parties || "Parties on record"})`,
-        `- Pre-flight Hard Constraints: ${preflightConflicts.length === 0 ? "PASSED ALL CHECKS" : `OVERRIDDEN (${preflightConflicts.map((c) => c.kind).join(", ")})`}`,
-      ].join("\n");
+        let scheduleId: string;
 
-      // 3. Insert recommendation record with status 'modified' (human custom assignment)
-      await supabase.from("ai_recommendations").insert({
-        schedule_id: schedule.id,
-        reasoning,
-        status: "modified",
-      });
+        const [primary, ...rest] = existingActive ?? [];
+        if (primary) {
+          const { error: updateError } = await supabase
+            .from("schedules")
+            .update({
+              judge_id: selectedJudge.id,
+              courtroom_id: selectedCourtroom.id,
+              slot_id: selectedSlot.id,
+              status: "confirmed",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", primary.id);
+          if (updateError) throw updateError;
+          scheduleId = primary.id;
 
-      // 4. Update case status to scheduled
-      await supabase.from("cases").update({ status: "scheduled" }).eq("id", caseRow.id);
+          for (const duplicate of rest) {
+            await supabase
+              .from("schedules")
+              .update({ status: "cancelled", updated_at: new Date().toISOString() })
+              .eq("id", duplicate.id);
+          }
+        } else {
+          const { data: schedule, error: scheduleError } = await supabase
+            .from("schedules")
+            .insert({
+              case_id: caseRow.id,
+              judge_id: selectedJudge.id,
+              courtroom_id: selectedCourtroom.id,
+              slot_id: selectedSlot.id,
+              status: "confirmed",
+            })
+            .select("id")
+            .single();
+          if (scheduleError) throw scheduleError;
+          scheduleId = schedule.id;
+        }
 
-      // 5. Log audit trail
-      await recordAudit(
-        `Custom judicial listing confirmed for case ${caseRow.case_number} with ${selectedJudge.name} on ${selectedSlot.date} (${directiveReason})`,
-        `case:${caseRow.case_number}`,
-      );
+        const noteText = customNote.trim() ? ` — Note: ${customNote.trim()}` : "";
+        const reasoning = [
+          `⚖️ Judicial Directive / Custom Scheduling by ${staff.data.fullName} (${staff.data.role}):`,
+          `- Directive Reason: ${directiveReason}${noteText}`,
+          `- Presiding Bench: ${selectedJudge.name} (${selectedJudge.specialisation || "General"})`,
+          `- Courtroom: ${selectedCourtroom.name} (Cap: ${selectedCourtroom.capacity})`,
+          `- Listing Slot: ${formatSlotLabel(selectedSlot)}`,
+          `- Case: ${caseRow.case_number} (${caseRow.parties || "Parties on record"})`,
+          `- Pre-flight Hard Constraints: ${preflightConflicts.length === 0 ? "PASSED ALL CHECKS" : `OVERRIDDEN (${preflightConflicts.map((c) => c.kind).join(", ")})`}`,
+        ].join("\n");
+
+        const { data: existingRec } = await supabase
+          .from("ai_recommendations")
+          .select("id")
+          .eq("schedule_id", scheduleId)
+          .maybeSingle();
+
+        if (existingRec?.id) {
+          await supabase
+            .from("ai_recommendations")
+            .update({ reasoning, status: "modified", updated_at: new Date().toISOString() })
+            .eq("id", existingRec.id);
+        } else {
+          await supabase.from("ai_recommendations").insert({
+            schedule_id: scheduleId,
+            reasoning,
+            status: "modified",
+          });
+        }
+
+        await supabase.from("cases").update({ status: "scheduled" }).eq("id", caseRow.id);
+
+        await recordAudit(
+          `Custom judicial listing confirmed for case ${caseRow.case_number} with ${selectedJudge.name} on ${selectedSlot.date} (${directiveReason})`,
+          `case:${caseRow.case_number}`,
+        );
+      }
 
       toast.success(`Case ${caseRow.case_number} scheduled per Judicial Directive!`);
       setOpen(false);

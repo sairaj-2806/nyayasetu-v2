@@ -211,14 +211,15 @@ export async function recordDecision(params: {
   let scheduleId: string;
 
   if (action === "rejected") {
-    if (existingActive && existingActive.length > 0) {
-      for (const s of existingActive) {
+    const [firstActive] = existingActive ?? [];
+    if (firstActive) {
+      for (const s of existingActive ?? []) {
         await supabase
           .from("schedules")
           .update({ status: "cancelled", updated_at: new Date().toISOString() })
           .eq("id", s.id);
       }
-      scheduleId = existingActive[0].id;
+      scheduleId = firstActive.id;
     } else {
       const { data: cancelledSched, error: cancelError } = await supabase
         .from("schedules")
@@ -235,8 +236,8 @@ export async function recordDecision(params: {
       scheduleId = cancelledSched.id;
     }
   } else {
-    if (existingActive && existingActive.length > 0) {
-      const primary = existingActive[0];
+    const [primary, ...rest] = existingActive ?? [];
+    if (primary) {
       const { error: updateError } = await supabase
         .from("schedules")
         .update({
@@ -250,11 +251,11 @@ export async function recordDecision(params: {
       if (updateError) throw updateError;
       scheduleId = primary.id;
 
-      for (let i = 1; i < existingActive.length; i++) {
+      for (const duplicate of rest) {
         await supabase
           .from("schedules")
           .update({ status: "cancelled", updated_at: new Date().toISOString() })
-          .eq("id", existingActive[i].id);
+          .eq("id", duplicate.id);
       }
     } else {
       const { data: schedule, error: scheduleError } = await supabase

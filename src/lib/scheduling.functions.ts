@@ -101,15 +101,16 @@ export const recordSchedulingDecision = createServerFn({ method: "POST" })
     let scheduleId: string;
 
     if (data.action === "rejected") {
-      if (existingActive && existingActive.length > 0) {
+      const [firstActive] = existingActive ?? [];
+      if (firstActive) {
         // Cancel all existing active schedules
-        for (const s of existingActive) {
+        for (const s of existingActive ?? []) {
           await supabaseAdmin
             .from("schedules")
             .update({ status: "cancelled", updated_at: new Date().toISOString() })
             .eq("id", s.id);
         }
-        scheduleId = existingActive[0].id;
+        scheduleId = firstActive.id;
       } else {
         // Create a cancelled schedule entry so rejection is auditable
         const { data: cancelledSched, error: cancelError } = await supabaseAdmin
@@ -128,9 +129,9 @@ export const recordSchedulingDecision = createServerFn({ method: "POST" })
       }
     } else {
       // action is 'accepted' or 'modified'
-      if (existingActive && existingActive.length > 0) {
+      const [primary, ...rest] = existingActive ?? [];
+      if (primary) {
         // Update first active schedule in-place to avoid unique constraint violation
-        const primary = existingActive[0];
         const { error: updateError } = await supabaseAdmin
           .from("schedules")
           .update({
@@ -145,11 +146,11 @@ export const recordSchedulingDecision = createServerFn({ method: "POST" })
         scheduleId = primary.id;
 
         // Cancel any extra duplicate active schedules if any exist
-        for (let i = 1; i < existingActive.length; i++) {
+        for (const duplicate of rest) {
           await supabaseAdmin
             .from("schedules")
             .update({ status: "cancelled", updated_at: new Date().toISOString() })
-            .eq("id", existingActive[i].id);
+            .eq("id", duplicate.id);
         }
       } else {
         // Insert new confirmed schedule
@@ -284,9 +285,9 @@ export const customJudicialScheduleServerFn = createServerFn({ method: "POST" })
 
     let scheduleId: string;
 
-    if (existingActive && existingActive.length > 0) {
+    const [primary, ...rest] = existingActive ?? [];
+    if (primary) {
       // Update first existing active schedule
-      const primary = existingActive[0];
       const { error: updateError } = await supabaseAdmin
         .from("schedules")
         .update({
@@ -301,11 +302,11 @@ export const customJudicialScheduleServerFn = createServerFn({ method: "POST" })
       scheduleId = primary.id;
 
       // Cancel duplicate active schedules if any
-      for (let i = 1; i < existingActive.length; i++) {
+      for (const duplicate of rest) {
         await supabaseAdmin
           .from("schedules")
           .update({ status: "cancelled", updated_at: new Date().toISOString() })
-          .eq("id", existingActive[i].id);
+          .eq("id", duplicate.id);
       }
     } else {
       // Insert new confirmed schedule
