@@ -26,6 +26,7 @@ import {
   MapPin,
   Package,
   PackageCheck,
+  Pencil,
   Plus,
   RefreshCw,
   Scale,
@@ -95,6 +96,7 @@ import { WhyThisOrderPanel } from "@/components/why-this-order";
 import { CaseTimeline } from "@/components/case-timeline";
 import { StoredReasoning } from "@/components/reasoning-list";
 import { CaseSchedulingPanel } from "@/components/case-scheduling-panel";
+import { EditCaseModal } from "@/components/edit-case-modal";
 import { ErrorState } from "@/components/states";
 import { scheduleRecommendationQuery } from "@/lib/recommendations";
 import {
@@ -445,6 +447,7 @@ function CaseDossierPage() {
               {statusLabel[record.status as CaseStatus] ?? record.status}
             </Badge>
             <PriorityBadge score={record.priority_score} />
+            <EditCaseModal caseRow={record} />
             <Button variant="outline" size="sm" onClick={() => void handleDownloadReport()}>
               <Download className="size-4" /> Download Case Report
             </Button>
@@ -517,16 +520,31 @@ function CaseDossierPage() {
         <TabsContent value="overview" className="space-y-6 pt-2">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Case particulars</CardTitle>
-                {record.cnr_number && (
-                  <Badge
-                    variant="outline"
-                    className="font-mono text-xs text-primary border-primary/30"
-                  >
-                    CNR: {record.cnr_number}
-                  </Badge>
-                )}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <CardTitle className="text-base">Case particulars</CardTitle>
+                  {record.cnr_number && (
+                    <Badge
+                      variant="outline"
+                      className="font-mono text-xs text-primary border-primary/30"
+                    >
+                      CNR: {record.cnr_number}
+                    </Badge>
+                  )}
+                </div>
+                <EditCaseModal
+                  caseRow={record}
+                  triggerButton={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit particulars
+                    </Button>
+                  }
+                />
               </div>
             </CardHeader>
             <CardContent className="grid gap-5 sm:grid-cols-3">
@@ -674,14 +692,27 @@ function CaseDossierPage() {
         <TabsContent value="parties" className="space-y-6 pt-2">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Users className="size-4 text-primary" />
-                Case Litigants, Law Enforcement & Legal Representatives
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Verified party details, investigating officers, standing counsels, and advocate
-                enrolments.
-              </CardDescription>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Users className="size-4 text-primary" />
+                    Case Litigants, Law Enforcement & Legal Representatives
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Verified party details, investigating officers, standing counsels, and advocate
+                    enrolments.
+                  </CardDescription>
+                </div>
+                <EditCaseModal
+                  caseRow={record}
+                  triggerButton={
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                      <Pencil className="size-3.5" />
+                      Edit Litigants
+                    </Button>
+                  }
+                />
+              </div>
             </CardHeader>
             <CardContent className="grid gap-6 sm:grid-cols-2">
               <div className="rounded-lg border p-4 space-y-3 bg-muted/20">

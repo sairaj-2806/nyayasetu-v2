@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { FolderOpen, Plus, Search } from "lucide-react";
+import { FolderOpen, Pencil, Plus, Search } from "lucide-react";
 
 import { PageHeader } from "@/components/page-shell";
 import { PriorityBadge } from "@/components/priority-badge";
+import { EditCaseModal } from "@/components/edit-case-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -167,13 +168,14 @@ function CasesPage() {
               <TableHead>Priority</TableHead>
               <TableHead>Filing date</TableHead>
               <TableHead className="text-right">Pending (days)</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {cases.isLoading &&
               Array.from({ length: 4 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={7}>
                     <Skeleton className="h-6 w-full" />
                   </TableCell>
                 </TableRow>
@@ -181,7 +183,7 @@ function CasesPage() {
 
             {cases.isError && (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-sm text-destructive">
+                <TableCell colSpan={7} className="py-10 text-center text-sm text-destructive">
                   Could not load cases.
                 </TableCell>
               </TableRow>
@@ -189,7 +191,7 @@ function CasesPage() {
 
             {!cases.isLoading && !cases.isError && rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-14 text-center">
+                <TableCell colSpan={7} className="py-14 text-center">
                   <FolderOpen className="mx-auto mb-3 size-6 text-muted-foreground" />
                   <p className="text-sm font-medium text-foreground">No cases found</p>
                   <p className="mt-1 text-sm text-muted-foreground">
@@ -235,6 +237,22 @@ function CasesPage() {
                 </TableCell>
                 <TableCell>{formatDate(c.filing_date)}</TableCell>
                 <TableCell className="text-right tabular-nums">{c.pending_duration_days}</TableCell>
+                <TableCell className="text-right">
+                  <EditCaseModal
+                    caseRow={c}
+                    triggerButton={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        title="Edit case particulars"
+                      >
+                        <Pencil className="size-3.5" />
+                        <span className="hidden sm:inline">Edit</span>
+                      </Button>
+                    }
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

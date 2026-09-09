@@ -38,6 +38,7 @@ import { recordAudit } from "@/lib/audit";
 import { customJudicialScheduleServerFn } from "@/lib/scheduling.functions";
 import type { CaseRow } from "@/lib/cases";
 import { MAX_JUDGE_WORKLOAD } from "@/lib/registry";
+import { checkCourtHoliday } from "@/lib/holidays";
 
 const DIRECTIVE_PRESETS = [
   "Urgent Mention allowed by Hon'ble Bench",
@@ -77,9 +78,24 @@ export function CustomJudicialScheduleModal({
   const courtrooms = engineData.data?.courtrooms ?? [];
   const slots = engineData.data?.slots ?? [];
 
+  const courtHolidays = engineData.data?.courtHolidays ?? conflictData.data?.courtHolidays;
+
+  // Filter out Sundays (court closed) and gazetted court holidays/vacations
+  const validSlots = useMemo(() => {
+    return slots.filter((s) => {
+      // Sunday check (0 = Sunday in JS Date)
+      const day = new Date(`${s.date}T00:00:00`).getDay();
+      if (day === 0) return false;
+      // Gazetted holiday or non-sitting closure day check
+      const holiday = checkCourtHoliday(s.date, courtHolidays);
+      if (holiday.isHoliday) return false;
+      return true;
+    });
+  }, [slots, courtHolidays]);
+
   const selectedJudge = judges.find((j) => j.id === judgeId) ?? null;
   const selectedCourtroom = courtrooms.find((c) => c.id === courtroomId) ?? null;
-  const selectedSlot = slots.find((s) => s.id === slotId) ?? null;
+  const selectedSlot = validSlots.find((s) => s.id === slotId) ?? null;
 
   // Real-time pre-flight conflict check on chosen custom values
   const preflightConflicts = useMemo(() => {
@@ -96,8 +112,9 @@ export function CustomJudicialScheduleModal({
       schedules: conflictData.data.schedules,
       availability: conflictData.data.availability,
       maxJudgeWorkload: conflictData.data.maxJudgeWorkload ?? MAX_JUDGE_WORKLOAD,
+      courtHolidays: courtHolidays,
     });
-  }, [selectedJudge, selectedCourtroom, selectedSlot, caseRow, conflictData.data]);
+  }, [selectedJudge, selectedCourtroom, selectedSlot, caseRow, conflictData.data, courtHolidays]);
 
   const durationFit =
     selectedSlot && (caseRow.estimated_duration_minutes ?? 60) <= slotMinutes(selectedSlot);
@@ -112,6 +129,15 @@ export function CustomJudicialScheduleModal({
     }
     if (!selectedJudge || !selectedCourtroom || !selectedSlot) {
       toast.error("Please select a Judge, Courtroom, and Hearing Slot.");
+      return;
+    }
+
+    const day = new Date(`${selectedSlot.date}T00:00:00`).getDay();
+    const holidayCheck = checkCourtHoliday(selectedSlot.date, courtHolidays);
+    if (day === 0 || holidayCheck.isHoliday) {
+      toast.error(
+        `Cannot list hearing on ${selectedSlot.date}: ${holidayCheck.holidayName || "Sunday / Court Closed"}. Court is closed on Sundays and gazetted holidays.`,
+      );
       return;
     }
 
@@ -321,17 +347,28 @@ export function CustomJudicialScheduleModal({
 
           {/* Slot selection */}
           <div className="sm:col-span-2 space-y-1.5">
-            <Label className="text-xs font-semibold">Hearing Date & Time Slot</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold">Hearing Date & Time Slot</Label>
+              <span className="text-[10px] text-muted-foreground font-medium">
+                Sundays & Holidays Excluded
+              </span>
+            </div>
             <Select value={slotId} onValueChange={(val) => setSlotId(val)}>
               <SelectTrigger className="text-xs">
                 <SelectValue placeholder="Choose a published hearing slot…" />
               </SelectTrigger>
               <SelectContent className="max-h-60">
-                {slots.map((s) => (
-                  <SelectItem key={s.id} value={s.id} className="text-xs">
-                    {formatSlotLabel(s)}
-                  </SelectItem>
-                ))}
+                {validSlots.length === 0 ? (
+                  <div className="p-3 text-xs text-muted-foreground text-center">
+                    No active sitting slots available (Sundays and Court Holidays excluded)
+                  </div>
+                ) : (
+                  validSlots.map((s) => (
+                    <SelectItem key={s.id} value={s.id} className="text-xs">
+                      {formatSlotLabel(s)}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>

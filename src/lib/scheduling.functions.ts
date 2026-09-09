@@ -273,6 +273,16 @@ export const customJudicialScheduleServerFn = createServerFn({ method: "POST" })
   .validator((data: unknown) => CustomJudicialInputSchema.parse(data))
   .handler(async ({ data }): Promise<{ success: boolean; scheduleId: string }> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { checkCourtHoliday } = await import("@/lib/holidays");
+
+    // Prohibit listing on Sundays (court closed) and court holidays
+    const slotDay = new Date(`${data.slot.date}T00:00:00`).getDay();
+    const holidayCheck = checkCourtHoliday(data.slot.date);
+    if (slotDay === 0 || holidayCheck.isHoliday) {
+      throw new Error(
+        `Cannot list hearing on ${data.slot.date}: ${holidayCheck.holidayName || "Sunday / Court Closed"}. Court is closed on Sundays and gazetted holidays.`,
+      );
+    }
 
     // 1. Check existing active schedules
     const { data: existingActive, error: fetchSchedError } = await supabaseAdmin

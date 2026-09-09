@@ -93,7 +93,7 @@ export function detectAssignmentConflicts(params: {
   schedules: ScheduleOccupancy[];
   availability: AvailabilityRecord[];
   maxJudgeWorkload: number;
-  courtHolidays?: CourtHoliday[];
+  courtHolidays?: CourtHoliday[] | undefined;
 }): Conflict[] {
   const { caseNumber, judge, courtroom, slot, availability, maxJudgeWorkload, courtHolidays } =
     params;
