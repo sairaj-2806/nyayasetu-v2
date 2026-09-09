@@ -34,11 +34,11 @@ import { useCurrentStaff } from "@/hooks/use-current-staff";
 export const Route = createFileRoute("/_authenticated/ai-assistant")({
   head: () => ({
     meta: [
-      { title: "AI Legal & Investigation Assistant — NyayaSetu" },
+      { title: "Personal Legal AI Assistant & Judicial Copilot — NyayaSetu" },
       {
         name: "description",
         content:
-          "Live grounded AI assistant for judicial cause-lists, case dossiers, evidence chain-of-custody, and police asset lifecycles.",
+          "Comprehensive AI reasoning across Indian Law (BNS, BNSS, BSA, CPC, CrPC), court proceedings, cause-lists, Malkhana evidence vault, and case dossiers.",
       },
     ],
   }),
@@ -52,34 +52,34 @@ type Turn =
 
 const SUGGESTED_QUERIES = [
   {
-    category: "Case Dossier",
+    category: "BNSS vs CrPC Procedure",
+    prompt: "Explain the transition from Section 482 CrPC to Section 528 BNSS and grounds for quashing.",
+    description: "High Court inherent powers, Bhajan Lal principles, and abuse of process",
+  },
+  {
+    category: "Electronic Evidence (BSA)",
+    prompt: "What are the mandatory requirements for a Section 63 BSA electronic evidence certificate?",
+    description: "Section 65B replacement, Arjun Panditrao Khotkar test, and hash verification",
+  },
+  {
+    category: "Undertrial Bail Rights",
+    prompt: "What are the undertrial bail rights under Section 479 BNSS compared to CrPC 436A?",
+    description: "Mandatory 1/3rd detention relief for first-time offenders on personal bond",
+  },
+  {
+    category: "Case Dossier & Charges",
     prompt: "Summarize Case BNS/2026/0014 and list all critical evidence.",
-    description: "Multi-party overview, charges, evidence and scheduled hearings",
+    description: "Multi-party overview, charges under BNS 318/336, and scheduled hearings",
   },
   {
-    category: "Malkhana & Evidence",
+    category: "Malkhana Vault & Custody",
     prompt: "Where is evidence EV-1045 and what is its chain of custody?",
-    description: "Seizure, forensic status, custody handovers and tamper seals",
+    description: "Seizure, forensic status, tamper seals, and Vault B Locker #12",
   },
   {
-    category: "Police Assets",
-    prompt: "Which police assets are currently under maintenance or transferred?",
-    description: "Patrol vehicles, armory firearms, body cameras and custody status",
-  },
-  {
-    category: "Document Vault",
-    prompt: "Which documents are awaiting digital signature or SHA-256 integrity verification?",
-    description: "BSA §63 compliant hashes, cryptographic verification and pending signatures",
-  },
-  {
-    category: "Court Cause List",
-    prompt: "Which hearings are scheduled today across all courtrooms?",
-    description: "Courtroom load, listed matters, allocated judges and time slots",
-  },
-  {
-    category: "Forensic Status",
-    prompt: "Show all forensic evidence currently under examination at FSL.",
-    description: "Pending examination, chain-of-custody transfers and forensic reports",
+    category: "Courtroom Cause List",
+    prompt: "Which hearings are scheduled today across all courtrooms and benches?",
+    description: "Live hearing slots, allocated judges, courtroom loads, and time slots",
   },
 ];
 
@@ -168,8 +168,8 @@ export function AIAssistantPage() {
     <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 sm:py-9 space-y-6">
       <PageHeader
         eyebrow="Intelligence & Copilot"
-        title="AI Judicial & Investigation Assistant"
-        description="Grounded AI reasoning across active court cases, forensic evidence custody, secure document vaults, and police assets."
+        title="Personal Legal AI Assistant & Judicial Copilot"
+        description="Authoritative intelligence across Indian Law (BNS 2023, BNSS 2023, BSA 2023, IPC, CrPC, CPC), active trial dossiers, Malkhana evidence custody, and courtroom cause-lists."
         actions={
           <div className="flex items-center gap-2">
             <Badge
@@ -222,12 +222,10 @@ export function AIAssistantPage() {
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-base font-semibold text-foreground">
-                    How can I assist your workflow today, {staff?.fullName || "Officer"}?
+                    How can I assist your legal research or court workflow today, {staff?.fullName || "Counselor / Officer"}?
                   </h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Ask any question regarding active trials, seized evidence, bodycam records,
-                    investigation reports, or courtroom slot constraints. Every answer is grounded in
-                    real database records.
+                    Ask any question regarding Indian criminal or civil laws (BNS, BNSS, BSA, bail, arrest, evidence), active case dossiers, Malkhana vault evidence, or courtroom cause lists. Every answer combines authoritative legal analysis with live database grounding.
                   </p>
                 </div>
 
@@ -374,7 +372,7 @@ export function AIAssistantPage() {
               ref={inputRef}
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder="Ask about a case, evidence chain of custody, document integrity, or hearing schedule…"
+              placeholder="Ask any Indian legal question (BNS, BNSS, BSA, CPC, bail, arrest) or court dashboard inquiry…"
               disabled={busy}
               className="border-0 shadow-none focus-visible:ring-0 text-sm px-3"
             />

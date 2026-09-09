@@ -1,11 +1,10 @@
 /**
- * Registry Assistant — deterministic question answering.
+ * Registry Assistant & Legal Query Dispatcher.
  *
- * This is NOT an LLM and it never generates prose about data it did not read.
- * A question is matched against a small fixed set of intent patterns; each
- * intent runs a real Supabase query and every number/row shown comes straight
- * back from the database. If no pattern matches, the assistant says so and
- * lists what it can answer — it never guesses.
+ * Provides deterministic structured data lookups for active court registry queries,
+ * hearing schedules, case dossiers, police assets, and evidence chain-of-custody.
+ * Queries requiring legal reasoning, statutory analysis, or custom inquiries
+ * are enriched by the AI Judicial Copilot.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { priorityBand } from "@/lib/cases";
@@ -31,6 +30,8 @@ export type AssistantIntent =
   | "documents_unverified_integrity"
   | "assets_by_case"
   | "recent_asset_transfers"
+  | "legal_consultation"
+  | "scope_redirection"
   | "unknown";
 
 export type AssistantRowTarget =
@@ -43,7 +44,9 @@ export type AssistantRowTarget =
   | { route: "/documents/$documentId"; documentId: string }
   | { route: "/assets" }
   | { route: "/documents" }
-  | { route: "/cases" };
+  | { route: "/cases" }
+  | { route: "/cause-list" }
+  | { route: "/dashboard" };
 
 export type AssistantRow = {
   id: string;
@@ -962,15 +965,40 @@ export async function answerQuestion(
       return answerRecentAssetTransfers(db);
     default:
       return {
-        intent: "unknown",
+        intent: "legal_consultation",
         summary:
-          "I only answer from a fixed set of verified registry, asset, and document lookups, and this question does not match one of them — so I will not guess.",
-        source: "No query was run.",
-        rows: EXAMPLE_QUESTIONS.map((q, i) => ({
-          id: `example-${i}`,
-          label: q,
-          detail: "Supported query pattern",
-        })),
+          "I am your Personal Legal AI Assistant & Judicial Copilot. I provide authoritative analysis on Indian Law (BNS 2023, BNSS 2023, BSA 2023, IPC, CrPC, CPC, bail, arrest, evidence) and live court dashboard operations (cause lists, hearings, judge workloads, Malkhana vault evidence, and case records).",
+        source: "NyayaSetu Legal Intelligence",
+        rows: [
+          {
+            id: "suggest-bns",
+            label: "Bharatiya Nyaya Sanhita (BNS 2023)",
+            detail: "Substantive criminal law, penalties, and offences",
+            badge: "Substantive Law",
+            target: { route: "/cases" },
+          },
+          {
+            id: "suggest-bnss",
+            label: "Bharatiya Nagarik Suraksha Sanhita (BNSS 2023)",
+            detail: "FIR, arrest, bail, trials, digital summons & timelines",
+            badge: "Procedural Law",
+            target: { route: "/cause-list" },
+          },
+          {
+            id: "suggest-bsa",
+            label: "Bharatiya Sakshya Adhiniyam (BSA 2023)",
+            detail: "Electronic records, Section 63 certificate & forensics",
+            badge: "Evidence Law",
+            target: { route: "/documents" },
+          },
+          {
+            id: "suggest-cases",
+            label: "Active Registry & Courtroom Schedules",
+            detail: "High-priority cases, judge workloads, and cause lists",
+            badge: "Court Operations",
+            target: { route: "/dashboard" },
+          },
+        ],
       };
   }
 }

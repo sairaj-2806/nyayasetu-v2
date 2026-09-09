@@ -7,30 +7,48 @@ export function getEnvVar(key: string): string | undefined {
   const g = globalThis as Record<string, unknown>;
   const envObj = g["__env__"] as Record<string, string> | undefined;
   const procEnv = (g["process"] as { env?: Record<string, string> } | undefined)?.env;
+  const nodeEnv = (typeof process !== "undefined" ? process.env : undefined) as
+    | Record<string, string | undefined>
+    | undefined;
 
   if (key === "GEMINI_API_KEY") {
-    return (
-      envObj?.["GEMINI_API_KEY"] || procEnv?.["GEMINI_API_KEY"] || process.env["GEMINI_API_KEY"]
-    );
+    const val =
+      nodeEnv?.["GEMINI_API_KEY"] ||
+      envObj?.["GEMINI_API_KEY"] ||
+      procEnv?.["GEMINI_API_KEY"];
+    return val && val.trim() ? val.trim() : undefined;
   }
 
   if (key === "GEMINI_MODEL") {
-    return envObj?.["GEMINI_MODEL"] || procEnv?.["GEMINI_MODEL"] || process.env["GEMINI_MODEL"];
+    return (
+      nodeEnv?.["GEMINI_MODEL"] ||
+      envObj?.["GEMINI_MODEL"] ||
+      procEnv?.["GEMINI_MODEL"] ||
+      "gemini-flash-lite-latest"
+    );
   }
 
   if (key === "GROQ_API_KEY") {
-    return envObj?.["GROQ_API_KEY"] || procEnv?.["GROQ_API_KEY"] || process.env["GROQ_API_KEY"];
+    const val =
+      nodeEnv?.["GROQ_API_KEY"] ||
+      envObj?.["GROQ_API_KEY"] ||
+      procEnv?.["GROQ_API_KEY"];
+    return val && val.trim() ? val.trim() : undefined;
   }
 
   if (key === "OPENAI_API_KEY") {
     return (
-      envObj?.["OPENAI_API_KEY"] || procEnv?.["OPENAI_API_KEY"] || process.env["OPENAI_API_KEY"]
+      nodeEnv?.["OPENAI_API_KEY"] ||
+      envObj?.["OPENAI_API_KEY"] ||
+      procEnv?.["OPENAI_API_KEY"]
     );
   }
 
   if (key === "CUSTOM_LLM_URL") {
     return (
-      envObj?.["CUSTOM_LLM_URL"] || procEnv?.["CUSTOM_LLM_URL"] || process.env["CUSTOM_LLM_URL"]
+      nodeEnv?.["CUSTOM_LLM_URL"] ||
+      envObj?.["CUSTOM_LLM_URL"] ||
+      procEnv?.["CUSTOM_LLM_URL"]
     );
   }
 
@@ -46,7 +64,7 @@ export function getEnvVar(key: string): string | undefined {
 
 /**
  * Universal utility to query the active LLM based on environment configuration.
- * Prioritises Gemini 3.5 Flash, cascades to Groq ultra-fast backup, OpenAI, and custom LLM.
+ * Prioritises Gemini Flash Lite Latest, cascades to Groq ultra-fast backup (Qwen 3.8 / GPT OSS), OpenAI, and custom LLM.
  */
 export async function queryLLM(messages: ChatMessage[]): Promise<string | null> {
   const customUrl = getEnvVar("CUSTOM_LLM_URL");
@@ -70,7 +88,7 @@ export async function queryLLM(messages: ChatMessage[]): Promise<string | null> 
         : "gemini-flash-lite-latest";
 
     const candidateModels = Array.from(
-      new Set([validConfigured, "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.6-flash"]),
+      new Set([validConfigured, "gemini-flash-lite-latest", "gemini-3.5-flash-lite"]),
     );
 
     const systemInstruction = messages.find((m) => m.role === "system")?.content;
@@ -84,8 +102,8 @@ export async function queryLLM(messages: ChatMessage[]): Promise<string | null> 
     const body: {
       contents: typeof contents;
       systemInstruction?: { parts: { text: string }[] };
-      generationConfig?: { maxOutputTokens: number };
-    } = { contents, generationConfig: { maxOutputTokens: 1024 } };
+      generationConfig?: { maxOutputTokens: number; temperature?: number };
+    } = { contents, generationConfig: { maxOutputTokens: 1500, temperature: 0.2 } };
 
     if (systemInstruction) {
       body.systemInstruction = { parts: [{ text: systemInstruction }] };
@@ -98,7 +116,7 @@ export async function queryLLM(messages: ChatMessage[]): Promise<string | null> 
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(10000),
+          signal: AbortSignal.timeout(12000),
         });
 
         if (res.ok) {
@@ -126,9 +144,10 @@ export async function queryLLM(messages: ChatMessage[]): Promise<string | null> 
   // 2. Groq Ultra-Fast Backup (High Performance Fallback — 500ms response)
   if (groqKey) {
     const groqModels = [
-      "groq/compound",
+      "qwen/qwen3.8-27b",
+      "openai/gpt-oss-120b",
+      "openai/gpt-oss-20b",
       "groq/compound-mini",
-      "qwen/qwen3.6-27b",
     ];
 
     for (const model of groqModels) {
@@ -142,9 +161,10 @@ export async function queryLLM(messages: ChatMessage[]): Promise<string | null> 
           body: JSON.stringify({
             model,
             messages,
-            max_tokens: 1024,
+            max_tokens: 1500,
+            temperature: 0.2,
           }),
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(10000),
         });
 
         if (res.ok) {
