@@ -95,7 +95,7 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-sidebar-foreground">NyayaSetu</p>
-              <p className="truncate text-[10.5px] tracking-wide text-primary font-medium">
+              <p className="truncate text-[11px] tracking-wide text-sidebar-primary font-medium">
                 {roleInfo?.label || "Court Registry"}
               </p>
             </div>
@@ -143,9 +143,9 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border">
         {!collapsed && (
-          <div className="px-2 py-1 text-[11px] text-sidebar-foreground/60 flex items-center justify-between">
+          <div className="px-2 py-1 text-[11px] text-sidebar-foreground/80 flex items-center justify-between">
             <span className="truncate">{roleInfo?.label || "National Justice Core"}</span>
-            <span className="font-mono text-[10px] text-primary font-semibold">BSA §63</span>
+            <span className="font-mono text-[10px] text-sidebar-primary font-semibold">BSA §63</span>
           </div>
         )}
       </SidebarFooter>
