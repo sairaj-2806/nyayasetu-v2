@@ -116,7 +116,13 @@ export function AIAssistantPage() {
     setBusy(true);
 
     try {
-      const answer = await askFn({ data: { question: q } });
+      const answer = await askFn({
+        data: {
+          question: q,
+          userRole: staff?.role,
+          userId: staff?.id,
+        },
+      });
       setTurns((prev) => [
         ...prev,
         {

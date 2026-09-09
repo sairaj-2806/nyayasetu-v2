@@ -58,13 +58,20 @@ export async function queryLLM(messages: ChatMessage[]): Promise<string | null> 
 
   // 1. Google Gemini API (Primary — Fast Low-Latency Flash Models)
   if (geminiKey) {
-    const candidateModels = [
-      getEnvVar("GEMINI_MODEL") || "gemini-flash-lite-latest",
-      "gemini-flash-lite-latest",
-      "gemini-3.5-flash-lite",
-      "gemini-flash-latest",
-      "gemini-3.5-flash",
-    ].filter(Boolean) as string[];
+    const configuredModel = getEnvVar("GEMINI_MODEL");
+    const validConfigured =
+      configuredModel &&
+      !configuredModel.includes("1.5") &&
+      !configuredModel.includes("2.0") &&
+      !configuredModel.includes("2.5") &&
+      configuredModel !== "gemini-3.5-flash" &&
+      configuredModel !== "gemini-flash-latest"
+        ? configuredModel
+        : "gemini-flash-lite-latest";
+
+    const candidateModels = Array.from(
+      new Set([validConfigured, "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.6-flash"]),
+    );
 
     const systemInstruction = messages.find((m) => m.role === "system")?.content;
     const contents = messages
@@ -78,7 +85,7 @@ export async function queryLLM(messages: ChatMessage[]): Promise<string | null> 
       contents: typeof contents;
       systemInstruction?: { parts: { text: string }[] };
       generationConfig?: { maxOutputTokens: number };
-    } = { contents, generationConfig: { maxOutputTokens: 512 } };
+    } = { contents, generationConfig: { maxOutputTokens: 1024 } };
 
     if (systemInstruction) {
       body.systemInstruction = { parts: [{ text: systemInstruction }] };
@@ -91,7 +98,7 @@ export async function queryLLM(messages: ChatMessage[]): Promise<string | null> 
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(3500),
+          signal: AbortSignal.timeout(10000),
         });
 
         if (res.ok) {
@@ -119,11 +126,9 @@ export async function queryLLM(messages: ChatMessage[]): Promise<string | null> 
   // 2. Groq Ultra-Fast Backup (High Performance Fallback — 500ms response)
   if (groqKey) {
     const groqModels = [
-      "openai/gpt-oss-20b",
-      "openai/gpt-oss-120b",
+      "groq/compound",
       "groq/compound-mini",
       "qwen/qwen3.6-27b",
-      "llama-3.3-70b-versatile",
     ];
 
     for (const model of groqModels) {
@@ -137,9 +142,9 @@ export async function queryLLM(messages: ChatMessage[]): Promise<string | null> 
           body: JSON.stringify({
             model,
             messages,
-            max_tokens: 512,
+            max_tokens: 1024,
           }),
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(8000),
         });
 
         if (res.ok) {

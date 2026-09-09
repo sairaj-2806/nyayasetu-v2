@@ -42,7 +42,8 @@ export type AssistantRowTarget =
   | { route: "/assets/$assetId"; assetId: string }
   | { route: "/documents/$documentId"; documentId: string }
   | { route: "/assets" }
-  | { route: "/documents" };
+  | { route: "/documents" }
+  | { route: "/cases" };
 
 export type AssistantRow = {
   id: string;
