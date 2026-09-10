@@ -27,7 +27,7 @@ export function AppSidebar() {
   const staff = useCurrentStaff();
   const { t } = useLanguage();
   const isAdmin = staff.data?.role === "admin";
-  const role = staff.data?.role || "registrar";
+  const role = staff.data?.role || "unassigned";
   const roleInfo = ROLE_METADATA[role];
 
   const sectionLabelKey: Record<string, TranslationKey> = {

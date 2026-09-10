@@ -50,6 +50,11 @@ import { policeAssetsQuery, type CustodyTimelineEvent, type PoliceAsset } from "
 import { secureDocumentsQuery, type SecureDocument } from "@/lib/documents";
 import { auditLogQuery, formatAuditTime, type AuditLogEntry } from "@/lib/audit";
 import {
+  canAccessCaseRecord,
+  canAccessDocumentRecord,
+  canAccessAssetRecord,
+} from "@/lib/rbac";
+import {
   verifyChainOfCustody,
   type ChainOfCustodyVerificationReport,
 } from "@/lib/evidence-custody";
@@ -212,7 +217,7 @@ function CaseDossierPage() {
   const allCaseAssets = useMemo(() => {
     if (!record) return [];
     return (assetsQuery.data ?? []).filter((item) => {
-      return (
+      const isMatch = (
         item.case_id === caseId ||
         item.case_id === record.id ||
         item.case_number === record.case_number ||
@@ -220,8 +225,10 @@ function CaseDossierPage() {
           Boolean(record.case_number) &&
           item.case_number!.includes(record.case_number))
       );
+      if (!isMatch) return false;
+      return canAccessAssetRecord(staff.data?.role, item);
     });
-  }, [assetsQuery.data, caseId, record]);
+  }, [assetsQuery.data, caseId, record, staff.data?.role]);
 
   // Split into Criminal Evidence exhibits vs Police Departmental Assets (Vehicles, Radios, Bodycams)
   const criminalEvidence = useMemo(() => {
@@ -248,7 +255,7 @@ function CaseDossierPage() {
   const caseDocuments = useMemo(() => {
     if (!record) return [];
     return (docsQuery.data ?? []).filter((doc) => {
-      return (
+      const isMatch = (
         doc.case_id === caseId ||
         doc.case_id === record.id ||
         doc.case_number === record.case_number ||
@@ -256,11 +263,13 @@ function CaseDossierPage() {
           Boolean(record.case_number) &&
           doc.case_number!.includes(record.case_number))
       );
+      if (!isMatch) return false;
+      return canAccessDocumentRecord(staff.data?.role, doc, staff.data?.judgeId);
     });
-  }, [docsQuery.data, caseId, record]);
+  }, [docsQuery.data, caseId, record, staff.data?.role, staff.data?.judgeId]);
 
   const caseAuditLogs = useMemo(() => {
-    if (!record || !auditQuery.data) return [];
+    if (!record || !auditQuery.data || !perms.canViewAudit) return [];
     const cNum = record.case_number?.toLowerCase() || "";
     return auditQuery.data.filter((entry) => {
       const text = (entry.action || "").toLowerCase();
@@ -273,7 +282,7 @@ function CaseDossierPage() {
         entity.includes(caseId.toLowerCase())
       );
     });
-  }, [auditQuery.data, record, caseId]);
+  }, [auditQuery.data, record, caseId, perms.canViewAudit]);
 
   // Synthetic or recorded custody events for this case's evidence
   const custodyHistoryEvents: CustodyTimelineEvent[] = useMemo(() => {
@@ -418,13 +427,23 @@ function CaseDossierPage() {
     );
   }
 
-  if (!record) {
+  const isCaseAuthorized = record
+    ? canAccessCaseRecord(staff.data?.role, record, staff.data?.judgeId)
+    : false;
+
+  if (!record || !isCaseAuthorized) {
     return (
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-8">
-        <p className="text-sm text-muted-foreground">This case is no longer in the registry.</p>
-        <Button asChild variant="outline" className="mt-4">
-          <Link to="/cases">Back to cases</Link>
-        </Button>
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center max-w-lg mx-auto">
+          <ShieldAlert className="size-10 text-destructive mx-auto mb-3" />
+          <h2 className="text-lg font-semibold text-foreground">Record Access Restricted</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            This case record could not be found or your current role lacks statutory clearance to inspect its proceedings.
+          </p>
+          <Button asChild variant="outline" className="mt-4">
+            <Link to="/cases">Back to cases</Link>
+          </Button>
+        </div>
       </div>
     );
   }

@@ -19,6 +19,13 @@ import {
   type DocumentVersionRecord,
 } from "@/lib/documents";
 import { statusLabel, type CaseRow } from "@/lib/cases";
+import {
+  normalizeRole,
+  canAccessDocumentRecord,
+  canAccessAssetRecord,
+  canAccessCaseRecord,
+  type AppRole,
+} from "@/lib/rbac";
 
 export type SearchEntityType =
   | "case"
@@ -120,10 +127,11 @@ export async function executeUnifiedSearch(params: {
   const rawQ = (params.query || "").trim();
   const q = rawQ.toLowerCase();
   const filters = params.filters || {};
-  const userRole = params.userRole || "registrar";
+  const userRole = normalizeRole(params.userRole || "unassigned");
   const isJudge = userRole === "judge";
   const isAdmin = userRole === "admin";
-  const isAuthorizedFullView = isAdmin || isJudge || userRole === "registrar";
+  const isRegistrar = userRole === "registrar";
+  const isAuthorizedFullView = isAdmin || isRegistrar;
 
   const dbClient = params.db || supabase;
 
@@ -133,6 +141,29 @@ export async function executeUnifiedSearch(params: {
       new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeoutMs)),
     ]);
   };
+
+  // 0. If caller is a Judge, resolve their assigned case IDs to enforce bench-level scoping
+  const judgeAssignedCaseIds = new Set<string>();
+  if (isJudge && params.userId) {
+    try {
+      const { data: judgeRecord } = await withTimeout(
+        dbClient.from("judges").select("id").eq("user_id", params.userId).maybeSingle(),
+      ) as any;
+      if (judgeRecord?.id) {
+        const { data: scheds } = await withTimeout(
+          dbClient.from("schedules").select("case_id").eq("judge_id", judgeRecord.id),
+        ) as any;
+        if (scheds) {
+          for (const s of scheds) {
+            if (s.case_id) judgeAssignedCaseIds.add(s.case_id);
+          }
+        }
+      }
+    } catch {
+      // Fail safe: empty assignment set
+    }
+  }
+  const assignedCaseList = Array.from(judgeAssignedCaseIds);
 
   // 1. Fetch Cases
   let cases: CaseRow[] = [];
@@ -229,15 +260,19 @@ export async function executeUnifiedSearch(params: {
   // 4. RLS & Authorization Gate
   let filteredOutCount = 0;
   const authorizedDocuments = rawDocuments.filter((doc) => {
-    // Sealed Cover (In-Camera) files: Judicial bench access only
-    if (doc.sensitivity_tier === "SEALED_COVER_IN_CAMERA") {
-      if (!isJudge && !isAdmin) {
-        filteredOutCount++;
-        return false;
-      }
+    const canAccess = canAccessDocumentRecord(
+      userRole,
+      { sensitivity_tier: doc.sensitivity_tier, case_id: doc.case_id },
+      null,
+      assignedCaseList,
+    );
+    if (!canAccess) {
+      filteredOutCount++;
+      return false;
     }
     return true;
   });
+
 
   // 5. Gather Document Versions
   const documentVersions: Array<{ doc: SecureDocument; ver: DocumentVersionRecord }> = [];
@@ -248,34 +283,36 @@ export async function executeUnifiedSearch(params: {
     }
   }
 
-  // 6. Gather Audit Trail from Supabase audit_logs
+  // 6. Gather Audit Trail from Supabase audit_logs (Restricted strictly to Admin & Registrar)
   let auditEntries: UnifiedAuditItem[] = [];
-  try {
-    const res = await withTimeout(
-      dbClient
-        .from("audit_logs")
-        .select("id, action, entity_affected, timestamp, user_id")
-        .order("timestamp", { ascending: false })
-        .limit(100),
-    );
-    const { data: dbAudit, error } = res as any;
-    if (!error && dbAudit && dbAudit.length > 0) {
-      auditEntries = dbAudit.map((a: any) => ({
-        id: a.id,
-        action: a.action,
-        entityAffected: a.entity_affected,
-        userName: "Authorized Staff",
-        userRole: "Staff",
-        timestamp: a.timestamp,
-        caseNumber: undefined,
-        actionType: "operation",
-      }));
-    } else if (isDemoMode()) {
-      auditEntries = [...SEED_AUDIT_TRAIL];
-    }
-  } catch {
-    if (isDemoMode()) {
-      auditEntries = [...SEED_AUDIT_TRAIL];
+  if (isAdmin || isRegistrar) {
+    try {
+      const res = await withTimeout(
+        dbClient
+          .from("audit_logs")
+          .select("id, action, entity_affected, timestamp, user_id")
+          .order("timestamp", { ascending: false })
+          .limit(100),
+      );
+      const { data: dbAudit, error } = res as any;
+      if (!error && dbAudit && dbAudit.length > 0) {
+        auditEntries = dbAudit.map((a: any) => ({
+          id: a.id,
+          action: a.action,
+          entityAffected: a.entity_affected,
+          userName: "Authorized Staff",
+          userRole: "Staff",
+          timestamp: a.timestamp,
+          caseNumber: undefined,
+          actionType: "operation",
+        }));
+      } else if (isDemoMode()) {
+        auditEntries = [...SEED_AUDIT_TRAIL];
+      }
+    } catch {
+      if (isDemoMode()) {
+        auditEntries = [...SEED_AUDIT_TRAIL];
+      }
     }
   }
 
@@ -302,6 +339,13 @@ export async function executeUnifiedSearch(params: {
   /* ---------------------- A. CASES MATCHING ---------------------- */
   if (!filters.entityType || filters.entityType === "all" || filters.entityType === "case") {
     for (const c of cases) {
+      // Unassigned accounts have no clearance to internal registry cases (must use public case lookup)
+      if (userRole === "unassigned") continue;
+
+      // Judicial bench scoping: Judges can only view cases scheduled before their bench
+      if (!canAccessCaseRecord(userRole, c, null, assignedCaseList)) {
+        continue;
+      }
       const caseTokens = [
         c.case_number,
         c.cnr_number || "",
@@ -452,82 +496,89 @@ export async function executeUnifiedSearch(params: {
 
   /* ----------------- D. EVIDENCE EXHIBITS MATCHING --------------- */
   if (!filters.entityType || filters.entityType === "all" || filters.entityType === "evidence") {
-    const evidenceAssets = assets.filter(
-      (a) =>
-        a.evidence_status != null ||
-        a.category_name?.toLowerCase().includes("evidence") ||
-        a.category_name?.toLowerCase().includes("media") ||
-        a.category_name?.toLowerCase().includes("weapons") ||
-        a.category_name?.toLowerCase().includes("narcotics") ||
-        a.category_name?.toLowerCase().includes("dna"),
-    );
+    if (userRole !== "unassigned") {
+      const evidenceAssets = assets.filter(
+        (a) =>
+          a.evidence_status != null ||
+          a.category_name?.toLowerCase().includes("evidence") ||
+          a.category_name?.toLowerCase().includes("media") ||
+          a.category_name?.toLowerCase().includes("weapons") ||
+          a.category_name?.toLowerCase().includes("narcotics") ||
+          a.category_name?.toLowerCase().includes("dna"),
+      );
 
-    for (const ev of evidenceAssets) {
-      const evTokens = [
-        ev.asset_code,
-        ev.name,
-        ev.category_name || "",
-        ev.evidence_status || "",
-        ev.current_location,
-        ev.current_custodian_name,
-        ev.assigned_officer_name || "",
-        ev.case_number || "",
-        ev.fir_number || "",
-        ev.serial_number || "",
-        ev.tamper_seal_number || "",
-        "evidence",
-        "exhibit",
-        "mobile phone",
-        "phone",
-        "device",
-        "samsung",
-      ].join(" ");
-
-      const score = scoreMatch(evTokens, 1.25);
-      if (score > 0 || !q) {
-        if (
-          filters.caseNumber &&
-          (!ev.case_number ||
-            !ev.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase()))
-        ) {
-          continue;
-        }
-        if (
-          filters.status &&
-          filters.status !== "all" &&
-          ev.evidence_status !== filters.status &&
-          ev.status !== filters.status
-        ) {
-          continue;
-        }
-        if (
-          filters.location &&
-          filters.location !== "all" &&
-          !ev.current_location.toLowerCase().includes(filters.location.toLowerCase())
-        ) {
+      for (const ev of evidenceAssets) {
+        // Enforce judicial bench scoping and asset clearance
+        if (!canAccessAssetRecord(userRole, ev, assignedCaseList)) {
           continue;
         }
 
-        matchedItems.push({
-          id: `ev-${ev.id}`,
-          entityType: "evidence",
-          title: `Exhibit ${ev.asset_code}: ${ev.name}`,
-          subtitle: `Custody Stage: ${ev.evidence_status || "STORED"} · Tamper Seal: #${ev.tamper_seal_number || "Verified"}${ev.case_number ? ` · Case: ${ev.case_number}` : ""}`,
-          description: `Location: ${ev.current_location} · Custodian: ${ev.current_custodian_name} · Assigned Officer: ${ev.assigned_officer_name || "Unassigned"}`,
-          date: ev.created_at,
-          status: ev.evidence_status || ev.status,
-          statusBadgeClass: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-          location: ev.current_location,
-          caseNumber: ev.case_number || undefined,
-          officerOrCustodian: ev.current_custodian_name,
-          route: "/assets/$assetId",
-          routeParams: { assetId: ev.id },
-          metadata: { seal: ev.tamper_seal_number ?? null, stage: ev.evidence_status ?? null },
-          relevanceScore:
-            score +
-            (ev.asset_code.toLowerCase().includes(q) ? 60 : 0) +
-            (ev.case_number && q.includes(ev.case_number.toLowerCase()) ? 40 : 0),
-        });
+        const evTokens = [
+          ev.asset_code,
+          ev.name,
+          ev.category_name || "",
+          ev.evidence_status || "",
+          ev.current_location,
+          ev.current_custodian_name,
+          ev.assigned_officer_name || "",
+          ev.case_number || "",
+          ev.fir_number || "",
+          ev.serial_number || "",
+          ev.tamper_seal_number || "",
+          "evidence",
+          "exhibit",
+          "mobile phone",
+          "phone",
+          "device",
+          "samsung",
+        ].join(" ");
+
+        const score = scoreMatch(evTokens, 1.25);
+        if (score > 0 || !q) {
+          if (
+            filters.caseNumber &&
+            (!ev.case_number ||
+              !ev.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase()))
+          ) {
+            continue;
+          }
+          if (
+            filters.status &&
+            filters.status !== "all" &&
+            ev.evidence_status !== filters.status &&
+            ev.status !== filters.status
+          ) {
+            continue;
+          }
+          if (
+            filters.location &&
+            filters.location !== "all" &&
+            !ev.current_location.toLowerCase().includes(filters.location.toLowerCase())
+          ) {
+            continue;
+          }
+
+          matchedItems.push({
+            id: `ev-${ev.id}`,
+            entityType: "evidence",
+            title: `Exhibit ${ev.asset_code}: ${ev.name}`,
+            subtitle: `Custody Stage: ${ev.evidence_status || "STORED"} · Tamper Seal: #${ev.tamper_seal_number || "Verified"}${ev.case_number ? ` · Case: ${ev.case_number}` : ""}`,
+            description: `Location: ${ev.current_location} · Custodian: ${ev.current_custodian_name} · Assigned Officer: ${ev.assigned_officer_name || "Unassigned"}`,
+            date: ev.created_at,
+            status: ev.evidence_status || ev.status,
+            statusBadgeClass: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+            location: ev.current_location,
+            caseNumber: ev.case_number || undefined,
+            officerOrCustodian: ev.current_custodian_name,
+            route: "/assets/$assetId",
+            routeParams: { assetId: ev.id },
+            metadata: { seal: ev.tamper_seal_number ?? null, stage: ev.evidence_status ?? null },
+            relevanceScore:
+              score +
+              (ev.asset_code.toLowerCase().includes(q) ? 60 : 0) +
+              (ev.case_number && q.includes(ev.case_number.toLowerCase()) ? 40 : 0),
+          });
+        }
       }
     }
   }
@@ -538,77 +589,81 @@ export async function executeUnifiedSearch(params: {
     filters.entityType === "all" ||
     filters.entityType === "police_asset"
   ) {
-    for (const a of assets) {
-      const assetTokens = [
-        a.asset_code,
-        a.name,
-        a.category_name || "",
-        a.status,
-        a.condition,
-        a.current_location,
-        a.department_station,
-        a.current_custodian_name,
-        a.assigned_officer_name || "",
-        a.case_number || "",
-        a.serial_number || "",
-        a.barcode_rfid || "",
-        "police asset",
-      ].join(" ");
+    // Judicial officers inspect exhibits, not internal police tactical inventory; unassigned accounts denied
+    if (userRole !== "unassigned" && !isJudge) {
+      for (const a of assets) {
+        const assetTokens = [
+          a.asset_code,
+          a.name,
+          a.category_name || "",
+          a.status,
+          a.condition,
+          a.current_location,
+          a.department_station,
+          a.current_custodian_name,
+          a.assigned_officer_name || "",
+          a.case_number || "",
+          a.serial_number || "",
+          a.barcode_rfid || "",
+          "police asset",
+        ].join(" ");
 
-      const score = scoreMatch(assetTokens, 1.1);
-      if (score > 0 || !q) {
-        if (
-          filters.caseNumber &&
-          (!a.case_number ||
-            !a.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase()))
-        ) {
-          continue;
-        }
-        if (
-          filters.assetType &&
-          filters.assetType !== "all" &&
-          a.category_name?.toLowerCase() !== filters.assetType.toLowerCase()
-        ) {
-          continue;
-        }
-        if (filters.status && filters.status !== "all" && a.status !== filters.status) {
-          continue;
-        }
-        if (
-          filters.location &&
-          filters.location !== "all" &&
-          !a.current_location.toLowerCase().includes(filters.location.toLowerCase())
-        ) {
-          continue;
-        }
+        const score = scoreMatch(assetTokens, 1.1);
+        if (score > 0 || !q) {
+          if (
+            filters.caseNumber &&
+            (!a.case_number ||
+              !a.case_number.toLowerCase().includes(filters.caseNumber.toLowerCase()))
+          ) {
+            continue;
+          }
+          if (
+            filters.assetType &&
+            filters.assetType !== "all" &&
+            a.category_name?.toLowerCase() !== filters.assetType.toLowerCase()
+          ) {
+            continue;
+          }
+          if (filters.status && filters.status !== "all" && a.status !== filters.status) {
+            continue;
+          }
+          if (
+            filters.location &&
+            filters.location !== "all" &&
+            !a.current_location.toLowerCase().includes(filters.location.toLowerCase())
+          ) {
+            continue;
+          }
 
-        matchedItems.push({
-          id: `ast-${a.id}`,
-          entityType: "police_asset",
-          title: `${a.asset_code}: ${a.name}`,
-          subtitle: `Category: ${a.category_name || "General"} · Status: ${a.status} (${a.condition})`,
-          description: `Location: ${a.current_location} · Custodian: ${a.current_custodian_name} · Assigned: ${a.assigned_officer_name || "Station Pool"}`,
-          date: a.created_at,
-          status: a.status,
-          statusBadgeClass:
-            a.status === "MAINTENANCE"
-              ? "bg-destructive/15 text-destructive border-destructive/30"
-              : "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-          location: a.current_location,
-          caseNumber: a.case_number || undefined,
-          officerOrCustodian: a.assigned_officer_name || a.current_custodian_name,
-          route: "/assets/$assetId",
-          routeParams: { assetId: a.id },
-          metadata: { serial: a.serial_number ?? null, condition: a.condition ?? null },
-          relevanceScore:
-            score + (a.status === "MAINTENANCE" && q.includes("maintenance") ? 50 : 0),
-        });
+          matchedItems.push({
+            id: `ast-${a.id}`,
+            entityType: "police_asset",
+            title: `${a.asset_code}: ${a.name}`,
+            subtitle: `Category: ${a.category_name || "General"} · Status: ${a.status} (${a.condition})`,
+            description: `Location: ${a.current_location} · Custodian: ${a.current_custodian_name} · Assigned: ${a.assigned_officer_name || "Station Pool"}`,
+            date: a.created_at,
+            status: a.status,
+            statusBadgeClass:
+              a.status === "MAINTENANCE"
+                ? "bg-destructive/15 text-destructive border-destructive/30"
+                : "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+            location: a.current_location,
+            caseNumber: a.case_number || undefined,
+            officerOrCustodian: a.assigned_officer_name || a.current_custodian_name,
+            route: "/assets/$assetId",
+            routeParams: { assetId: a.id },
+            metadata: { serial: a.serial_number ?? null, condition: a.condition ?? null },
+            relevanceScore:
+              score + (a.status === "MAINTENANCE" && q.includes("maintenance") ? 50 : 0),
+          });
+        }
       }
     }
   }
 
   /* ---------------- F. OFFICERS & CUSTODIANS MATCHING ------------ */
   if (
+    userRole !== "unassigned" &&
     isDemoMode() &&
     (!filters.entityType ||
       filters.entityType === "all" ||
@@ -644,6 +699,7 @@ export async function executeUnifiedSearch(params: {
 
   /* --------------------- G. LOCATIONS MATCHING ------------------- */
   if (
+    userRole !== "unassigned" &&
     isDemoMode() &&
     (!filters.entityType || filters.entityType === "all" || filters.entityType === "location")
   ) {
@@ -677,8 +733,12 @@ export async function executeUnifiedSearch(params: {
   }
 
   /* ------------------- H. AUDIT EVENTS MATCHING ------------------ */
-  if (!filters.entityType || filters.entityType === "all" || filters.entityType === "audit_event") {
+  if (
+    (isAdmin || isRegistrar) &&
+    (!filters.entityType || filters.entityType === "all" || filters.entityType === "audit_event")
+  ) {
     for (const aud of auditEntries) {
+
       const audTokens = [
         aud.action,
         aud.entityAffected,

@@ -39,14 +39,15 @@ export function useCurrentStaff() {
             supabase.from("judges").select("id, name").eq("user_id", user.id).maybeSingle(),
           ]);
 
-          const rawAssigned = (roles?.map((row) => normalizeRole(row.role)) || []) as StaffRole[];
+          const rawAssigned = (roles?.map((row) => normalizeRole(row.role)) || [])
+            .filter((r): r is StaffRole => r !== "unassigned");
           if (bench?.id && !rawAssigned.includes("judge")) {
             rawAssigned.push("judge");
           }
           const assignedRoles: StaffRole[] =
-            rawAssigned.length > 0 ? Array.from(new Set(rawAssigned)) : ["police_officer"];
+            rawAssigned.length > 0 ? Array.from(new Set(rawAssigned)) : ["unassigned"];
 
-          let defaultRole: StaffRole = assignedRoles[0] ?? "police_officer";
+          let defaultRole: StaffRole = assignedRoles[0] ?? "unassigned";
           if (assignedRoles.includes("admin")) defaultRole = "admin";
           else if (assignedRoles.includes("judge")) defaultRole = "judge";
           else if (assignedRoles.includes("registrar")) defaultRole = "registrar";
@@ -56,6 +57,7 @@ export function useCurrentStaff() {
           else if (assignedRoles.includes("legal_officer")) defaultRole = "legal_officer";
           else if (assignedRoles.includes("document_officer")) defaultRole = "document_officer";
           else if (assignedRoles.includes("police_officer")) defaultRole = "police_officer";
+          else defaultRole = "unassigned";
 
           // Deterministic role: assigned role without client-side spoofing
           const activeRole = defaultRole;
@@ -189,4 +191,5 @@ export const roleLabel: Record<StaffRole, string> = {
   police_officer: ROLE_METADATA.police_officer.label,
   legal_officer: ROLE_METADATA.legal_officer.label,
   document_officer: ROLE_METADATA.document_officer.label,
+  unassigned: ROLE_METADATA.unassigned.label,
 };

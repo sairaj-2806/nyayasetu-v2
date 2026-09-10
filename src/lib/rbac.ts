@@ -26,7 +26,8 @@ export type AppRole =
   | "evidence_custodian"
   | "police_officer"
   | "legal_officer"
-  | "document_officer";
+  | "document_officer"
+  | "unassigned";
 
 export const APP_ROLES: Record<string, AppRole> = {
   ADMIN: "admin",
@@ -38,6 +39,7 @@ export const APP_ROLES: Record<string, AppRole> = {
   POLICE_OFFICER: "police_officer",
   LEGAL_OFFICER: "legal_officer",
   DOCUMENT_OFFICER: "document_officer",
+  UNASSIGNED: "unassigned",
 } as const;
 
 export const ALL_ROLES: AppRole[] = [
@@ -235,6 +237,12 @@ export const ROLE_PERMISSIONS: Record<AppRole, ReadonlySet<Permission>> = {
     "DOCUMENT_SIGN",
     "AUDIT_VIEW",
   ]),
+
+  /**
+   * Unassigned Account: Pending verification.
+   * STRICTLY ZERO PRIVILEGED PERMISSIONS.
+   */
+  unassigned: new Set<Permission>([]),
 };
 
 // ============================================================================
@@ -242,7 +250,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, ReadonlySet<Permission>> = {
 // ============================================================================
 
 export function normalizeRole(rawRole: string | null | undefined): AppRole {
-  if (!rawRole) return "police_officer";
+  if (!rawRole) return "unassigned";
   const clean = rawRole.toLowerCase().trim();
   if (clean === "admin" || clean === "administrator") return "admin";
   if (clean === "registrar") return "registrar";
@@ -270,7 +278,7 @@ export function normalizeRole(rawRole: string | null | undefined): AppRole {
     return "document_officer";
   if (clean === "police_officer" || clean === "officer" || clean === "constable")
     return "police_officer";
-  return "police_officer";
+  return "unassigned";
 }
 
 export const ROLE_METADATA: Record<
@@ -331,6 +339,12 @@ export const ROLE_METADATA: Record<
     badgeColor: "bg-sky-500/15 text-sky-700 border-sky-500/30 dark:text-sky-400",
     defaultWorkspace: "documents",
   },
+  unassigned: {
+    label: "Unassigned Account",
+    description: "Account pending administrative verification and statutory role assignment.",
+    badgeColor: "bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-400",
+    defaultWorkspace: "court",
+  },
 };
 
 /**
@@ -342,6 +356,7 @@ export function canAccessWorkspace(
   workspaceKey: string,
 ): boolean {
   const normRole = normalizeRole(role);
+  if (normRole === "unassigned") return false;
   if (normRole === "admin") return true; // Admins have oversight across all workspaces
 
   switch (workspaceKey.toLowerCase()) {
@@ -364,11 +379,11 @@ export function canAccessWorkspace(
     case "documents":
       return normRole === "document_officer" || normRole === "registrar";
     case "admin":
-      return true;
+      return false;
     case "public":
       return true;
     default:
-      return true;
+      return false;
   }
 }
 
@@ -423,46 +438,47 @@ export class UnauthorizedException extends Error {
 }
 
 /**
- * Strictly asserts that a role possesses a required permission.
- * If unauthorized, throws an UnauthorizedException AND creates a high-priority
- * security audit record so tampering and unauthorized access attempts cannot be hidden.
+ * Asserts that the role possesses the required permission, or throws an UnauthorizedException.
  */
 export async function assertPermission(
   role: AppRole | string | null | undefined,
   permission: Permission,
-  actorName: string = "Unknown Actor",
-  context: string = "Operation",
+  userName?: string | undefined,
+  contextAction?: string | undefined,
 ): Promise<void> {
-  const normRole = role ? normalizeRole(role) : null;
-  const isAllowed = hasPermission(normRole, permission);
+  const normRole = normalizeRole(role);
+  const authorized = hasPermission(normRole, permission);
 
-  if (!isAllowed) {
-    const roleTitle = normRole ? ROLE_METADATA[normRole].label : "Unauthenticated";
-    const auditMessage = `[UNAUTHORIZED ACCESS ATTEMPT] User "${actorName}" (${roleTitle}) was DENIED execution of "${context}". Required permission: "${permission}".`;
+  if (!authorized) {
+    const actor = userName || "Unknown Actor";
+    const context = contextAction || "Action";
 
-    // Log to immutable security audit trail
+    // Non-blocking audit log of unauthorized access attempt
     try {
-      await recordAudit(auditMessage, `security_alert:unauthorized_${permission}`);
+      await recordAudit(
+        `ACCESS_DENIED: User ${actor} (${normRole}) attempted '${permission}' for '${context}'.`,
+        "SYSTEM_RBAC_GATEWAY",
+        "UNAUTHORIZED_ACCESS_ATTEMPT",
+      );
     } catch {
-      // ignore logging failure during assertion
+      // ignore
     }
 
     throw new UnauthorizedException(
-      `Access Denied: Your assigned role (${roleTitle}) does not have permission to execute "${context}". (Required: ${permission})`,
+      `Permission Denied: Your assigned role '${normRole}' lacks the required '${permission}' clearance.`,
       permission,
-      normRole ?? "UNAUTHENTICATED",
+      normRole,
     );
   }
 }
 
 // ============================================================================
-// 6. RECORD-LEVEL AUTHORIZATION & SENSITIVITY SCOPING
+// 6. RECORD-LEVEL SECURITY & SENSITIVITY CLEARANCE
 // ============================================================================
 
 export interface DocumentSensitivityRecord {
-  sensitivity_tier: string;
+  sensitivity_tier?: string | undefined;
   case_id?: string | null | undefined;
-  originating_agency?: string | undefined;
 }
 
 /**
@@ -474,7 +490,8 @@ export interface DocumentSensitivityRecord {
  *   Police, Forensic, Registrars, and other judges are STRICTLY DENIED.
  * - RESTRICTED_INVESTIGATION: Admin, Judge of case, Registrar, IO, and FSL.
  *   General Police Officers are DENIED.
- * - CONFIDENTIAL: Admin, Registrar, Judge of case, IO, FSL, and Evidence Custodian.
+ * - CONFIDENTIAL: Admin, Registrar, Judge of case, IO, FSL, Legal Officer, and Evidence Custodian.
+ *   General Police Officers and unassigned accounts are DENIED.
  * - PUBLIC: Visible to all authorized system users.
  */
 export function canAccessDocumentRecord(
@@ -485,22 +502,26 @@ export function canAccessDocumentRecord(
 ): boolean {
   const normRole = normalizeRole(role);
 
+  // Unassigned accounts fail closed
+  if (normRole === "unassigned") {
+    return doc.sensitivity_tier?.toUpperCase() === "PUBLIC";
+  }
+
   // Admin always has oversight
   if (normRole === "admin") return true;
 
   const tier = doc.sensitivity_tier?.toUpperCase();
 
-  // Strict Sealed Cover protection
+  // Strict Sealed Cover protection (High Court In-Camera Rules)
   if (tier === "SEALED_COVER_IN_CAMERA") {
     if (normRole === "judge") {
       // If doc is linked to a case, the judge must be assigned to that case
       if (doc.case_id && assignedCaseIds && assignedCaseIds.length > 0) {
         return assignedCaseIds.includes(doc.case_id);
       }
-      // If no specific case check provided, judge has bench privilege
       return true;
     }
-    // All non-judge roles are strictly forbidden from Sealed Cover records
+    // All non-judge roles (including registrars and police) are strictly forbidden
     return false;
   }
 
@@ -519,7 +540,15 @@ export function canAccessDocumentRecord(
   // Confidential Case Files
   if (tier === "CONFIDENTIAL") {
     if (normRole === "police_officer") return false;
-    return true;
+    return (
+      normRole === "registrar" ||
+      normRole === "judge" ||
+      normRole === "investigating_officer" ||
+      normRole === "forensic_officer" ||
+      normRole === "evidence_custodian" ||
+      normRole === "legal_officer" ||
+      normRole === "document_officer"
+    );
   }
 
   // Public Court Records
@@ -536,15 +565,52 @@ export function canAccessAssetRecord(
   assignedCaseIds?: string[] | undefined,
 ): boolean {
   const normRole = normalizeRole(role);
-  if (normRole === "admin") return true;
+  if (normRole === "unassigned") return false;
+  if (normRole === "admin" || normRole === "registrar") return true;
 
   if (normRole === "judge") {
     // Judges only inspect trial evidence related to their bench cases
     if (asset.case_id && assignedCaseIds && assignedCaseIds.length > 0) {
       return assignedCaseIds.includes(asset.case_id);
     }
-    return true;
+    // Judges do not inspect police armory weapons or non-case equipment
+    return Boolean(asset.case_id);
   }
 
   return true;
+}
+
+/**
+ * Evaluates whether a user role can inspect a court case record.
+ * Fails closed for unassigned accounts.
+ */
+export function canAccessCaseRecord(
+  role: AppRole | string | null | undefined,
+  caseRecord: { id: string; judge_id?: string | null | undefined },
+  currentJudgeId?: string | null | undefined,
+  assignedCaseIds?: string[] | undefined,
+): boolean {
+  const normRole = normalizeRole(role);
+  if (normRole === "unassigned") return false;
+  if (normRole === "admin" || normRole === "registrar") return true;
+
+  if (normRole === "judge") {
+    if (assignedCaseIds && assignedCaseIds.length > 0) {
+      return assignedCaseIds.includes(caseRecord.id);
+    }
+    if (currentJudgeId && caseRecord.judge_id) {
+      return caseRecord.judge_id === currentJudgeId;
+    }
+    return true;
+  }
+
+  // Police, Forensic, Legal officers can view cases for official prosecution/filing duties
+  return [
+    "police_officer",
+    "investigating_officer",
+    "forensic_officer",
+    "evidence_custodian",
+    "legal_officer",
+    "document_officer",
+  ].includes(normRole);
 }

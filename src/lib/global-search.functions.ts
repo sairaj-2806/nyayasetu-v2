@@ -3,6 +3,8 @@ import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { executeUnifiedSearch, type UnifiedSearchResult } from "@/lib/global-search";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuthenticatedUser, getEffectiveRoles } from "@/lib/server-auth";
 import { sanitizeUserInput } from "@/lib/security.server";
 import { checkRateLimit } from "@/lib/rate-limit.server";
 
@@ -32,82 +34,38 @@ const SearchInputSchema = z.object({
       location: z.string().optional(),
     })
     .optional(),
+  // Ignored on server: roles and IDs are derived strictly from authenticated session token
   userRole: z.string().optional(),
   userId: z.string().optional(),
 });
 
 export const searchGlobalRegistry = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator((data: unknown) => SearchInputSchema.parse(data))
-  .handler(async ({ data }): Promise<UnifiedSearchResult> => {
-    // 1. Rate Limiting protection keyed per caller IP / session
+  .handler(async ({ context, data }): Promise<UnifiedSearchResult> => {
+    // 1. Assert authenticated identity strictly from token context (Never trust client input)
+    const authenticatedUserId = requireAuthenticatedUser(context);
+
+    // 2. Rate Limiting protection keyed per authenticated user & client IP
     const request = getRequest();
     const clientIp =
       request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request?.headers?.get("x-real-ip") ||
-      data.userId ||
-      "anonymous-searcher";
+      "ip-unknown";
 
-    const rateCheck = checkRateLimit(`search:${clientIp}`, {
+    const rateCheck = checkRateLimit(`search:${authenticatedUserId}:${clientIp}`, {
       maxRequests: 60,
       windowMs: 60_000,
     });
 
     if (!rateCheck.allowed) {
-      return {
-        query: data.query,
-        totalMatches: 0,
-        items: [],
-        byEntityCount: {
-          case: 0,
-          document: 0,
-          document_version: 0,
-          police_asset: 0,
-          evidence: 0,
-          officer_custodian: 0,
-          location: 0,
-          audit_event: 0,
-        },
-        executionTimeMs: 0,
-        isAuthorizedView: true,
-        filteredOutCount: 0,
-      };
+      throw new Error("Rate limit exceeded: Too many global registry searches. Please wait a minute.");
     }
 
-    // 2. Strict Server-Side Role Resolution (Prevent client role spoofing)
-    let effectiveRole = "police_officer"; // Safe least-privilege default
-    let effectiveUserId = data.userId;
-
-    const authHeader = request?.headers?.get("authorization");
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.replace("Bearer ", "");
-      try {
-        const { data: authData } = await supabaseAdmin.auth.getUser(token);
-        if (authData?.user) {
-          effectiveUserId = authData.user.id;
-          const { data: roleRow } = await supabaseAdmin
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", authData.user.id)
-            .maybeSingle();
-
-          if (roleRow?.role) {
-            effectiveRole = roleRow.role;
-          }
-        }
-      } catch {
-        // Fall back to least privilege
-      }
-    } else if (data.userRole) {
-      // In local offline development mode without token, only allow non-administrative tiers;
-      // never allow escalating to admin or judge without backend confirmation
-      const requested = data.userRole.toLowerCase().trim();
-      if (requested === "admin" || requested === "judge") {
-        // Untrusted claim of admin/judge without valid bearer token rejected to least privilege
-        effectiveRole = "police_officer";
-      } else {
-        effectiveRole = requested;
-      }
-    }
+    // 3. Strict Server-Side Role Resolution from authoritative Supabase database
+    // Fail-closed: unassigned / unknown accounts receive "unassigned" least privilege
+    const dbRoles = await getEffectiveRoles(authenticatedUserId);
+    const effectiveRole = dbRoles[0] || "unassigned";
 
     const sanitizedQuery = sanitizeUserInput(data.query, 300);
 
@@ -115,7 +73,8 @@ export const searchGlobalRegistry = createServerFn({ method: "POST" })
       query: sanitizedQuery,
       filters: data.filters as any,
       userRole: effectiveRole,
-      userId: effectiveUserId,
+      userId: authenticatedUserId,
       db: supabaseAdmin,
     });
   });
+

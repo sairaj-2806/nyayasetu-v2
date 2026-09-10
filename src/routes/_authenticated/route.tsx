@@ -14,6 +14,7 @@ import { TopBar } from "@/components/top-bar";
 import { AssistantPanel } from "@/components/assistant-panel";
 import { useCurrentStaff } from "@/hooks/use-current-staff";
 import { getOfflineStaffSession } from "@/lib/offline-auth";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -30,8 +31,10 @@ export const Route = createFileRoute("/_authenticated")({
       return { user: session.user };
     }
 
+    // In true offline environment or explicit demo mode, permit local offline session
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
     const offlineUser = getOfflineStaffSession();
-    if (offlineUser) {
+    if (offlineUser && (isOffline || isDemoMode())) {
       return {
         user: {
           id: offlineUser.id,

@@ -16,6 +16,7 @@ import { sanitizeUserInput, detectPromptInjection } from "@/lib/security.server"
 import { fetchConflictData, scanSystemConflicts } from "@/lib/conflicts";
 import { SEED_POLICE_ASSETS } from "@/lib/assets";
 import { seedInitialDocuments } from "@/lib/documents";
+import { getEffectiveRoles } from "@/lib/server-auth";
 
 const Input = z.object({
   question: z.string().min(1).max(500),
@@ -401,29 +402,43 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
       };
     }
 
-    // 3. Resolve caller role
+    // 3. Strict Server-Side Identity & Role Resolution from authenticated Supabase JWT
     let effectiveRole = "public";
+    let effectiveUserId = "anonymous";
+    let judgeId: string | null = null;
+    let judgeCaseIds: string[] = [];
+
     const authHeader = request?.headers?.get("authorization");
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.replace("Bearer ", "");
       try {
         const { data: authData } = await supabaseAdmin.auth.getUser(token);
         if (authData?.user) {
-          const { data: roleRow } = await supabaseAdmin
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", authData.user.id)
-            .maybeSingle();
-          if (roleRow?.role) {
-            effectiveRole = roleRow.role;
+          effectiveUserId = authData.user.id;
+          const dbRoles = await getEffectiveRoles(authData.user.id);
+          effectiveRole = dbRoles[0] || "unassigned";
+
+          if (effectiveRole === "judge") {
+            const { data: jProfile } = await supabaseAdmin
+              .from("judges")
+              .select("id")
+              .eq("user_id", authData.user.id)
+              .maybeSingle();
+            if (jProfile) {
+              judgeId = jProfile.id;
+              const { data: scheds } = await supabaseAdmin
+                .from("schedules")
+                .select("case_id")
+                .eq("judge_id", jProfile.id);
+              judgeCaseIds = (scheds || []).map((s) => s.case_id).filter(Boolean) as string[];
+            }
           }
         }
       } catch {
-        // Safe fallback
+        effectiveRole = "public";
       }
-    } else if (data.userRole) {
-      effectiveRole = data.userRole.toLowerCase().trim();
     }
+    // NEVER trust data.userRole or data.userId from request body for authorization
 
     // 4. Check if AI provider is available
     const hasAI =
@@ -433,25 +448,37 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
       getEnvVar("AI_GATEWAY_API_KEY") ||
       getEnvVar("GEMINI_API_KEY");
 
-    // 5. Run deterministic keyword handler concurrently with resolved user role
+    // 5. Run deterministic keyword handler concurrently with resolved authoritative user role
     const deterministicPromise = answerQuestion(sanitizedQuestion, supabaseAdmin, effectiveRole);
 
-    // 6. Fetch or reuse cached 60-second registry snapshot scoped by clearance tier
-    const isPrivileged = [
-      "admin",
-      "judge",
-      "registrar",
-      "clerk",
-      "evidence_custodian",
-      "investigating_officer",
-    ].includes(effectiveRole);
-    const cacheTier = isPrivileged ? "privileged" : "standard";
+    // 6. Clearance-isolated snapshot caching (Per-user / per-role / per-bench scope to prevent cross-session leakage)
+    const cacheKey =
+      effectiveRole === "public"
+        ? "public"
+        : `${effectiveUserId}:${effectiveRole}:${judgeId || "none"}`;
     const now = Date.now();
-    let snapshot = cachedSnapshots.get(cacheTier);
+    let snapshot = cachedSnapshots.get(cacheKey);
     const todayStr = new Date().toISOString().slice(0, 10);
 
     if (!snapshot || now - snapshot.timestamp > 60_000) {
+      if (effectiveRole === "public" || effectiveRole === "unassigned") {
+        snapshot = {
+          timestamp: now,
+          pendingCasesCount: 0,
+          tier1CasesCount: 0,
+          activeCases: [],
+          judgesList: [],
+          courtroomsList: [],
+          upcomingSchedules: [],
+          systemConflicts: [],
+          maxWorkload: 10,
+          policeAssets: [],
+          documents: [],
+        };
+        cachedSnapshots.set(cacheKey, snapshot);
+      } else {
       const [
+
         casesRes,
         allCasesCountRes,
         tier1CountRes,
@@ -594,13 +621,43 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
         }
       }
 
-      // Respect user role permissions: Standard clearance cannot view SEALED_COVER_IN_CAMERA documents
-      if (cacheTier !== "privileged") {
-        documentsList = documentsList.filter(
-          (d) =>
-            d.sensitivity_tier !== "SEALED_COVER_IN_CAMERA" &&
-            d.sensitivity_tier !== "RESTRICTED_INVESTIGATION",
-        );
+      // Respect user role permissions & bench scoping for documents
+      documentsList = documentsList.filter((d) => {
+        if (d.sensitivity_tier === "SEALED_COVER_IN_CAMERA") {
+          if (effectiveRole === "admin") return true;
+          if (effectiveRole === "judge" && d.case_number && judgeCaseIds.length > 0) {
+            return true;
+          }
+          return false;
+        }
+        if (d.sensitivity_tier === "RESTRICTED_INVESTIGATION") {
+          return [
+            "admin",
+            "registrar",
+            "judge",
+            "investigating_officer",
+            "forensic_officer",
+            "evidence_custodian",
+          ].includes(effectiveRole);
+        }
+        if (d.sensitivity_tier === "CONFIDENTIAL") {
+          return [
+            "admin",
+            "registrar",
+            "judge",
+            "investigating_officer",
+            "forensic_officer",
+            "evidence_custodian",
+            "legal_officer",
+            "document_officer",
+          ].includes(effectiveRole);
+        }
+        return true;
+      });
+
+      if (effectiveRole === "judge") {
+        // Judicial officers only inspect evidence exhibits linked to cases on their bench
+        policeAssetsList = policeAssetsList.filter((a) => a.case_number && judgeCaseIds.length > 0);
       }
 
       snapshot = {
@@ -620,8 +677,10 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
         policeAssets: policeAssetsList,
         documents: documentsList,
       };
-      cachedSnapshots.set(cacheTier, snapshot);
+      cachedSnapshots.set(cacheKey, snapshot);
     }
+  }
+
 
     const deterministicAnswer = await deterministicPromise;
 
@@ -779,20 +838,25 @@ You are an authoritative, senior LegalTech intelligence assistant designed speci
    - CPC 1908: Order 39 Rules 1 & 2 (temporary injunctions), Section 11 (Res Judicata), Order 7 Rule 11 (rejection of plaint).
    - Constitutional Writs: Articles 226/227 and Article 32, SLP under Article 136.
 
-=== LIVE COURT DASHBOARD & CAUSE LIST TELEMETRY (AS OF ${todayStr}) ===
+${
+  effectiveRole === "public" || effectiveRole === "unassigned"
+    ? `=== ADVISORY NOTICE ===
+You are an informational legal intelligence copilot. Provide general legal analysis under Indian Law. Do not attempt to access or reveal internal court schedules, case priority scores, police equipment, or Malkhana evidence.`
+    : `=== LIVE COURT DASHBOARD & CAUSE LIST TELEMETRY (AS OF ${todayStr}) ===
 - Active Registry Status:
   * Total Open Pending Cases: ${pendingCasesCount} active cases (${tier1CasesCount} Tier 1 High Priority).
-  * Total Cases on Record: 103 cases.
-  * Scheduled Hearings: 100 listings across 2026.
-  * Open Scheduling Conflicts: ${systemConflicts.length} conflicts (${systemConflicts.filter((c) => c.severity === "blocking").length} blocking, ${systemConflicts.filter((c) => c.severity === "warning").length} warning).
+  * Scheduled Hearings: ${upcomingSchedules.length} listings retrieved for your clearance tier.
+  * Open Scheduling Conflicts: ${systemConflicts.length} conflicts.
   * Gazetted Court Holidays: Sundays are non-working court holidays. Upcoming gazetted holidays: ${holidaysSummary}.
 - Police Assets & Malkhana Evidence Vault:
   * Total Cataloged Assets: ${policeAssets.length} (${assetsUnderMaintenance.length} in maintenance, ${assignedAssets.length} assigned to officers).
   * Evidence in Custody: ${evidenceExhibits.length} exhibits (${unexaminedEvidence.length} pending forensic examination).
-  * Exhibit EV-1045 ('Dell Latitude 5420 Laptop'): STORED in Central Malkhana Vault B (Locker #12) under Tamper Seal #MHA-EV-1045-A. Custodian: HC Ramesh Chand. Connected Case: BNS/2026/0014 (*State v. Accused*). CFSL report #FSL-2026-9812 verified.
+  * Exhibit EV-1045 ('Dell Latitude 5420 Laptop'): STORED in Central Malkhana Vault B under Tamper Seal #MHA-EV-1045-A. Associated Case: BNS/2026/0014. CFSL verification complete.
 - Secure DMS Records:
   * Registered Documents: ${documents.length} (${multiVersionDocs.length} multi-version, ${unverifiedDocs.length} unverified hash).
-  * Platform digital signatures are internal electronic approvals formatted for Section 63 BSA compliance.
+  * Platform digital signatures are internal electronic approvals formatted for Section 63 BSA compliance.`
+}
+
 - Presiding Benches & Courtrooms:
 ${judgesSummary}
 ${courtroomsSummary}

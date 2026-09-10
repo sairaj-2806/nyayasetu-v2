@@ -85,11 +85,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCurrentStaff, usePermissions } from "@/hooks/use-current-staff";
 import { canAccessDocumentRecord } from "@/lib/rbac";
 import { compareDocumentVersions, type VersionComparisonReport } from "@/lib/document-comparison";
+import { getAuthorizedDocumentDetail } from "@/lib/authorized-records.functions";
 import {
   createNewDocumentVersion,
   recordDocumentAccess,
   restoreDocumentContent,
-  secureDocumentDetailQuery,
   setCurrentDocumentVersion,
   simulateDocumentTamper,
   verifyDocumentVersionIntegrity,
@@ -636,7 +636,11 @@ function DigitalSignatureStatusCard({
 function DocumentDetailPage() {
   const { documentId } = Route.useParams();
   const queryClient = useQueryClient();
-  const detailQuery = useQuery(secureDocumentDetailQuery(documentId));
+  const fetchDocDetail = useServerFn(getAuthorizedDocumentDetail);
+  const detailQuery = useQuery({
+    queryKey: ["secure-document-detail", documentId],
+    queryFn: () => fetchDocDetail({ data: { documentId } }),
+  });
   const staff = useCurrentStaff();
   const staffName = staff.data?.fullName || "Registry Staff";
   const staffRole = staff.data?.role || "police_officer";
@@ -2006,7 +2010,8 @@ function DocumentDetailPage() {
               {/* Display either the latest live result or the loaded integrity record */}
               <IntegrityStatusCard
                 result={
-                  integrityResult || {
+                  integrityResult ||
+                  ({
                     status: doc.is_tampered ? "INTEGRITY_MISMATCH" : "VERIFIED",
                     verificationState: ((doc as any).verification_state as "LIVE_VERIFIED" | "SIMULATED_DEMO") || "LIVE_VERIFIED",
                     documentId: doc.id,
@@ -2025,7 +2030,7 @@ function DocumentDetailPage() {
                       : "Cryptographic SHA-256 checksum matches the recorded deposit hash.",
                     bsaSection63Clause: integrity.bsa_compliance_clause,
                     ledgerAnchor: integrity.ledger_anchor,
-                  }
+                  } as any)
                 }
                 onTamper={() => {
                   setTargetTamperVersion(selectedVersionNumber || doc.current_version);

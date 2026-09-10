@@ -114,6 +114,7 @@ const roleLabels: Record<RegistryRole, string> = {
   evidence_custodian: "Evidence Custodian",
   legal_officer: "Legal Officer / Prosecutor",
   document_officer: "Document Officer",
+  unassigned: "Unassigned / Pending Verification",
 };
 
 const roleTone: Record<RegistryRole, string> = {
@@ -126,6 +127,7 @@ const roleTone: Record<RegistryRole, string> = {
   evidence_custodian: "border-teal-500/40 bg-teal-500/10 text-teal-700 dark:text-teal-400",
   legal_officer: "border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
   document_officer: "border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-400",
+  unassigned: "border-zinc-500/40 bg-zinc-500/10 text-zinc-700 dark:text-zinc-400",
 };
 
 const roleDescriptions: Record<RegistryRole, string> = {
@@ -138,6 +140,7 @@ const roleDescriptions: Record<RegistryRole, string> = {
   evidence_custodian: "Malkhana evidence room management, physical intake, QR tracking, and secure custody.",
   legal_officer: "Prosecution filings, witness liaison, trial representations, and bail briefs.",
   document_officer: "Registry archives, document stamping, certified copy issuance, and sealed records.",
+  unassigned: "Account has no statutory role assigned. Access to sensitive registry records is blocked.",
 };
 
 const roleCategories: { category: string; roles: RegistryRole[] }[] = [
@@ -637,7 +640,7 @@ function AdminPanelPage() {
                             <div className="space-y-1.5 min-w-[210px]">
                               <div className="flex items-center gap-2">
                                 <Select
-                                  value={account.role ?? "registrar"}
+                                  value={account.role ?? "unassigned"}
                                   onValueChange={(role) =>
                                     changeRole.mutate({
                                       userId: account.id,
@@ -676,11 +679,11 @@ function AdminPanelPage() {
                                       id: account.id,
                                       fullName: account.fullName,
                                       email: account.email,
-                                      primaryRole: account.role ?? "registrar",
+                                      primaryRole: account.role ?? "unassigned",
                                       roles:
                                         account.roles.length > 0
                                           ? [...account.roles]
-                                          : [account.role ?? "registrar"],
+                                          : [account.role ?? "unassigned"],
                                       judgeId: account.judgeId,
                                     })
                                   }

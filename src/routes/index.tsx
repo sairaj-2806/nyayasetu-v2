@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/brand-mark";
 import { supabase } from "@/integrations/supabase/client";
 import { getOfflineStaffSession } from "@/lib/offline-auth";
+import { normalizeRole } from "@/lib/rbac";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -241,7 +242,7 @@ function PortalPage() {
           .select("role")
           .eq("user_id", data.user.id);
         if (!active) return;
-        const r = roles?.[0]?.role || "registrar";
+        const r = roles?.[0]?.role ? normalizeRole(roles[0].role) : "unassigned";
         setSignedInRole(r);
         return;
       }

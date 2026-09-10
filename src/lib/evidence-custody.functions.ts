@@ -17,10 +17,12 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { calculateSha256 } from "@/lib/crypto-sha256";
 import { signEvidenceCustodyTransfer, type DigitalSignatureRecord } from "@/lib/digital-signature";
+import { checkRateLimit } from "@/lib/rate-limit.server";
 
 export type EvidenceTransferStatus = "PENDING" | "IN_TRANSIT" | "COMPLETED" | "REJECTED";
 
@@ -315,6 +317,21 @@ export const dispatchEvidenceTransfer = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<ServerEvidenceTransfer> => {
     const userId = context.userId;
 
+    // Rate limiting per user & IP
+    const request = getRequest();
+    const clientIp =
+      request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request?.headers?.get("x-real-ip") ||
+      "ip-unknown";
+
+    const custodyRate = checkRateLimit(`custody-dispatch:${userId}:${clientIp}`, {
+      maxRequests: 20,
+      windowMs: 60_000,
+    });
+    if (!custodyRate.allowed) {
+      throw new Error("Rate limit exceeded: Too many evidence dispatch attempts. Please wait a minute.");
+    }
+
     // 1. Authenticate user & resolve actual role from backend database
     const [{ data: rolesData }, { data: profileData }] = await Promise.all([
       supabaseAdmin.from("user_roles").select("role").eq("user_id", userId),
@@ -324,11 +341,11 @@ export const dispatchEvidenceTransfer = createServerFn({ method: "POST" })
     const userRoles = (rolesData || []).map((r) => r.role);
     const hasReleaseClearance = userRoles.some((r) => AUTHORIZED_RELEASE_ROLES.has(r));
 
-    if (!hasReleaseClearance && userRoles.length > 0) {
+    if (!hasReleaseClearance || userRoles.length === 0) {
       // Record unauthorized dispatch attempt in audit logs
       await supabaseAdmin.from("audit_logs").insert({
         user_id: userId,
-        action: `UNAUTHORIZED_DISPATCH_ATTEMPT: User roles [${userRoles.join(", ")}] lack clearance to dispatch evidence ${data.assetId}.`,
+        action: `UNAUTHORIZED_DISPATCH_ATTEMPT: User roles [${userRoles.join(", ") || "unassigned"}] lack clearance to dispatch evidence ${data.assetId}.`,
         entity_affected: JSON.stringify({
           entity_type: "evidence",
           entity_id: data.assetId,
@@ -339,12 +356,13 @@ export const dispatchEvidenceTransfer = createServerFn({ method: "POST" })
       });
 
       throw new Error(
-        `Access Denied: Your assigned roles ([${userRoles.join(", ")}]) lack statutory clearance to release evidence into transit.`,
+        `Access Denied: Your account ([${userRoles.join(", ") || "unassigned"}]) lacks statutory clearance to release evidence into transit.`,
       );
     }
 
     const releasingOfficerName = profileData?.full_name || "Authorized Police Officer";
-    const releasingOfficerRole = userRoles[0] || "investigating_officer";
+    const releasingOfficerRole = userRoles[0] || "unassigned";
+
 
     // 2. Resolve target asset & verify current custodian/location
     const asset = await resolvePoliceAsset(data.assetId);
@@ -559,6 +577,21 @@ export const acknowledgeEvidenceReceipt = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<AcknowledgeEvidenceReceiptOutput> => {
     const userId = context.userId;
 
+    // Rate limiting per user & IP
+    const request = getRequest();
+    const clientIp =
+      request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request?.headers?.get("x-real-ip") ||
+      "ip-unknown";
+
+    const custodyRate = checkRateLimit(`custody-receipt:${userId}:${clientIp}`, {
+      maxRequests: 20,
+      windowMs: 60_000,
+    });
+    if (!custodyRate.allowed) {
+      throw new Error("Rate limit exceeded: Too many evidence receipt attempts. Please wait a minute.");
+    }
+
     // 1. Authenticate user & resolve actual role from backend
     const [{ data: rolesData }, { data: profileData }] = await Promise.all([
       supabaseAdmin.from("user_roles").select("role").eq("user_id", userId),
@@ -568,15 +601,16 @@ export const acknowledgeEvidenceReceipt = createServerFn({ method: "POST" })
     const userRoles = (rolesData || []).map((r) => r.role);
     const hasReceivingClearance = userRoles.some((r) => AUTHORIZED_RECEIVING_ROLES.has(r));
 
-    if (!hasReceivingClearance && userRoles.length > 0) {
+    if (!hasReceivingClearance || userRoles.length === 0) {
       throw new Error(
-        `Access Denied: Your assigned roles ([${userRoles.join(", ")}]) lack clearance to take custody of criminal evidence.`,
+        `Access Denied: Your account ([${userRoles.join(", ") || "unassigned"}]) lacks clearance to take custody of criminal evidence.`,
       );
     }
 
-    const receivingOfficerName =
-      data.receivingOfficerName?.trim() || profileData?.full_name || "Authorized Custodian";
-    const receivingOfficerRole = userRoles[0] || "evidence_custodian";
+    // Derive officer identity strictly from authenticated backend state
+    const receivingOfficerName = profileData?.full_name || "Authorized Custodian";
+    const receivingOfficerRole = userRoles[0] || "unassigned";
+
 
     // 2. Resolve transfer record from Supabase or server registry
     let transfer: ServerEvidenceTransfer | null = null;
@@ -856,6 +890,21 @@ export const rejectEvidenceTransfer = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<RejectEvidenceTransferOutput> => {
     const userId = context.userId;
 
+    // Rate limiting per user & IP
+    const request = getRequest();
+    const clientIp =
+      request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request?.headers?.get("x-real-ip") ||
+      "ip-unknown";
+
+    const custodyRate = checkRateLimit(`custody-reject:${userId}:${clientIp}`, {
+      maxRequests: 20,
+      windowMs: 60_000,
+    });
+    if (!custodyRate.allowed) {
+      throw new Error("Rate limit exceeded: Too many evidence rejection attempts. Please wait a minute.");
+    }
+
     // 1. Authenticate user & resolve actual role from backend
     const [{ data: rolesData }, { data: profileData }] = await Promise.all([
       supabaseAdmin.from("user_roles").select("role").eq("user_id", userId),
@@ -865,15 +914,16 @@ export const rejectEvidenceTransfer = createServerFn({ method: "POST" })
     const userRoles = (rolesData || []).map((r) => r.role);
     const hasReceivingClearance = userRoles.some((r) => AUTHORIZED_RECEIVING_ROLES.has(r));
 
-    if (!hasReceivingClearance && userRoles.length > 0) {
+    if (!hasReceivingClearance || userRoles.length === 0) {
       throw new Error(
-        `Access Denied: Your assigned roles lack statutory authority to inspect or reject evidence transfers.`,
+        `Access Denied: Your account ([${userRoles.join(", ") || "unassigned"}]) lacks statutory authority to inspect or reject evidence transfers.`,
       );
     }
 
-    const rejectingOfficerName =
-      data.rejectingOfficerName?.trim() || profileData?.full_name || "Authorized Custodian";
-    const rejectingOfficerRole = userRoles[0] || "evidence_custodian";
+    // Derive officer identity strictly from authenticated backend state
+    const rejectingOfficerName = profileData?.full_name || "Authorized Custodian";
+    const rejectingOfficerRole = userRoles[0] || "unassigned";
+
 
     // 2. Resolve transfer record
     let transfer = _serverTransferRegistry.get(data.transferId) || null;

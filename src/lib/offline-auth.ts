@@ -264,9 +264,9 @@ export async function authenticateOffline(
     };
   }
 
-  const isDemo = account.passwordHash.startsWith("demo_hash_");
+  const isDemo = isDemoMode() && account.passwordHash.startsWith("demo_hash_");
   const inputHash = await computePasswordHash(plainPassword, account.salt);
-  if (!isDemo && inputHash !== account.passwordHash && plainPassword !== "Court123!") {
+  if (!isDemo && inputHash !== account.passwordHash) {
     return {
       success: false,
       error: "Invalid offline password. Please verify your credentials.",

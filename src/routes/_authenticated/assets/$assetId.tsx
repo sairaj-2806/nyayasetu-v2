@@ -83,10 +83,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useCurrentStaff } from "@/hooks/use-current-staff";
+import { useServerFn } from "@tanstack/react-start";
+import { getAuthorizedAssetDetail } from "@/lib/authorized-records.functions";
 import {
   executeAssetLifecycleTransition,
   getAllowedActions,
-  policeAssetDetailQuery,
   type AssetCondition,
   type AssetLifecycleStatus,
   type LifecycleActionDefinition,
@@ -225,7 +226,11 @@ function FieldItem({
 function AssetDetailPage() {
   const { assetId } = Route.useParams();
   const queryClient = useQueryClient();
-  const detailQuery = useQuery(policeAssetDetailQuery(assetId));
+  const fetchAuthorizedAsset = useServerFn(getAuthorizedAssetDetail);
+  const detailQuery = useQuery({
+    queryKey: ["police-asset-detail", assetId],
+    queryFn: () => fetchAuthorizedAsset({ data: { assetId } }),
+  });
   const staff = useCurrentStaff();
   const staffRole: StaffRole = staff.data?.role || "police_officer";
   const staffName = staff.data?.fullName || "Registry Officer";

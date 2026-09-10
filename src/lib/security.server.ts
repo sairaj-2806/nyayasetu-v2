@@ -11,11 +11,14 @@
 export function sanitizeUserInput(input: string, maxLength = 500): string {
   if (!input) return "";
 
-  // Strip null bytes and non-printable control characters (except newline and tab)
-  const cleaned = input
+  // 1. Strip null bytes and non-printable control characters
+  let cleaned = input
     // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
     .trim();
+
+  // 2. Strip HTML tags / script tags to prevent stored injections
+  cleaned = cleaned.replace(/<[^>]*>/g, "");
 
   return cleaned.slice(0, maxLength);
 }
@@ -28,6 +31,8 @@ const INJECTION_PATTERNS = [
   /you\s+are\s+now\s+(in\s+)?(developer|jailbreak|unrestricted|god)\s+mode/i,
   /system\s+override/i,
   /reveal\s+(your\s+)?(system\s+prompt|api\s+key|database\s+password|secret)/i,
+  /bypass\s+(rls|security|authorization|authentication|access\s+control)/i,
+  /override\s+(all\s+)?(rules|prompts|security|restrictions)/i,
   /drop\s+table/i,
   /select\s+\*\s+from\s+auth/i,
 ];

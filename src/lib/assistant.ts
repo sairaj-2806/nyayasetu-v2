@@ -47,7 +47,10 @@ export type AssistantRowTarget =
   | { route: "/documents" }
   | { route: "/cases" }
   | { route: "/cause-list" }
-  | { route: "/dashboard" };
+  | { route: "/dashboard" }
+  | { route: "/auth" }
+  | { route: "/case-status" };
+
 
 export type AssistantRow = {
   id: string;
@@ -1055,7 +1058,63 @@ export async function answerQuestion(
   userRole?: string,
 ): Promise<AssistantAnswer> {
   const intent = classifyQuestion(question);
+  const normRole = (userRole || "public").toLowerCase().trim();
+  const isPrivilegedStaff = [
+    "admin",
+    "registrar",
+    "judge",
+    "investigating_officer",
+    "police_officer",
+    "forensic_officer",
+    "evidence_custodian",
+    "legal_officer",
+    "document_officer",
+  ].includes(normRole);
+
+  const privilegedIntents: AssistantIntent[] = [
+    "assets_maintenance",
+    "assets_by_officer",
+    "evidence_location",
+    "evidence_chain_of_custody",
+    "evidence_unexamined",
+    "case_documents_summary",
+    "documents_multi_version",
+    "documents_unverified_integrity",
+    "assets_by_case",
+    "recent_asset_transfers",
+    "conflict_count",
+    "judge_workload",
+    "unscheduled_cases",
+  ];
+
+  if (!isPrivilegedStaff && privilegedIntents.includes(intent)) {
+    return {
+      intent: "scope_redirection",
+      summary:
+        "Access Restricted: Querying internal police inventory, Malkhana evidence lockers, custody chains, or unpublished court registry diagnostics requires authenticated staff clearance. Please log in to your official judicial or law enforcement account.",
+      source: "Security Authorization Guard",
+      rows: [
+        {
+          id: "auth-login",
+          label: "Registry Staff Portal",
+          detail: "Sign in with your official judiciary or police credentials",
+          badge: "Authentication Required",
+          target: { route: "/auth" },
+
+        },
+        {
+          id: "public-status",
+          label: "Public Case Status Lookup",
+          detail: "Search published case listings and hearing schedules",
+          badge: "Public Portal",
+          target: { route: "/case-status" },
+        },
+      ],
+    };
+  }
+
   switch (intent) {
+
     case "availability":
       return answerAvailability(question, db);
     case "conflict_count":

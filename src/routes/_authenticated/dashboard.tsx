@@ -419,7 +419,7 @@ function RoleWorkspaceFocusSection({
   dmsMetrics: ReturnType<typeof computeDmsAndAssetMetrics>;
   conflictsCount: number;
 }) {
-  const normRole = (role || "registrar").toLowerCase();
+  const normRole = (role || "unassigned").toLowerCase();
 
   const config = useMemo(() => {
     switch (normRole) {
@@ -851,7 +851,7 @@ function Page() {
   const assetsQuery = useQuery(policeAssetsQuery);
   const auditQuery = useQuery(auditLogQuery);
   const staff = useCurrentStaff();
-  const role = staff.data?.role || "registrar";
+  const role = staff.data?.role || "unassigned";
   const roleInfo = ROLE_METADATA[role];
 
   const metrics = useMemo(

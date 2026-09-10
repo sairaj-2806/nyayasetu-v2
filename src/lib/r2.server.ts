@@ -94,19 +94,46 @@ export function isR2BindingActive(): boolean {
 
 /**
  * Sanitizes arbitrary file names before persisting to R2 object keys or metadata:
- * - Strips directory traversal (../, ..\)
- * - Strips ASCII control chars & null bytes
+ * - Decodes URI encoding to prevent traversal bypasses (%2e%2e, %2f, %5c, %00)
+ * - Normalizes Unicode using NFKC
+ * - Strips directory traversal (../, ..\, /)
+ * - Strips ASCII control chars, null bytes, and bidirectional override characters
  * - Replaces whitespace and non-alphanumeric special characters
- * - Ensures safe length
+ * - Enforces safe length limits
  */
 export function sanitizeFilename(rawName: string): string {
-  const baseName = (rawName || "").replace(/^.*[\\/]/, "").trim();
-  const sanitized = baseName
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\x00-\x1F\x7F]/g, "")
-    .replace(/\.{2,}/g, ".")
-    .replace(/[^a-zA-Z0-9._-]/g, "_");
+  if (!rawName || typeof rawName !== "string") return "document.pdf";
 
+  // 1. Decode URI encodings if present to prevent %2e%2e or %2f bypasses
+  let decoded = rawName;
+  try {
+    decoded = decodeURIComponent(rawName);
+  } catch {
+    decoded = rawName;
+  }
+
+  // 2. Unicode normalization (NFKC) & strip control characters, null bytes, bidirectional overrides
+  const normalized = decoded
+    .normalize("NFKC")
+    .replace(/\0/g, "")
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\x00-\x1F\x7F-\x9F\u200B-\u200D\uFEFF\u202A-\u202E]/g, "")
+    // Strip URL-encoded sequences that survived decode
+    .replace(/%2e%2e/gi, "")
+    .replace(/%2f/gi, "")
+    .replace(/%5c/gi, "")
+    .replace(/%00/gi, "")
+    // Strip leading path traversal or directory components
+    .replace(/^.*[\\/]/, "")
+    .trim();
+
+  // 3. Replace any repeated dots or path traversal
+  const noTraversal = normalized.replace(/\.{2,}/g, ".");
+
+  // 4. Retain only safe alphanumeric, dots, underscores, and hyphens
+  const sanitized = noTraversal.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+  // 5. Enforce safe length limit (max 120 chars)
   const capped = sanitized.slice(0, 120);
   return capped || "document.pdf";
 }
@@ -126,26 +153,38 @@ export function sanitizeCaseIdForStorage(rawCaseId?: string | null): string {
 
 /**
  * Generates an R2 object key using the mandatory structure:
- * `cases/{caseId}/documents/{documentId}/{safeFilename}`
+ * `cases/{caseId}/documents/{documentId}/{versionId}/{generatedObjectId}`
  *
  * Example:
- * `cases/NYS-2026-00001/documents/doc_abc123/FIR-001.pdf`
+ * `cases/NYS-2026-00001/documents/doc_abc123/v1/9a8b7c6d-5e4f-3a2b-1c0d.pdf`
  */
 export function generateR2ObjectKey({
   caseId,
   documentId,
+  versionId,
   safeFilename,
+  generatedObjectId,
 }: {
   caseId?: string | null;
   documentId: string;
-  safeFilename: string;
+  versionId?: string | number | undefined;
+  safeFilename?: string | undefined;
+  generatedObjectId?: string | undefined;
 }): string {
   const safeCase = sanitizeCaseIdForStorage(caseId);
   const cleanDocId = (documentId || "doc_unknown").replace(/[^a-zA-Z0-9_-]/g, "_");
-  const cleanFileName = sanitizeFilename(safeFilename);
+  const ver = versionId ? `v${versionId}` : "v1";
 
-  return `cases/${safeCase}/documents/${cleanDocId}/${cleanFileName}`;
+  // Server-generated object ID takes precedence for guaranteed path safety
+  if (generatedObjectId) {
+    const cleanObjId = generatedObjectId.replace(/[^a-zA-Z0-9._-]/g, "_");
+    return `cases/${safeCase}/documents/${cleanDocId}/${ver}/${cleanObjId}`;
+  }
+
+  const cleanFileName = sanitizeFilename(safeFilename || "document.pdf");
+  return `cases/${safeCase}/documents/${cleanDocId}/${ver}/${cleanFileName}`;
 }
+
 
 /**
  * Computes cryptographically verified SHA-256 hash using Web Crypto API.

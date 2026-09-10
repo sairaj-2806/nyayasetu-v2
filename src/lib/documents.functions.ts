@@ -7,8 +7,11 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { checkRateLimit } from "@/lib/rate-limit.server";
+import { canAccessDocumentRecord } from "@/lib/rbac";
 import {
   computeSha256,
   deleteR2Object,
@@ -454,6 +457,21 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<UploadDocumentOutput> => {
     const userId = context.userId;
 
+    // Rate limiting per user & IP
+    const request = getRequest();
+    const clientIp =
+      request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request?.headers?.get("x-real-ip") ||
+      "ip-unknown";
+
+    const uploadRate = checkRateLimit(`upload:${userId}:${clientIp}`, {
+      maxRequests: 20,
+      windowMs: 60_000,
+    });
+    if (!uploadRate.allowed) {
+      throw new Error("Rate limit exceeded: Too many document upload attempts. Please wait a minute.");
+    }
+
     // 1. Fetch user roles & profiles to verify permissions
     const [{ data: rolesData }, { data: profileData }] = await Promise.all([
       supabaseAdmin.from("user_roles").select("role").eq("user_id", userId),
@@ -463,9 +481,10 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
     const userRoles = (rolesData || []).map((r) => r.role);
     const hasUploadPerm = userRoles.some((r) => AUTHORIZED_UPLOAD_ROLES.has(r));
 
-    if (!hasUploadPerm && userRoles.length > 0) {
+    // Fail closed: deny if user has no roles or lacks upload permission
+    if (!hasUploadPerm || userRoles.length === 0) {
       throw new Error(
-        `Access Denied: Your assigned roles (${userRoles.join(", ")}) do not have permission to deposit documents into the secure vault.`,
+        `Access Denied: Your account (${userRoles.join(", ") || "unassigned"}) lacks statutory clearance to deposit documents into the secure vault.`,
       );
     }
 
@@ -576,14 +595,17 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
     const docPrefix = (data.category || "DOC").replace(/[^a-zA-Z0-9]/g, "-").toUpperCase().slice(0, 4);
     const docNumber = `DOC-${docPrefix}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // 6. Generate canonical R2 object key:
-    // `cases/{caseId}/documents/{documentId}/{safeFilename}`
+    // 6. Generate canonical R2 object key with server-generated object ID:
+    // `cases/{caseId}/documents/{documentId}/v1/{generatedObjectId}`
     const r2CaseFolder = verifiedCaseNumber || verifiedCaseId || "unassigned";
     const r2ObjectKey = generateR2ObjectKey({
       caseId: r2CaseFolder,
       documentId,
+      versionId: 1,
+      generatedObjectId: `${docUuid}.${rawExt || "pdf"}`,
       safeFilename,
     });
+
 
     const now = new Date().toISOString();
     const mimeType =
@@ -870,6 +892,21 @@ export const getDocumentFile = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<GetDocumentFileOutput> => {
     const userId = context.userId;
 
+    // Rate limiting per user & IP
+    const request = getRequest();
+    const clientIp =
+      request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request?.headers?.get("x-real-ip") ||
+      "ip-unknown";
+
+    const downloadRate = checkRateLimit(`download:${userId}:${clientIp}`, {
+      maxRequests: 30,
+      windowMs: 60_000,
+    });
+    if (!downloadRate.allowed) {
+      throw new Error("Rate limit exceeded: Too many document download requests. Please wait a minute.");
+    }
+
     // 1. Fetch user roles & profile
     const [{ data: rolesData }, { data: profileData }] = await Promise.all([
       supabaseAdmin.from("user_roles").select("role").eq("user_id", userId),
@@ -881,8 +918,9 @@ export const getDocumentFile = createServerFn({ method: "POST" })
 
     // 2. Find document in Supabase case_documents / registry
     const docRecord = await resolveDocumentRecord(data.documentId);
-    if (!docRecord) {
-      throw new Error(`Document "${data.documentId}" not found in legal vault registry.`);
+    if (!docRecord || userRoles.length === 0) {
+      // Prevent enumeration: opaque error regardless of whether record exists or is unauthorized
+      throw new Error("Access Denied: Document not found or you lack clearance to inspect this record.");
     }
 
     // 3. Permission & Case Clearance Verification
@@ -906,7 +944,14 @@ export const getDocumentFile = createServerFn({ method: "POST" })
       }
     }
 
-    const hasAccess = checkDocumentSensitivityAccess(userRoles, docRecord.sensitivity_tier, isAssignedJudge);
+    const assignedCaseIds = isAssignedJudge && docRecord.case_id ? [docRecord.case_id] : [];
+    const hasAccess = canAccessDocumentRecord(
+      userRoles[0] || "unassigned",
+      { sensitivity_tier: docRecord.sensitivity_tier, case_id: docRecord.case_id },
+      null,
+      assignedCaseIds,
+    );
+
     if (!hasAccess) {
       // Record unauthorized inspection security alert
       await recordAuditTrail({
@@ -924,9 +969,8 @@ export const getDocumentFile = createServerFn({ method: "POST" })
         success: false,
       });
 
-      throw new Error(
-        `Access Denied: Your authenticated role does not possess statutory clearance to access ${docRecord.sensitivity_tier} records.`,
-      );
+      // Uniform error message to prevent document ID enumeration
+      throw new Error("Access Denied: Document not found or you lack clearance to inspect this record.");
     }
 
     // 4. Resolve R2 Object Key
@@ -1402,11 +1446,28 @@ export const createDocumentVersion = createServerFn({ method: "POST" })
     const userRoles = (rolesData || []).map((r) => r.role);
     const hasPerm = userRoles.some((r) => AUTHORIZED_UPLOAD_ROLES.has(r));
 
-    if (!hasPerm && userRoles.length > 0) {
+    // Rate limiting per user & IP
+    const request = getRequest();
+    const clientIp =
+      request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request?.headers?.get("x-real-ip") ||
+      "ip-unknown";
+
+    const versionRate = checkRateLimit(`version:${userId}:${clientIp}`, {
+      maxRequests: 20,
+      windowMs: 60_000,
+    });
+    if (!versionRate.allowed) {
+      throw new Error("Rate limit exceeded: Too many version upload requests. Please wait a minute.");
+    }
+
+    // Fail closed: unassigned accounts or accounts lacking upload permission cannot commit versions
+    if (!hasPerm || userRoles.length === 0) {
       throw new Error(
-        `Access Denied: Your assigned roles (${userRoles.join(", ")}) do not have permission to commit document versions.`,
+        `Access Denied: Your account (${userRoles.join(", ") || "unassigned"}) lacks statutory clearance to commit document versions.`,
       );
     }
+
 
     const userName = profileData?.full_name || "Authorized Staff";
 
@@ -1513,11 +1574,16 @@ export const createDocumentVersion = createServerFn({ method: "POST" })
     // 7. Store file bytes in Cloudflare R2
     // Canonical key: cases/{caseId}/documents/{docId}/v{versionNumber}_{filename}
     const r2CaseFolder = doc.case_number || doc.case_id || "unassigned";
+    const versionUuid = crypto.randomUUID();
+    const rawExt = (data.fileName.split(".").pop() || "").toLowerCase();
     const r2ObjectKey = generateR2ObjectKey({
       caseId: r2CaseFolder,
       documentId: doc.id,
+      versionId: newVersionNumber,
+      generatedObjectId: `${versionUuid}.${rawExt || "pdf"}`,
       safeFilename: `v${newVersionNumber}_${safeFilename}`,
     });
+
 
     const mimeType = data.mimeType || "application/pdf";
 
@@ -1544,7 +1610,6 @@ export const createDocumentVersion = createServerFn({ method: "POST" })
     }
 
     // 8. Commit version record to Supabase public.document_versions
-    const versionUuid = crypto.randomUUID();
     const newVersionRecord: ServerDocumentVersion = {
       id: versionUuid,
       document_id: doc.id,

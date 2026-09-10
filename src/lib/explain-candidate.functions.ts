@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { queryLLM, getEnvVar } from "@/lib/ai.server";
 import { checkRateLimit } from "@/lib/rate-limit.server";
 import { sanitizeUserInput, detectPromptInjection } from "@/lib/security.server";
@@ -98,24 +99,28 @@ function generateRuleBasedExplanation(data: z.infer<typeof Input>): string {
   ].join("\n");
 }
 
+const ADVISORY_NOTICE = "\n\n[Advisory: This explanation is an automated algorithmic aid. All judicial scheduling decisions remain subject to the independent discretion of the Presiding Judge and Registrar.]";
+
 export const explainSchedulingRecommendation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator((data: unknown) => Input.parse(data))
-  .handler(async ({ data }) => {
-    // 1. Rate Limiting Protection (30 per minute per client IP)
+  .handler(async ({ data, context }) => {
+    const userId = context.userId;
+    // 1. Rate Limiting Protection (30 per minute per user & client IP)
     const request = getRequest();
     const clientIp =
       request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request?.headers?.get("x-real-ip") ||
-      "anonymous-scheduling-explainer";
+      "anonymous";
 
-    const rateCheck = checkRateLimit(`explain:${clientIp}`, {
+    const rateCheck = checkRateLimit(`explain:${userId}:${clientIp}`, {
       maxRequests: 30,
       windowMs: 60_000,
     });
 
     if (!rateCheck.allowed) {
       return {
-        explanation: generateRuleBasedExplanation(data),
+        explanation: generateRuleBasedExplanation(data) + ADVISORY_NOTICE,
       };
     }
 
@@ -178,7 +183,7 @@ Explain concisely why this top recommended slot was selected by the engine, high
         ]);
 
         if (explanation && explanation.trim().length > 10) {
-          return { explanation: explanation.trim() };
+          return { explanation: explanation.trim() + ADVISORY_NOTICE };
         }
       }
     } catch (e) {
@@ -187,6 +192,6 @@ Explain concisely why this top recommended slot was selected by the engine, high
 
     // High-quality deterministic fallback ensures the user NEVER receives an error
     return {
-      explanation: generateRuleBasedExplanation(data),
+      explanation: generateRuleBasedExplanation(data) + ADVISORY_NOTICE,
     };
   });

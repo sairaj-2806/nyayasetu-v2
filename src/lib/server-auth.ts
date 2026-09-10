@@ -77,7 +77,7 @@ export async function getEffectiveRoles(userId: string): Promise<AppRole[]> {
 
     const normalized = rolesData
       .map((r) => normalizeRole(r.role))
-      .filter((r): r is AppRole => Boolean(r));
+      .filter((r): r is AppRole => r !== "unassigned");
 
     return Array.from(new Set(normalized));
   } catch (err) {
@@ -315,8 +315,98 @@ export async function requireDocumentAccess(
     return { userRole: role, fullName };
   }
 
-  const primaryRole = roles[0] || "police_officer";
+  if (tier === "CONFIDENTIAL") {
+    const allowed = [
+      "admin",
+      "registrar",
+      "judge",
+      "investigating_officer",
+      "forensic_officer",
+      "evidence_custodian",
+      "legal_officer",
+      "document_officer",
+    ];
+    const role = roles.find((r) => allowed.includes(r));
+    if (!role) {
+      throw new ForbiddenException(
+        "Access Denied: Confidential legal records require statutory clearance. General patrol officers and unassigned accounts are denied.",
+      );
+    }
+    return { userRole: role, fullName };
+  }
+
+  if (roles.length === 0) {
+    if (tier !== "PUBLIC") {
+      throw new ForbiddenException("Access Denied: Unassigned accounts lack clearance for non-public records.");
+    }
+    return { userRole: "unassigned", fullName };
+  }
+
+  const primaryRole = roles[0]!;
   return { userRole: primaryRole, fullName };
+}
+
+/**
+ * Asserts access clearance for an asset or physical evidence item.
+ * Strictly enforces judicial bench scoping: Judges can only inspect exhibits
+ * attached to cases scheduled before their bench.
+ */
+export async function requireAssetAccess(
+  userId: string,
+  assetId: string,
+  action: "VIEW" | "UPDATE" | "TRANSFER" = "VIEW",
+): Promise<{ userRole: AppRole; fullName: string }> {
+  const { roles, fullName } = await getAuthenticatedUserContext(userId);
+
+  if (roles.length === 0) {
+    throw new ForbiddenException(`Access Denied: Unassigned accounts lack clearance to inspect police equipment or evidence (${assetId}).`);
+  }
+
+  if (roles.includes("admin") || roles.includes("registrar")) {
+    return { userRole: roles.includes("admin") ? "admin" : "registrar", fullName };
+  }
+
+  // Fetch asset details from database
+  const { data: asset } = await supabaseAdmin
+    .from("police_assets")
+    .select("id, case_id, evidence_status, status")
+    .eq("id", assetId)
+    .maybeSingle();
+
+  if (roles.includes("judge")) {
+    // Judges can only inspect evidence linked to cases
+    if (!asset?.case_id) {
+      throw new ForbiddenException("Access Denied: Judicial officers are restricted to evidence exhibits linked to active court cases.");
+    }
+
+    const { data: judgeRecord } = await supabaseAdmin
+      .from("judges")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (judgeRecord) {
+      const { data: schedule } = await supabaseAdmin
+        .from("schedules")
+        .select("id")
+        .eq("case_id", asset.case_id)
+        .eq("judge_id", judgeRecord.id)
+        .maybeSingle();
+
+      if (!schedule) {
+        throw new ForbiddenException("Access Denied: You are not the presiding judge for the case associated with this evidence exhibit.");
+      }
+    }
+    return { userRole: "judge", fullName };
+  }
+
+  const allowedRoles = ["police_officer", "investigating_officer", "forensic_officer", "evidence_custodian", "legal_officer", "document_officer"];
+  const matched = roles.find((r) => allowedRoles.includes(r));
+  if (!matched) {
+    throw new ForbiddenException(`Access Denied: Your assigned roles ([${roles.join(", ")}]) lack clearance for this asset.`);
+  }
+
+  return { userRole: matched, fullName };
 }
 
 /**

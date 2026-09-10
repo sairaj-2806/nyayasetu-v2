@@ -28,17 +28,44 @@ function createWindow() {
     mainWindow.show();
   });
 
-  // Keep internal app navigation within Electron
+  // Strict URL opening & navigation policy: prevent arbitrary protocols & untrusted windows
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith(LIVE_URL) || url.includes("localhost")) {
-      mainWindow.loadURL(url);
-      return { action: "deny" };
+    try {
+      const parsed = new URL(url);
+      if (
+        parsed.origin === new URL(LIVE_URL).origin ||
+        parsed.hostname === "localhost" ||
+        parsed.hostname === "127.0.0.1"
+      ) {
+        mainWindow.loadURL(url);
+        return { action: "deny" };
+      }
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        shell.openExternal(url);
+        return { action: "deny" };
+      }
+    } catch {
+      // Invalid URL
     }
-    if (url.startsWith("http:") || url.startsWith("https:")) {
-      shell.openExternal(url);
-      return { action: "deny" };
+    return { action: "deny" };
+  });
+
+  // Prevent renderer navigation to arbitrary untrusted external origins
+  mainWindow.webContents.on("will-navigate", (event, navUrl) => {
+    try {
+      const parsed = new URL(navUrl);
+      const isTrusted =
+        parsed.origin === new URL(LIVE_URL).origin ||
+        parsed.hostname === "localhost" ||
+        parsed.hostname === "127.0.0.1" ||
+        navUrl.startsWith("file://");
+      if (!isTrusted) {
+        event.preventDefault();
+        shell.openExternal(navUrl);
+      }
+    } catch {
+      event.preventDefault();
     }
-    return { action: "allow" };
   });
 
   console.log(`[NyayaSetu Desktop] Launching Court Workspace: ${startUrl}`);
