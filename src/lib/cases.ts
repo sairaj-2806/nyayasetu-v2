@@ -1,4 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isDemoMode } from "@/lib/demo-mode";
+import { SEED_CASE_BNS_0014 } from "@/fixtures/demo/cases";
+
+export { SEED_CASE_BNS_0014 };
 
 export const CASE_STATUSES = [
   "filed",
@@ -80,51 +84,20 @@ export const caseCategoriesQuery = {
   },
 };
 
-export const SEED_CASE_BNS_0014: CaseRow = {
-  id: "case-bns-0014",
-  case_number: "BNS/2026/0014",
-  cnr_number: "DLCT02-000014-2026",
-  category_id: "cat-crim-01",
-  filing_date: "2026-02-14",
-  status: "scheduled",
-  parties: "State of NCT vs. Aman Sharma & Ors.",
-  estimated_duration_minutes: 60,
-  predicted_duration_minutes: 60,
-  adjournment_risk_score: 25,
-  pending_duration_days: 22,
-  previous_adjournments: 0,
-  priority_score: 88,
-  priority_tier: "Tier 1",
-  legal_priority_flag: true,
-  is_ftsc_pocso: false,
-  senior_citizen_litigant: false,
-  property_dispute_5yr_plus: false,
-  statutory_limitation_deadline: "2026-08-14",
-  created_at: "2026-02-14T09:00:00Z",
-  is_example: true,
-  example_order: 1,
-  example_label: "BNS Organized Crime & Digital Evidence Case",
-  example_note:
-    "High priority case featuring Exhibit EV-1045, EV-1046, and Section 63 BSA Digital Signature",
-  case_categories: { id: "cat-crim-01", name: "Criminal (BNS)", urgency_weight: 1.5 },
-};
-
 export const casesQuery = {
   queryKey: ["cases"],
   queryFn: async (): Promise<CaseRow[]> => {
-    let data: any[] | null = null;
-    try {
-      const res = await supabase.from("cases").select(CASE_SELECT).order("filing_date", {
-        ascending: false,
-      });
-      if (!res.error && res.data) {
-        data = res.data;
+    const res = await supabase.from("cases").select(CASE_SELECT).order("filing_date", {
+      ascending: false,
+    });
+    if (res.error) {
+      if (!isDemoMode()) {
+        throw res.error;
       }
-    } catch {
-      // fallback
     }
 
-    const mapped = (data ?? []).map((c) => {
+    const rawData = res.data ?? [];
+    const mapped = rawData.map((c) => {
       const numPart = (c.case_number || "0001").replace(/[^0-9]/g, "");
       const seq = parseInt(numPart || "1", 10);
       const prefix = (c.case_number || "").startsWith("CRL") ? "DLCT02" : "DLCT01";
@@ -141,8 +114,9 @@ export const casesQuery = {
       };
     }) as unknown as CaseRow[];
 
-    if (!mapped.some((c) => c.id === "case-bns-0014" || c.case_number === "BNS/2026/0014")) {
-      mapped.unshift(SEED_CASE_BNS_0014);
+    // In explicit DEMO_MODE only, provide the seed case if the database is completely empty
+    if (isDemoMode() && mapped.length === 0) {
+      mapped.push(SEED_CASE_BNS_0014);
     }
 
     return mapped;

@@ -25,6 +25,18 @@ export default defineConfig(({ mode }) => {
       "process.env.CUSTOM_LLM_URL": JSON.stringify(env["CUSTOM_LLM_URL"] || ""),
       "process.env.OPENAI_API_KEY": JSON.stringify(env["OPENAI_API_KEY"] || ""),
       "process.env.GROQ_API_KEY": JSON.stringify(env["GROQ_API_KEY"] || ""),
+      "process.env.DEMO_MODE": JSON.stringify(
+        env["DEMO_MODE"] || env["VITE_DEMO_MODE"] || "false",
+      ),
+      "process.env.VITE_DEMO_MODE": JSON.stringify(
+        env["VITE_DEMO_MODE"] || env["DEMO_MODE"] || "false",
+      ),
+      "import.meta.env.DEMO_MODE": JSON.stringify(
+        env["DEMO_MODE"] || env["VITE_DEMO_MODE"] || "false",
+      ),
+      "import.meta.env.VITE_DEMO_MODE": JSON.stringify(
+        env["VITE_DEMO_MODE"] || env["DEMO_MODE"] || "false",
+      ),
     },
     server: {
       watch: {

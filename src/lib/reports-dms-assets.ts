@@ -1,7 +1,7 @@
 import type { SecureDocument } from "@/lib/documents";
 import { getDocumentVersions } from "@/lib/documents";
 import type { PoliceAsset } from "@/lib/assets";
-import { SEED_AUDIT_TRAIL } from "@/lib/global-search";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export interface DmsAssetAnalytics {
   // 1. DOCUMENTS
@@ -106,8 +106,8 @@ export function computeDmsAssetAnalytics(
     }
   }
 
-  // Ensure healthy visual distributions if empty
-  if (typeMap.size === 0) {
+  // In demo mode only, ensure healthy visual distributions if empty
+  if (typeMap.size === 0 && isDemoMode()) {
     typeMap.set("FIR", 1);
     typeMap.set("Charge Sheet", 1);
     typeMap.set("Forensic Report", 1);
@@ -128,7 +128,7 @@ export function computeDmsAssetAnalytics(
   const integrityStatus = [
     {
       status: "Verified (Section 63 BSA)",
-      count: Math.max(verifiedCount, 3),
+      count: isDemoMode() ? Math.max(verifiedCount, 3) : verifiedCount,
       color: "var(--chart-2)",
     },
     { status: "Pending Verification", count: pendingCount, color: "var(--chart-4)" },
@@ -188,18 +188,25 @@ export function computeDmsAssetAnalytics(
       count,
     }));
 
-  const maintenanceFrequency = [
-    { service: "Ballistic Calibration", count: 4 },
-    { service: "Camera Firmware & Battery", count: 8 },
-    { service: "RF Tuning & Wireless", count: 6 },
-    { service: "Vault Biometric Check", count: 3 },
-  ];
+  const maintenanceFrequency = isDemoMode()
+    ? [
+        { service: "Ballistic Calibration", count: 4 },
+        { service: "Camera Firmware & Battery", count: 8 },
+        { service: "RF Tuning & Wireless", count: 6 },
+        { service: "Vault Biometric Check", count: 3 },
+      ]
+    : [];
 
-  const lostRetired = [
-    { status: "Decommissioned (End of Life)", count: Math.max(retiredCount, 2) },
-    { status: "Lost in Operations", count: lostCount },
-    { status: "Condemned & Disposed", count: 1 },
-  ];
+  const lostRetired = isDemoMode()
+    ? [
+        { status: "Decommissioned (End of Life)", count: Math.max(retiredCount, 2) },
+        { status: "Lost in Operations", count: lostCount },
+        { status: "Condemned & Disposed", count: 1 },
+      ]
+    : [
+        { status: "Decommissioned (End of Life)", count: retiredCount },
+        { status: "Lost in Operations", count: lostCount },
+      ];
 
   // ------------------------------------------------------------------
   // 3. EVIDENCE ANALYTICS
@@ -220,15 +227,15 @@ export function computeDmsAssetAnalytics(
   const evStatusMap = new Map<string, number>();
 
   for (const ev of evidenceItems) {
-    const cNum = ev.case_number || "State vs. Aman Sharma (BNS/2026/0014)";
+    const cNum = ev.case_number || (isDemoMode() ? "State vs. Aman Sharma (BNS/2026/0014)" : "Unlinked / Direct Seizure");
     evCaseMap.set(cNum, (evCaseMap.get(cNum) || 0) + 1);
 
     const st = ev.evidence_status || "STORED";
     evStatusMap.set(st, (evStatusMap.get(st) || 0) + 1);
   }
 
-  // Ensure representative exhibits distribution
-  if (evCaseMap.size === 0) {
+  // Ensure representative exhibits distribution only in demo mode
+  if (evCaseMap.size === 0 && isDemoMode()) {
     evCaseMap.set("BNS/2026/0014", 3);
     evCaseMap.set("CRL/2026/0002", 2);
     evCaseMap.set("NDPS/2026/0009", 1);
@@ -238,78 +245,106 @@ export function computeDmsAssetAnalytics(
     caseNumber,
     count,
   }));
-  const evByStatus = [
-    { status: "Seized & Registered", count: Math.max(evStatusMap.get("REGISTERED") || 2, 2) },
-    { status: "Sealed in Vault", count: Math.max(evStatusMap.get("STORED") || 3, 3) },
-    { status: "In Transit / Transfer", count: Math.max(evStatusMap.get("TRANSFERRED") || 1, 1) },
-    {
-      status: "Forensic Examination",
-      count: Math.max(evStatusMap.get("FORENSIC_EXAMINATION") || 2, 2),
-    },
-    { status: "Court Submission", count: Math.max(evStatusMap.get("COURT_SUBMISSION") || 1, 1) },
-  ];
+  const evByStatus = isDemoMode()
+    ? [
+        { status: "Seized & Registered", count: Math.max(evStatusMap.get("REGISTERED") || 2, 2) },
+        { status: "Sealed in Vault", count: Math.max(evStatusMap.get("STORED") || 3, 3) },
+        { status: "In Transit / Transfer", count: Math.max(evStatusMap.get("TRANSFERRED") || 1, 1) },
+        {
+          status: "Forensic Examination",
+          count: Math.max(evStatusMap.get("FORENSIC_EXAMINATION") || 2, 2),
+        },
+        { status: "Court Submission", count: Math.max(evStatusMap.get("COURT_SUBMISSION") || 1, 1) },
+      ]
+    : [
+        { status: "Seized & Registered", count: evStatusMap.get("REGISTERED") || 0 },
+        { status: "Sealed in Vault", count: evStatusMap.get("STORED") || 0 },
+        { status: "In Transit / Transfer", count: evStatusMap.get("TRANSFERRED") || 0 },
+        { status: "Forensic Examination", count: evStatusMap.get("FORENSIC_EXAMINATION") || 0 },
+        { status: "Court Submission", count: evStatusMap.get("COURT_SUBMISSION") || 0 },
+      ];
 
-  const chainOfCustodyTransfers = [
-    { period: "Nov 2025", dispatches: 4, receipts: 4 },
-    { period: "Dec 2025", dispatches: 7, receipts: 7 },
-    { period: "Jan 2026", dispatches: 9, receipts: 8 },
-    { period: "Feb 2026", dispatches: 12, receipts: 11 },
-    { period: "Mar 2026", dispatches: 5, receipts: 4 },
-  ];
+  const chainOfCustodyTransfers = isDemoMode()
+    ? [
+        { period: "Nov 2025", dispatches: 4, receipts: 4 },
+        { period: "Dec 2025", dispatches: 7, receipts: 7 },
+        { period: "Jan 2026", dispatches: 9, receipts: 8 },
+        { period: "Feb 2026", dispatches: 12, receipts: 11 },
+        { period: "Mar 2026", dispatches: 5, receipts: 4 },
+      ]
+    : [];
 
-  const forensicStatus = [
-    { stage: "CFSL Cyber Extraction", count: 3 },
-    { stage: "Ballistic Striation Analysis", count: 2 },
-    { stage: "Chemical Narcotics Assay", count: 1 },
-    { stage: "Completed / Certificate Issued", count: 5 },
-  ];
+  const forensicStatus = isDemoMode()
+    ? [
+        { stage: "CFSL Cyber Extraction", count: 3 },
+        { stage: "Ballistic Striation Analysis", count: 2 },
+        { stage: "Chemical Narcotics Assay", count: 1 },
+        { stage: "Completed / Certificate Issued", count: 5 },
+      ]
+    : [];
 
-  const courtSubmissionStatus = [
-    { status: "Marked & Admitted in Trial", count: 4 },
-    { status: "Scheduled for Evidence Hearing", count: 2 },
-    { status: "Secured in Court Room 4 Safe", count: 1 },
-    { status: "Returned Post-Verdict", count: 2 },
-  ];
+  const courtSubmissionStatus = isDemoMode()
+    ? [
+        { status: "Marked & Admitted in Trial", count: 4 },
+        { status: "Scheduled for Evidence Hearing", count: 2 },
+        { status: "Secured in Court Room 4 Safe", count: 1 },
+        { status: "Returned Post-Verdict", count: 2 },
+      ]
+    : [];
 
   // ------------------------------------------------------------------
   // 4. SECURITY ANALYTICS
   // ------------------------------------------------------------------
-  const documentAccessActivity = [
-    { action: "SHA-256 Hash Verification", count: 28 },
-    { action: "Encrypted Preview", count: 45 },
-    { action: "Authorized Download", count: 14 },
-    { action: "Digital Signature Apply", count: 8 },
-  ];
+  const documentAccessActivity = isDemoMode()
+    ? [
+        { action: "SHA-256 Hash Verification", count: 28 },
+        { action: "Encrypted Preview", count: 45 },
+        { action: "Authorized Download", count: 14 },
+        { action: "Digital Signature Apply", count: 8 },
+      ]
+    : [];
 
-  const assetTransferActivity = [
-    { period: "Nov 2025", count: 5 },
-    { period: "Dec 2025", count: 8 },
-    { period: "Jan 2026", count: 11 },
-    { period: "Feb 2026", count: 15 },
-    { period: "Mar 2026", count: 7 },
-  ];
+  const assetTransferActivity = isDemoMode()
+    ? [
+        { period: "Nov 2025", count: 5 },
+        { period: "Dec 2025", count: 8 },
+        { period: "Jan 2026", count: 11 },
+        { period: "Feb 2026", count: 15 },
+        { period: "Mar 2026", count: 7 },
+      ]
+    : [];
 
-  const integrityAlerts = [
-    { category: "Verified Hash Clean", count: 36 },
-    { category: "Mismatch Detected", count: 0 },
-    { category: "Re-verification Scheduled", count: 4 },
-  ];
+  const integrityAlerts = isDemoMode()
+    ? [
+        { category: "Verified Hash Clean", count: 36 },
+        { category: "Mismatch Detected", count: 0 },
+        { category: "Re-verification Scheduled", count: 4 },
+      ]
+    : [
+        { category: "Verified Hash Clean", count: verifiedCount },
+        { category: "Mismatch Detected", count: mismatchCount },
+        { category: "Re-verification Scheduled", count: pendingCount },
+      ];
 
-  const unauthorizedAccessAttempts = [
-    { period: "Nov 2025", blocked: 1 },
-    { period: "Dec 2025", blocked: 0 },
-    { period: "Jan 2026", blocked: 2 },
-    { period: "Feb 2026", blocked: 3 },
-    { period: "Mar 2026", blocked: 1 },
-  ];
+  const unauthorizedAccessAttempts = isDemoMode()
+    ? [
+        { period: "Nov 2025", blocked: 1 },
+        { period: "Dec 2025", blocked: 0 },
+        { period: "Jan 2026", blocked: 2 },
+        { period: "Feb 2026", blocked: 3 },
+        { period: "Mar 2026", blocked: 1 },
+      ]
+    : [];
 
-  const auditActivity = [
-    { category: "Cryptographic Verifications", count: 32 },
-    { category: "Custody Movements", count: 24 },
-    { category: "Asset State Transitions", count: 19 },
-    { category: "Digital Signatures", count: 11 },
-    { category: "In-Camera Access Check", count: 8 },
-  ];
+  const auditActivity = isDemoMode()
+    ? [
+        { category: "Cryptographic Verifications", count: 32 },
+        { category: "Custody Movements", count: 24 },
+        { category: "Asset State Transitions", count: 19 },
+        { category: "Digital Signatures", count: 11 },
+        { category: "In-Camera Access Check", count: 8 },
+      ]
+    : [];
 
   return {
     documents: {

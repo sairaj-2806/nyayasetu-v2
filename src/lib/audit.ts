@@ -1,4 +1,13 @@
+/**
+ * ARCHITECTURAL MANDATE:
+ * Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ *
+ * Source of Truth:
+ * - Authoritative Audit Trail: Supabase public.audit_logs
+ */
+
 import { supabase } from "@/integrations/supabase/client";
+import { isDemoMode } from "@/lib/demo-mode";
 
 /**
  * ============================================================================
@@ -554,27 +563,21 @@ export function classifyAction(action: string): AuditActionType {
 // 4. STORAGE & AUDIT LOG WRITER
 // ============================================================================
 
+// Deprecated local storage keys retained only for backward compatibility references
 const LOCAL_AUDIT_KEY = "nyayasetu_platform_audit_trail_v1";
 
+/**
+ * @deprecated Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ */
 export function getLocalAuditEntries(): AuditLogEntry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(LOCAL_AUDIT_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return [];
 }
 
-export function saveLocalAuditEntry(entry: AuditLogEntry): void {
-  if (typeof window === "undefined") return;
-  try {
-    const existing = getLocalAuditEntries();
-    const updated = [entry, ...existing.filter((e) => e.id !== entry.id)].slice(0, 500);
-    localStorage.setItem(LOCAL_AUDIT_KEY, JSON.stringify(updated));
-  } catch {
-    // ignore
-  }
+/**
+ * @deprecated Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ */
+export function saveLocalAuditEntry(_entry: AuditLogEntry): void {
+  // No-op: Supabase public.audit_logs is the sole authoritative persistence layer.
 }
 
 /**
@@ -705,20 +708,15 @@ export async function recordAudit(
       isSecurityAlert: isSecurityAlert || derivedSecurity,
     };
 
-    // 1. Save to local storage for immediate reactivity
-    saveLocalAuditEntry(entry);
-
-    // 2. Insert into Supabase audit_logs
-    if (uid) {
-      try {
-        await supabase.from("audit_logs").insert({
-          user_id: uid,
-          action: actionText,
-          entity_affected: entityAffectedText,
-        });
-      } catch (err) {
-        console.warn("Could not insert audit log to Supabase", err);
-      }
+    // Insert into Supabase audit_logs (Authoritative immutable log)
+    try {
+      await (supabase.from("audit_logs") as any).insert({
+        user_id: uid || null,
+        action: actionText,
+        entity_affected: entityAffectedText,
+      });
+    } catch (err) {
+      console.warn("Could not insert audit log to Supabase", err);
     }
   } catch (err) {
     console.error("Audit log write failed", err);
@@ -1797,21 +1795,22 @@ export const auditLogQuery = {
       };
     });
 
-    // Merge with locally stored entries
-    const localEntries = getLocalAuditEntries();
-    const seedEntries = generateComprehensiveSeedAuditLogs();
+    // In production, remote Supabase audit_logs is the authoritative source.
+    if (processedRemote.length > 0) {
+      return processedRemote.sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
+    }
 
-    // Map by ID, with remote > local > seed
-    const mergedMap = new Map<string, AuditLogEntry>();
+    // Only present seed fixtures if explicit DEMO_MODE is enabled
+    if (isDemoMode()) {
+      const seedEntries = generateComprehensiveSeedAuditLogs();
+      return seedEntries.sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
+    }
 
-    for (const s of seedEntries) mergedMap.set(s.id, s);
-    for (const l of localEntries) mergedMap.set(l.id, l);
-    for (const r of processedRemote) mergedMap.set(r.id, r);
-
-    const all = Array.from(mergedMap.values());
-    all.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-    return all;
+    return [];
   },
 };
 

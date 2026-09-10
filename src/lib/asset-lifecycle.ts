@@ -1,3 +1,13 @@
+/**
+ * ARCHITECTURAL MANDATE:
+ * Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ *
+ * Source of Truth:
+ * - Asset Lifecycle States: Supabase public.police_assets
+ * - Custody Events: Supabase public.evidence_chain_of_custody
+ * - Audit Trail: Supabase public.audit_logs
+ */
+
 import { supabase } from "@/integrations/supabase/client";
 import { recordAudit } from "@/lib/audit";
 import type { Database } from "@/integrations/supabase/types";
@@ -376,6 +386,7 @@ export interface TransitionResult {
   message: string;
 }
 
+// Deprecated local storage keys retained only for backward compatibility references
 const TRANSITIONS_STORAGE_KEY = "nyayasetu_asset_lifecycle_events_v1";
 
 export interface StoredLifecycleEvent {
@@ -391,29 +402,18 @@ export interface StoredLifecycleEvent {
   details: Record<string, unknown>;
 }
 
-export function getStoredLifecycleEvents(assetId?: string): StoredLifecycleEvent[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(TRANSITIONS_STORAGE_KEY);
-    if (!raw) return [];
-    const all = JSON.parse(raw) as StoredLifecycleEvent[];
-    if (assetId) {
-      return all.filter((e) => e.assetId === assetId);
-    }
-    return all;
-  } catch {
-    return [];
-  }
+/**
+ * @deprecated Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ */
+export function getStoredLifecycleEvents(_assetId?: string): StoredLifecycleEvent[] {
+  return [];
 }
 
-function saveLifecycleEvent(event: StoredLifecycleEvent) {
-  if (typeof window === "undefined") return;
-  try {
-    const existing = getStoredLifecycleEvents();
-    localStorage.setItem(TRANSITIONS_STORAGE_KEY, JSON.stringify([event, ...existing]));
-  } catch {
-    // ignore quota error
-  }
+/**
+ * @deprecated Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ */
+export function saveLifecycleEvent(_event: StoredLifecycleEvent): void {
+  // No-op: Supabase evidence_chain_of_custody is the authoritative storage.
 }
 
 /**
@@ -527,46 +527,8 @@ export async function executeAssetLifecycleTransition(
       notes: conditionNotes?.trim() || `Status updated by ${actorName} (${actorRole})`,
     });
   } catch {
-    // Continue with local persistence if offline / dev mode
+    // Continue with audit recording
   }
-
-  // 5. Update local store cache
-  const ASSETS_STORAGE_KEY = "nyayasetu_police_assets_store_v1";
-  try {
-    const raw = localStorage.getItem(ASSETS_STORAGE_KEY);
-    const list: PoliceAsset[] = raw ? JSON.parse(raw) : [];
-    const index = list.findIndex(
-      (a) => a.id === currentAsset.id || a.asset_code === currentAsset.asset_code,
-    );
-    if (index >= 0) {
-      list[index] = updatedAsset;
-    } else {
-      list.unshift(updatedAsset);
-    }
-    localStorage.setItem(ASSETS_STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    // ignore
-  }
-
-  // 6. Record immutable lifecycle transition event
-  const event: StoredLifecycleEvent = {
-    id: chainOfCustodyId,
-    assetId: currentAsset.id,
-    assetCode: currentAsset.asset_code,
-    previousStatus,
-    newStatus: targetStatus,
-    actorName,
-    actorRole,
-    reason: reason.trim(),
-    timestamp: now,
-    details: {
-      fromCustodian: currentAsset.current_custodian_name,
-      toCustodian: updatedAsset.current_custodian_name,
-      location: updatedAsset.current_location,
-      verificationHash,
-    },
-  };
-  saveLifecycleEvent(event);
 
   // 7. Audit logging
   let actionCode:

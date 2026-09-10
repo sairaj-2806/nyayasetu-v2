@@ -22,8 +22,14 @@
  * - Recommended alternatives (actionable, ranked mitigations)
  */
 
-import { getStoredDocuments, type SecureDocument } from "@/lib/documents";
-import { getStoredLocalAssets, type PoliceAsset } from "@/lib/assets";
+/**
+ * ARCHITECTURAL MANDATE:
+ * Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ */
+
+import { seedInitialDocuments, type SecureDocument } from "@/lib/documents";
+import { SEED_POLICE_ASSETS, type PoliceAsset } from "@/lib/assets";
+import { isDemoMode } from "@/lib/demo-mode";
 import { getPendingEvidenceTransfers, type PendingEvidenceTransfer } from "@/lib/evidence-custody";
 import type { CaseRow } from "@/lib/cases";
 
@@ -205,9 +211,9 @@ export function runPoliceAssetSimulation(params: {
   const { input } = params;
   const now = new Date().toISOString();
 
-  // Read in-memory snapshot of data
-  const assets: PoliceAsset[] = params.liveAssets || getStoredLocalAssets();
-  const docs: SecureDocument[] = params.liveDocuments || getStoredDocuments();
+  // Read live data passed from caller, with fallback to demo seeds only in demo mode
+  const assets: PoliceAsset[] = params.liveAssets || (isDemoMode() ? SEED_POLICE_ASSETS : []);
+  const docs: SecureDocument[] = params.liveDocuments || (isDemoMode() ? seedInitialDocuments() : []);
   const cases: CaseRow[] = params.liveCases || [];
   const transfers: PendingEvidenceTransfer[] =
     params.liveTransfers || getPendingEvidenceTransfers();

@@ -553,9 +553,9 @@ function AssetDetailPage() {
               Transfer Evidence
             </Button>
 
-            {asset.case_number && (
+            {asset.case_number && asset.case_id && (
               <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs">
-                <Link to="/cases/$caseId" params={{ caseId: asset.case_id || "demo-case" }}>
+                <Link to="/cases/$caseId" params={{ caseId: asset.case_id }}>
                   <Gavel className="size-3.5 text-primary" />
                   View Case {asset.case_number}
                   <ExternalLink className="size-3 ml-0.5 text-muted-foreground" />
@@ -917,12 +917,18 @@ function AssetDetailPage() {
                         </p>
                       )}
                     </div>
-                    <Button asChild size="sm" className="gap-1.5 self-start">
-                      <Link to="/cases/$caseId" params={{ caseId: asset.case_id || "demo-case" }}>
-                        Open Case Dossier
-                        <ExternalLink className="size-3.5" />
-                      </Link>
-                    </Button>
+                    {asset.case_id ? (
+                      <Button asChild size="sm" className="gap-1.5 self-start">
+                        <Link to="/cases/$caseId" params={{ caseId: asset.case_id }}>
+                          Open Case Dossier
+                          <ExternalLink className="size-3.5" />
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="outline" disabled className="gap-1.5 self-start">
+                        Case Not Linked
+                      </Button>
+                    )}
                   </div>
                   <div className="mt-4 pt-3 border-t border-primary/20 text-xs text-muted-foreground">
                     <p>

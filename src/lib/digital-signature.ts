@@ -1,6 +1,12 @@
+/**
+ * ARCHITECTURAL MANDATE:
+ * Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ */
+
 import { recordAudit } from "@/lib/audit";
 import { sha256Sync } from "@/lib/crypto-sha256";
 import { assertPermission } from "@/lib/rbac";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export type SignatureStatus = "PENDING" | "SIGNED" | "INVALID";
 
@@ -276,17 +282,20 @@ function seedInitialSignatures(): DigitalSignatureRecord[] {
  * Retrieve all digital signature records from local storage.
  */
 export function getAllDigitalSignatures(): DigitalSignatureRecord[] {
-  if (typeof window === "undefined") return seedInitialSignatures();
+  if (typeof window === "undefined") return isDemoMode() ? seedInitialSignatures() : [];
   try {
     const raw = localStorage.getItem(SIGNATURES_STORAGE_KEY);
     if (!raw) {
-      const initial = seedInitialSignatures();
-      localStorage.setItem(SIGNATURES_STORAGE_KEY, JSON.stringify(initial));
-      return initial;
+      if (isDemoMode()) {
+        const initial = seedInitialSignatures();
+        localStorage.setItem(SIGNATURES_STORAGE_KEY, JSON.stringify(initial));
+        return initial;
+      }
+      return [];
     }
     return JSON.parse(raw) as DigitalSignatureRecord[];
   } catch {
-    return seedInitialSignatures();
+    return isDemoMode() ? seedInitialSignatures() : [];
   }
 }
 

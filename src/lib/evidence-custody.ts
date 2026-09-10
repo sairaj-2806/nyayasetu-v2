@@ -1,3 +1,14 @@
+/**
+ * ARCHITECTURAL MANDATE:
+ * Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ *
+ * Source of Truth:
+ * - Evidence Items: Supabase public.police_assets
+ * - Evidence Transfers: Supabase public.asset_transfers
+ * - Chain of Custody Audit: Supabase public.evidence_chain_of_custody
+ * - Audit Trail: Supabase public.audit_logs
+ */
+
 import { supabase } from "@/integrations/supabase/client";
 import { recordAudit } from "@/lib/audit";
 import { calculateSha256 } from "@/lib/crypto-sha256";
@@ -111,30 +122,30 @@ export interface ChainOfCustodyVerificationReport {
   checks: VerificationCheck[];
 }
 
+// Deprecated local storage keys retained only for backward compatibility references
 const PENDING_TRANSFERS_KEY = "nyayasetu_pending_evidence_transfers_v1";
 
-export function getPendingEvidenceTransfers(assetId?: string): PendingEvidenceTransfer[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(PENDING_TRANSFERS_KEY);
-    if (!raw) return [];
-    const list = JSON.parse(raw) as PendingEvidenceTransfer[];
-    if (assetId) {
-      return list.filter((t) => t.assetId === assetId && t.status === "PENDING_RECEIPT");
-    }
-    return list.filter((t) => t.status === "PENDING_RECEIPT");
-  } catch {
-    return [];
-  }
+let activePendingTransfersMemory: PendingEvidenceTransfer[] = [];
+
+export function syncPendingTransfersCache(transfers: PendingEvidenceTransfer[]): void {
+  activePendingTransfersMemory = transfers;
 }
 
-function savePendingTransfers(list: PendingEvidenceTransfer[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(PENDING_TRANSFERS_KEY, JSON.stringify(list));
-  } catch {
-    // ignore
+/**
+ * @deprecated Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ */
+export function getPendingEvidenceTransfers(assetId?: string): PendingEvidenceTransfer[] {
+  if (assetId) {
+    return activePendingTransfersMemory.filter((t) => t.assetId === assetId && t.status === "PENDING_RECEIPT");
   }
+  return activePendingTransfersMemory.filter((t) => t.status === "PENDING_RECEIPT");
+}
+
+/**
+ * @deprecated Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ */
+export function savePendingTransfers(_list: PendingEvidenceTransfer[]): void {
+  // No-op: Supabase public.asset_transfers is the sole authoritative persistence layer.
 }
 
 /**
@@ -187,14 +198,33 @@ export async function dispatchEvidenceTransfer(payload: {
     status: "PENDING_RECEIPT",
   };
 
-  // 1. Record in local store
-  const existing = getPendingEvidenceTransfers();
-  savePendingTransfers([pendingTransfer, ...existing]);
+  // 1. Maintain in-memory active queue
+  activePendingTransfersMemory = [
+    pendingTransfer,
+    ...activePendingTransfersMemory.filter((t) => t.id !== pendingTransfer.id),
+  ];
 
-  // 2. Also record in evidence_chain_of_custody as DISPATCH_IN_TRANSIT
+  // 2. Persist transfer to Supabase asset_transfers and evidence_chain_of_custody
   try {
-    await supabase.from("evidence_chain_of_custody").insert({
-      asset_id: asset.id,
+    const isUuid = Boolean(asset.id.match(/^[0-9a-fA-F-]{36}$/));
+    if (isUuid) {
+      await (supabase.from("asset_transfers") as any).insert({
+        asset_id: asset.id,
+        transfer_number: `TRF-${Date.now()}-${asset.asset_code.slice(-4)}`,
+        from_location: payload.fromLocation.trim(),
+        to_location: payload.toLocation.trim(),
+        from_custodian_name: payload.releasingOfficerName.trim(),
+        to_custodian_name: payload.designatedRecipientName.trim(),
+        dispatched_at: now,
+        status: "PENDING",
+        reason: payload.transferReason.trim(),
+        transit_seal_number: payload.transitSealNumber.trim(),
+        signature_verification: "PENDING_RECIPIENT_ACK",
+      });
+    }
+
+    await (supabase.from("evidence_chain_of_custody") as any).insert({
+      asset_id: isUuid ? asset.id : null,
       action: "EVIDENCE_DISPATCHED_IN_TRANSIT",
       from_custodian: payload.releasingOfficerName.trim(),
       to_custodian: `${payload.designatedRecipientName.trim()} (PENDING_ACKNOWLEDGMENT)`,
@@ -270,28 +300,27 @@ export async function acknowledgeEvidenceReceipt(payload: {
 
   const now = new Date().toISOString();
 
-  // 1. Mark transfer as acknowledged
+  // 1. Mark transfer as acknowledged in memory queue
   transfer.status = "ACKNOWLEDGED";
-  savePendingTransfers(allTransfers.filter((t) => t.id !== payload.transferId));
+  activePendingTransfersMemory = activePendingTransfersMemory.filter((t) => t.id !== payload.transferId);
 
-  // 2. Update asset custody and location in local storage & Supabase
-  const ASSETS_STORAGE_KEY = "nyayasetu_police_assets_store_v1";
+  // 2. Update asset custody and location in Supabase
   try {
-    const raw = localStorage.getItem(ASSETS_STORAGE_KEY);
-    const list: PoliceAsset[] = raw ? JSON.parse(raw) : [];
-    const index = list.findIndex((a) => a.id === transfer.assetId);
-    const existing = index >= 0 ? list[index] : undefined;
-    if (existing) {
-      list[index] = {
-        ...existing,
+    const isUuid = Boolean(transfer.assetId.match(/^[0-9a-fA-F-]{36}$/));
+    if (isUuid) {
+      await (supabase.from("police_assets") as any).update({
         current_location: transfer.toLocation,
         current_custodian_name: payload.receivingOfficerName.trim(),
         tamper_seal_number: transfer.transitSealNumber,
         status: "ASSIGNED",
         evidence_status: "STORED",
         updated_at: now,
-      };
-      localStorage.setItem(ASSETS_STORAGE_KEY, JSON.stringify(list));
+      }).eq("id", transfer.assetId);
+
+      await (supabase.from("asset_transfers") as any).update({
+        status: "COMPLETED",
+        received_at: now,
+      }).eq("asset_id", transfer.assetId).eq("status", "PENDING");
     }
   } catch {
     // ignore
@@ -571,21 +600,16 @@ export async function advanceEvidenceMilestone(payload: {
   else if (payload.milestone === "COURT_SUBMITTED") targetStatus = "COURT_EXHIBIT";
 
   if (asset) {
-    const ASSETS_STORAGE_KEY = "nyayasetu_police_assets_store_v1";
     try {
-      const raw = localStorage.getItem(ASSETS_STORAGE_KEY);
-      const list: PoliceAsset[] = raw ? JSON.parse(raw) : [];
-      const idx = list.findIndex((a) => a.id === asset.id);
-      if (idx >= 0 && list[idx]) {
-        list[idx] = {
-          ...list[idx]!,
-          evidence_status: targetStatus as any,
-          current_custodian_name: payload.custodianName || list[idx]!.current_custodian_name,
-          current_location: payload.location || list[idx]!.current_location,
-          tamper_seal_number: payload.sealNumber || list[idx]!.tamper_seal_number,
+      const isUuid = Boolean(asset.id.match(/^[0-9a-fA-F-]{36}$/));
+      if (isUuid) {
+        await (supabase.from("police_assets") as any).update({
+          evidence_status: targetStatus,
+          current_custodian_name: payload.custodianName || asset.current_custodian_name,
+          current_location: payload.location || asset.current_location,
+          tamper_seal_number: payload.sealNumber || asset.tamper_seal_number,
           updated_at: now,
-        };
-        localStorage.setItem(ASSETS_STORAGE_KEY, JSON.stringify(list));
+        }).eq("id", asset.id);
       }
     } catch {
       // ignore

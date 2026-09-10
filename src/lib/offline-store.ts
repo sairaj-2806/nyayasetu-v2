@@ -1,3 +1,10 @@
+/**
+ * ARCHITECTURAL MANDATE:
+ * Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ *
+ * Temporary queue for offline client draft mutations pending replay to Supabase.
+ */
+
 import { useSyncExternalStore } from "react";
 
 export type OfflineDraftType =

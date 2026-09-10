@@ -1,10 +1,14 @@
 /**
+ * ARCHITECTURAL MANDATE:
+ * Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ *
  * NyayaSetu Offline Authentication & Secure Staff Vault
- * Allows judges and registrars to log in and access the court registry even without internet.
+ * Allows staff to authenticate temporarily when offline during field/remote duty.
  * Uses SHA-256 salted cryptographic hashing so plaintext passwords are never stored.
  */
 
 import { AppRole, normalizeRole } from "@/lib/rbac";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export interface OfflineStaffAccount {
   id: string;
@@ -142,30 +146,35 @@ export async function computePasswordHash(
  * Retrieves the list of known court staff in the local offline vault
  */
 export function getOfflineStaffVault(): OfflineStaffAccount[] {
-  if (typeof window === "undefined") return SEED_OFFLINE_STAFF_ACCOUNTS;
+  if (typeof window === "undefined") return isDemoMode() ? SEED_OFFLINE_STAFF_ACCOUNTS : [];
   try {
     const raw = localStorage.getItem(VAULT_STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(SEED_OFFLINE_STAFF_ACCOUNTS));
-      return SEED_OFFLINE_STAFF_ACCOUNTS;
+      if (isDemoMode()) {
+        localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(SEED_OFFLINE_STAFF_ACCOUNTS));
+        return SEED_OFFLINE_STAFF_ACCOUNTS;
+      }
+      return [];
     }
     const parsed = JSON.parse(raw) as OfflineStaffAccount[];
-    // Ensure all 7 seeded personas exist in the vault
-    const existingEmails = new Set(parsed.map((a) => a.email.toLowerCase()));
-    let needsUpdate = false;
-    for (const seed of SEED_OFFLINE_STAFF_ACCOUNTS) {
-      if (!existingEmails.has(seed.email.toLowerCase())) {
-        parsed.push(seed);
-        needsUpdate = true;
+    if (isDemoMode()) {
+      // Ensure all 7 seeded personas exist in the vault in demo mode
+      const existingEmails = new Set(parsed.map((a) => a.email.toLowerCase()));
+      let needsUpdate = false;
+      for (const seed of SEED_OFFLINE_STAFF_ACCOUNTS) {
+        if (!existingEmails.has(seed.email.toLowerCase())) {
+          parsed.push(seed);
+          needsUpdate = true;
+        }
       }
-    }
-    if (needsUpdate) {
-      localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(parsed));
+      if (needsUpdate) {
+        localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(parsed));
+      }
     }
     return parsed;
   } catch (err) {
     console.error("Failed to read offline staff vault", err);
-    return SEED_OFFLINE_STAFF_ACCOUNTS;
+    return isDemoMode() ? SEED_OFFLINE_STAFF_ACCOUNTS : [];
   }
 }
 

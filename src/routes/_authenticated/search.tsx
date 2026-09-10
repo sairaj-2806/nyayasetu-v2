@@ -57,6 +57,7 @@ import {
   type SearchResultItem,
   type UnifiedSearchResult,
 } from "@/lib/global-search";
+import { isDemoMode } from "@/lib/demo-mode";
 import { searchGlobalRegistry } from "@/lib/global-search.functions";
 import { DOCUMENT_CATEGORIES } from "@/lib/documents";
 import { DEFAULT_ASSET_CATEGORIES } from "@/lib/assets";
@@ -64,13 +65,20 @@ import { cn } from "@/lib/utils";
 
 const ASSET_CATEGORIES = DEFAULT_ASSET_CATEGORIES.map((c) => c.name);
 
-const QUICK_PRESETS = [
+const DEMO_PRESETS = [
   { label: "BNS/2026/0014", query: "BNS/2026/0014", desc: "Case + Docs + Evidence + Assets" },
   { label: "forensic report", query: "forensic report", desc: "CFSL & Ballistic Certificates" },
   { label: "EV-1045", query: "EV-1045", desc: "Exhibit + Custody + Chain" },
   { label: "mobile phone", query: "mobile phone", desc: "Digital Evidence & Hardware" },
   { label: "under maintenance", query: "MAINTENANCE", desc: "Assets in Service" },
   { label: "Central Malkhana", query: "Central Malkhana", desc: "Secure Vault Inventory" },
+];
+
+const PROD_PRESETS = [
+  { label: "forensic report", query: "forensic report", desc: "CFSL & Ballistic Certificates" },
+  { label: "mobile phone", query: "mobile phone", desc: "Digital Evidence & Hardware" },
+  { label: "under maintenance", query: "MAINTENANCE", desc: "Assets in Service" },
+  { label: "charge sheet", query: "charge sheet", desc: "Official Police Filings" },
 ];
 
 const ENTITY_TABS: {
@@ -385,7 +393,7 @@ function UnifiedGlobalSearchPage() {
           {/* Quick Preset Queries */}
           <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
             <span className="text-muted-foreground font-medium mr-1">Quick lookups:</span>
-            {QUICK_PRESETS.map((preset) => (
+            {(isDemoMode() ? DEMO_PRESETS : PROD_PRESETS).map((preset) => (
               <button
                 key={preset.label}
                 type="button"
@@ -479,11 +487,12 @@ function UnifiedGlobalSearchPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Locations</SelectItem>
-                    {KNOWN_LOCATIONS.map((loc) => (
-                      <SelectItem key={loc.id} value={loc.name}>
-                        {loc.name}
-                      </SelectItem>
-                    ))}
+                    {isDemoMode() &&
+                      KNOWN_LOCATIONS.map((loc) => (
+                        <SelectItem key={loc.id} value={loc.name}>
+                          {loc.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

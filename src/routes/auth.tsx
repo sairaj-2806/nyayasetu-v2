@@ -35,6 +35,7 @@ import {
   cacheStaffCredentialsLocally,
   clearOfflineStaffSession,
 } from "@/lib/offline-auth";
+import { isDemoMode } from "@/lib/demo-mode";
 import { AppRole, canAccessWorkspace, normalizeRole, ROLE_METADATA } from "@/lib/rbac";
 
 export type PortalWorkspace =
@@ -648,43 +649,45 @@ function AuthPage() {
             </Button>
           </form>
 
-          {/* Evaluator Quick Demo Accounts Selector */}
-          <div className="mt-6 border-t border-border pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                <Sparkles className="size-3 text-primary" />
-                Evaluation Accounts (1-Click Fill)
-              </span>
-              <span className="text-[10px] text-primary font-mono font-medium">PW: Court123!</span>
+          {/* Evaluator Quick Demo Accounts Selector (Demo Mode only) */}
+          {isDemoMode() && (
+            <div className="mt-6 border-t border-border pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                  <Sparkles className="size-3 text-primary" />
+                  Evaluation Accounts (1-Click Fill)
+                </span>
+                <span className="text-[10px] text-primary font-mono font-medium">PW: Court123!</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px]">
+                {DEMO_OFFICIAL_ACCOUNTS.map((demo) => {
+                  const isSelected = selectedDemoEmail === demo.email;
+                  return (
+                    <button
+                      key={demo.email}
+                      type="button"
+                      onClick={() => handleSelectDemoAccount(demo)}
+                      onDoubleClick={() => void handleDirectSignIn(demo)}
+                      className={`rounded border p-2 text-left cursor-pointer transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/10 ring-1 ring-primary/40 shadow-xs"
+                          : "border-border/80 bg-card hover:bg-muted/80 hover:border-primary/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-semibold text-foreground truncate">{demo.label}</span>
+                        {isSelected && <CheckCircle2 className="size-3 text-primary shrink-0" />}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground truncate">{demo.email}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-[10px] text-muted-foreground">
+                Tip: Click any official account above to fill credentials, then click <strong>Sign In</strong>.
+              </p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px]">
-              {DEMO_OFFICIAL_ACCOUNTS.map((demo) => {
-                const isSelected = selectedDemoEmail === demo.email;
-                return (
-                  <button
-                    key={demo.email}
-                    type="button"
-                    onClick={() => handleSelectDemoAccount(demo)}
-                    onDoubleClick={() => void handleDirectSignIn(demo)}
-                    className={`rounded border p-2 text-left cursor-pointer transition-all ${
-                      isSelected
-                        ? "border-primary bg-primary/10 ring-1 ring-primary/40 shadow-xs"
-                        : "border-border/80 bg-card hover:bg-muted/80 hover:border-primary/40"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="font-semibold text-foreground truncate">{demo.label}</span>
-                      {isSelected && <CheckCircle2 className="size-3 text-primary shrink-0" />}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground truncate">{demo.email}</div>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-[10px] text-muted-foreground">
-              Tip: Click any official account above to fill credentials, then click <strong>Sign In</strong>.
-            </p>
-          </div>
+          )}
 
           <p className="mt-5 text-[11px] leading-relaxed text-muted-foreground">{copy.note}</p>
 

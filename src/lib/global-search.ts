@@ -1,8 +1,20 @@
+/**
+ * ARCHITECTURAL MANDATE:
+ * Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ *
+ * Source of Truth:
+ * - Cases: Supabase public.cases
+ * - Police Assets & Evidence: Supabase public.police_assets
+ * - Case Documents: Supabase public.case_documents
+ * - Audit History: Supabase public.audit_logs
+ */
+
 import { supabase } from "@/integrations/supabase/client";
+import { isDemoMode } from "@/lib/demo-mode";
 import { SEED_POLICE_ASSETS, type PoliceAsset } from "@/lib/assets";
 import {
-  getStoredDocuments,
   getDocumentVersions,
+  seedInitialDocuments,
   type SecureDocument,
   type DocumentVersionRecord,
 } from "@/lib/documents";
@@ -87,233 +99,12 @@ export interface UnifiedAuditItem {
   actionType: string;
 }
 
-// Built-in seed case for Case BNS/2026/0014 ensuring zero-latency, reliable lookup
-export const SEED_CASE_BNS_0014: CaseRow = {
-  id: "case-bns-0014",
-  case_number: "BNS/2026/0014",
-  cnr_number: "DLCT02-000014-2026",
-  category_id: "cat-crim-01",
-  filing_date: "2026-02-14",
-  status: "scheduled",
-  parties: "State of NCT vs. Aman Sharma & Ors.",
-  estimated_duration_minutes: 60,
-  predicted_duration_minutes: 60,
-  adjournment_risk_score: 25,
-  pending_duration_days: 22,
-  previous_adjournments: 0,
-  priority_score: 88,
-  priority_tier: "Tier 1",
-  legal_priority_flag: true,
-  is_ftsc_pocso: false,
-  senior_citizen_litigant: false,
-  property_dispute_5yr_plus: false,
-  statutory_limitation_deadline: "2026-08-14",
-  created_at: "2026-02-14T09:00:00Z",
-  is_example: true,
-  example_order: 1,
-  example_label: "BNS Organized Crime & Digital Evidence Case",
-  example_note: "High priority case featuring Exhibit EV-1045 and Section 63 BSA Digital Signature",
-  case_categories: { id: "cat-crim-01", name: "Criminal (BNS)", urgency_weight: 1.5 },
-};
+import { SEED_CASE_BNS_0014 } from "@/fixtures/demo/cases";
+import { KNOWN_OFFICERS } from "@/fixtures/demo/officers";
+import { KNOWN_LOCATIONS } from "@/fixtures/demo/locations";
+import { SEED_AUDIT_TRAIL } from "@/fixtures/demo/audit";
 
-// Registered Officers & Custodians Index
-export const KNOWN_OFFICERS: OfficerProfile[] = [
-  {
-    id: "off-01",
-    name: "Inspector Vikram Rathore",
-    role: "Investigating Officer (IO)",
-    station: "Special Cell Police Station, Lodhi Colony",
-    assignedAssetsSummary: "Assigned IO for Case BNS/2026/0014 & Exhibit EV-1045, POL-2026-DM-0811",
-    assetCount: 2,
-  },
-  {
-    id: "off-02",
-    name: "Head Constable Ramesh Chand",
-    role: "Malkhana Moharrir (Vault Custodian)",
-    station: "District Court Central Malkhana",
-    assignedAssetsSummary:
-      "Custodian for Exhibit EV-1045, 9mm Pistol (Exhibit A-1), Cold Storage DNA Kits",
-    assetCount: 4,
-  },
-  {
-    id: "off-03",
-    name: "Dr. Alok Verma",
-    role: "Senior Scientific Officer (Forensics)",
-    station: "Central Forensic Science Laboratory (CFSL), Rohini",
-    assignedAssetsSummary:
-      "Forensic analysis authority for Digital Media, Ballistics & Cyber extractions",
-    assetCount: 3,
-  },
-  {
-    id: "off-04",
-    name: "Constable Amit Yadav",
-    role: "Beat Patrol Officer",
-    badgeNumber: "Badge #7481",
-    station: "Kashmere Gate Police Station",
-    assignedAssetsSummary: "Assigned Axon Body 3 High-Definition Camera (POL-2026-TAC-0550)",
-    assetCount: 1,
-  },
-  {
-    id: "off-05",
-    name: "Sub-Inspector Deepak Sharma",
-    role: "Investigating Officer (IO)",
-    station: "Kotwali Police Station, Central District",
-    assignedAssetsSummary: "Seizing officer for 9mm Pistol Exhibit A-1 (POL-2026-WP-0142)",
-    assetCount: 1,
-  },
-  {
-    id: "off-06",
-    name: "Sub-Inspector Kuldeep Malik",
-    role: "Workshop In-charge",
-    station: "Central Police Motor Transport Armory Workshop",
-    assignedAssetsSummary:
-      "Custodian for Toyota Innova Forensic Van (POL-2026-VEH-0012) under repair",
-    assetCount: 1,
-  },
-  {
-    id: "off-07",
-    name: "ASI Manjeet Kaur",
-    role: "Evidence Custodian",
-    station: "Civil Lines Police Station",
-    assignedAssetsSummary: "Custodian for Cold Storage Biological DNA Specimen Kits",
-    assetCount: 1,
-  },
-  {
-    id: "off-08",
-    name: "Inspector Harish Chander",
-    role: "Narcotics Squad Custodian",
-    station: "Crime Branch Narcotic Squad",
-    assignedAssetsSummary: "Custodian for Malkhana Chemical Vault Contraband (POL-2026-NC-0078)",
-    assetCount: 1,
-  },
-  {
-    id: "off-09",
-    name: "ACP Virender Kumar",
-    role: "Assistant Commissioner of Police",
-    station: "Special Cell Delhi Police",
-    assignedAssetsSummary:
-      "Supervisory signatory for Charge Sheets CS-2024-00491 & Section 63 BSA filings",
-    assetCount: 2,
-  },
-];
-
-// Registered Locations Index
-export const KNOWN_LOCATIONS: FacilityLocation[] = [
-  {
-    id: "loc-01",
-    name: "District Court Central Malkhana Vault B, High-Security Locker #12",
-    type: "Malkhana Vault",
-    district: "New Delhi District Courts Complex",
-    inventorySummary: "Houses Seized Encrypted Exhibit EV-1045 under Tamper Seal #MHA-EV-1045-A",
-    itemCount: 1,
-  },
-  {
-    id: "loc-02",
-    name: "State Cyber Forensic Laboratory, Rohini",
-    type: "Forensic Lab",
-    district: "North West Forensic Zone",
-    inventorySummary:
-      "Houses Seized Western Digital 4TB Surveillance Hard Drive (POL-2026-DM-0811)",
-    itemCount: 1,
-  },
-  {
-    id: "loc-03",
-    name: "Tis Hazari District Court Room 4 Malkhana Safe",
-    type: "Court Room",
-    district: "Central District Courts",
-    inventorySummary: "Houses 9mm Semi-Automatic Service Pistol (Exhibit A-1) for trial exhibition",
-    itemCount: 1,
-  },
-  {
-    id: "loc-04",
-    name: "Cold Storage Biological Vault B-2",
-    type: "Malkhana Vault",
-    district: "Central District Malkhana",
-    inventorySummary: "Houses Sterile DNA Swab Specimen Collection Kit #4 (Cryogenic Storage)",
-    itemCount: 1,
-  },
-  {
-    id: "loc-05",
-    name: "Central Police Motor Transport Armory Workshop",
-    type: "Armory Workshop",
-    district: "District Police Lines, Kingsway Camp",
-    inventorySummary:
-      "Houses Mobile Forensic Crime Scene Van (POL-2026-VEH-0012) under maintenance",
-    itemCount: 1,
-  },
-  {
-    id: "loc-06",
-    name: "Malkhana Secure Chemical Vault #3",
-    type: "Malkhana Vault",
-    district: "Crime Branch Narcotics Facility",
-    inventorySummary:
-      "Houses Psychotropic Contraband Consignment (4.8 kg) under Seal #MHA-NARCO-SEAL-9982",
-    itemCount: 1,
-  },
-  {
-    id: "loc-07",
-    name: "Beat Patrol Station Sector 4",
-    type: "Police Station",
-    district: "North District Kashmere Gate",
-    inventorySummary: "Active deployment location for Axon Body 3 Police Camera",
-    itemCount: 1,
-  },
-];
-
-// Unified Seed Audit Entries
-export const SEED_AUDIT_TRAIL: UnifiedAuditItem[] = [
-  {
-    id: "aud-01",
-    action:
-      "Evidence Receipt Acknowledged & Digitally Signed with SHA-256 Manifest (Exhibit EV-1045)",
-    entityAffected: "asset:ast-seed-007 transfer:TRF-2026-DEL-1045",
-    userName: "Head Constable Ramesh Chand",
-    userRole: "registrar",
-    timestamp: "2026-03-01T11:00:00Z",
-    caseNumber: "BNS/2026/0014",
-    actionType: "evidence",
-  },
-  {
-    id: "aud-02",
-    action: "Document Integrity Verified under Section 63 BSA 2023 (Charge Sheet Vol 1 v2)",
-    entityAffected: "document:doc_cs_01 version:v2",
-    userName: "Registrar Bench Clerk",
-    userRole: "registrar",
-    timestamp: "2026-03-02T15:30:00Z",
-    caseNumber: "CR/2024/00491",
-    actionType: "document",
-  },
-  {
-    id: "aud-03",
-    action: "CFSL Forensic Device & Cryptographic Extraction Report Registered for Exhibit EV-1045",
-    entityAffected: "document:doc_bns_fsl_01 exhibit:EV-1045",
-    userName: "Dr. Alok Verma",
-    userRole: "registrar",
-    timestamp: "2026-02-28T16:00:00Z",
-    caseNumber: "BNS/2026/0014",
-    actionType: "document",
-  },
-  {
-    id: "aud-04",
-    action: "Panchnama Seizure Memo Recorded & Tamper Seal #MHA-EV-1045-A Applied",
-    entityAffected: "asset:ast-seed-007 memo:DOC-2026-SZ-0014",
-    userName: "Sub-Inspector Deepak Sharma",
-    userRole: "police_staff",
-    timestamp: "2026-02-14T14:15:00Z",
-    caseNumber: "BNS/2026/0014",
-    actionType: "evidence",
-  },
-  {
-    id: "aud-05",
-    action: "Initial First Information Report Registered U/S 111/318 BNS (FIR No. 28/2026)",
-    entityAffected: "case:case-bns-0014 document:doc_bns_fir_01",
-    userName: "Inspector Vikram Rathore",
-    userRole: "police_staff",
-    timestamp: "2026-02-14T09:00:00Z",
-    caseNumber: "BNS/2026/0014",
-    actionType: "case",
-  },
-];
+export { SEED_CASE_BNS_0014, KNOWN_OFFICERS, KNOWN_LOCATIONS, SEED_AUDIT_TRAIL };
 
 /**
  * Executes a high-performance unified multi-domain search respecting Supabase RLS and user authorization.
@@ -375,34 +166,65 @@ export async function executeUnifiedSearch(params: {
     // fallback to in-memory seeds
   }
 
-  // Ensure SEED_CASE_BNS_0014 is included
-  if (!cases.some((c) => c.case_number === SEED_CASE_BNS_0014.case_number)) {
+  // In demo mode only, ensure SEED_CASE_BNS_0014 is present if missing
+  if (isDemoMode() && !cases.some((c) => c.case_number === SEED_CASE_BNS_0014.case_number)) {
     cases.unshift(SEED_CASE_BNS_0014);
   }
 
-  // 2. Fetch Assets & Evidence
+  // 2. Fetch Assets & Evidence from Supabase
   let assets: PoliceAsset[] = [];
   try {
     const res = await withTimeout(dbClient.from("police_assets").select("*").limit(100));
     const { data: dbAssets, error } = res as any;
     if (!error && dbAssets && dbAssets.length > 0) {
       assets = dbAssets as PoliceAsset[];
-    } else {
-      assets = SEED_POLICE_ASSETS;
+    } else if (isDemoMode()) {
+      assets = [...SEED_POLICE_ASSETS];
     }
   } catch {
-    assets = SEED_POLICE_ASSETS;
-  }
-
-  // Ensure all seed assets exist in list
-  for (const s of SEED_POLICE_ASSETS) {
-    if (!assets.some((a) => a.asset_code === s.asset_code)) {
-      assets.push(s);
+    if (isDemoMode()) {
+      assets = [...SEED_POLICE_ASSETS];
     }
   }
 
-  // 3. Fetch Documents
-  const rawDocuments: SecureDocument[] = getStoredDocuments();
+  // 3. Fetch Documents from Supabase case_documents
+  let rawDocuments: SecureDocument[] = [];
+  try {
+    const res = await withTimeout(
+      dbClient.from("case_documents").select("*, cases(case_number, parties)").limit(100),
+    );
+    const { data: dbDocs, error } = res as any;
+    if (!error && dbDocs && dbDocs.length > 0) {
+      rawDocuments = dbDocs.map((r: any) => ({
+        id: r.id,
+        document_number: r.document_number,
+        title: r.title,
+        category: r.category,
+        fir_number: r.fir_number,
+        police_station: r.police_station,
+        sensitivity_tier: r.sensitivity_tier === "RESTRICTED" ? "CONFIDENTIAL" : r.sensitivity_tier,
+        current_version: r.current_version || 1,
+        file_name: r.file_name,
+        file_format: r.file_format,
+        file_size_bytes: Number(r.file_size_bytes || 0),
+        storage_path: r.storage_path,
+        latest_sha256: r.latest_sha256,
+        is_sealed: r.is_sealed,
+        is_tampered: r.is_tampered,
+        originating_agency: r.originating_agency,
+        case_id: r.case_id,
+        case_number: r.cases?.case_number || (r.metadata as any)?.case_number || null,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+      })) as SecureDocument[];
+    } else if (isDemoMode()) {
+      rawDocuments = seedInitialDocuments();
+    }
+  } catch {
+    if (isDemoMode()) {
+      rawDocuments = seedInitialDocuments();
+    }
+  }
 
   // 4. RLS & Authorization Gate
   let filteredOutCount = 0;
@@ -426,8 +248,36 @@ export async function executeUnifiedSearch(params: {
     }
   }
 
-  // 6. Gather Audit Trail
-  const auditEntries: UnifiedAuditItem[] = [...SEED_AUDIT_TRAIL];
+  // 6. Gather Audit Trail from Supabase audit_logs
+  let auditEntries: UnifiedAuditItem[] = [];
+  try {
+    const res = await withTimeout(
+      dbClient
+        .from("audit_logs")
+        .select("id, action, entity_affected, timestamp, user_id")
+        .order("timestamp", { ascending: false })
+        .limit(100),
+    );
+    const { data: dbAudit, error } = res as any;
+    if (!error && dbAudit && dbAudit.length > 0) {
+      auditEntries = dbAudit.map((a: any) => ({
+        id: a.id,
+        action: a.action,
+        entityAffected: a.entity_affected,
+        userName: "Authorized Staff",
+        userRole: "Staff",
+        timestamp: a.timestamp,
+        caseNumber: undefined,
+        actionType: "operation",
+      }));
+    } else if (isDemoMode()) {
+      auditEntries = [...SEED_AUDIT_TRAIL];
+    }
+  } catch {
+    if (isDemoMode()) {
+      auditEntries = [...SEED_AUDIT_TRAIL];
+    }
+  }
 
   const matchedItems: SearchResultItem[] = [];
 
@@ -759,9 +609,10 @@ export async function executeUnifiedSearch(params: {
 
   /* ---------------- F. OFFICERS & CUSTODIANS MATCHING ------------ */
   if (
-    !filters.entityType ||
-    filters.entityType === "all" ||
-    filters.entityType === "officer_custodian"
+    isDemoMode() &&
+    (!filters.entityType ||
+      filters.entityType === "all" ||
+      filters.entityType === "officer_custodian")
   ) {
     for (const off of KNOWN_OFFICERS) {
       const offTokens = [
@@ -792,7 +643,10 @@ export async function executeUnifiedSearch(params: {
   }
 
   /* --------------------- G. LOCATIONS MATCHING ------------------- */
-  if (!filters.entityType || filters.entityType === "all" || filters.entityType === "location") {
+  if (
+    isDemoMode() &&
+    (!filters.entityType || filters.entityType === "all" || filters.entityType === "location")
+  ) {
     for (const loc of KNOWN_LOCATIONS) {
       const locTokens = [loc.name, loc.type, loc.district, loc.inventorySummary].join(" ");
       const score = scoreMatch(locTokens, 1.0);

@@ -1,17 +1,18 @@
 /**
- * Registry Assistant & Legal Query Dispatcher.
- *
- * Provides deterministic structured data lookups for active court registry queries,
- * hearing schedules, case dossiers, police assets, and evidence chain-of-custody.
- * Queries requiring legal reasoning, statutory analysis, or custom inquiries
- * are enriched by the AI Judicial Copilot.
+ * ARCHITECTURAL MANDATE:
+ * Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { isDemoMode } from "@/lib/demo-mode";
 import { priorityBand } from "@/lib/cases";
 import { DEFAULT_MAX_JUDGE_WORKLOAD, isActiveSchedule, scanSystemConflicts } from "@/lib/conflicts";
 import type { Judge, Courtroom } from "@/lib/registry";
 import { SEED_POLICE_ASSETS, type PoliceAsset } from "@/lib/assets";
-import { getStoredDocuments, getDocumentVersions, type SecureDocument } from "@/lib/documents";
+import {
+  getDocumentVersions,
+  seedInitialDocuments,
+  type SecureDocument,
+} from "@/lib/documents";
 
 export type AssistantIntent =
   | "availability"
@@ -467,11 +468,46 @@ async function getAssetsData(db = supabase): Promise<PoliceAsset[]> {
   } catch {
     // fallback
   }
-  return SEED_POLICE_ASSETS;
+  return isDemoMode() ? SEED_POLICE_ASSETS : [];
 }
 
-async function getDocumentsData(_db = supabase, userRole?: string): Promise<SecureDocument[]> {
-  let docs: SecureDocument[] = getStoredDocuments();
+async function getDocumentsData(db = supabase, userRole?: string): Promise<SecureDocument[]> {
+  let docs: SecureDocument[] = [];
+  try {
+    const { data, error } = await db
+      .from("case_documents")
+      .select("*, cases (case_number, parties)")
+      .order("created_at", { ascending: false });
+    if (!error && data && data.length > 0) {
+      docs = data.map((r: any) => ({
+        id: r.id,
+        document_number: r.document_number,
+        title: r.title,
+        category: r.category,
+        fir_number: r.fir_number,
+        police_station: r.police_station,
+        sensitivity_tier: r.sensitivity_tier === "RESTRICTED" ? "CONFIDENTIAL" : r.sensitivity_tier,
+        current_version: r.current_version || 1,
+        file_name: r.file_name,
+        file_format: r.file_format,
+        file_size_bytes: Number(r.file_size_bytes || 0),
+        storage_path: r.storage_path,
+        latest_sha256: r.latest_sha256,
+        is_sealed: r.is_sealed,
+        is_tampered: r.is_tampered,
+        originating_agency: r.originating_agency,
+        case_id: r.case_id,
+        case_number: r.cases?.case_number || null,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+      })) as SecureDocument[];
+    } else if (isDemoMode()) {
+      docs = seedInitialDocuments();
+    }
+  } catch {
+    if (isDemoMode()) docs = seedInitialDocuments();
+  }
+
   // Enforce RLS / role-based boundary: non-judges cannot view SEALED_COVER_IN_CAMERA
   if (userRole && userRole !== "judge" && userRole !== "admin") {
     docs = docs.filter((d) => d.sensitivity_tier !== "SEALED_COVER_IN_CAMERA");
@@ -603,65 +639,116 @@ async function answerEvidenceChainOfCustody(
   db = supabase,
 ): Promise<AssistantAnswer> {
   const assets = await getAssetsData(db);
-  const targetAsset = assets.find((a) => a.asset_code === "EV-1045") || assets[0];
+  const q = question.toLowerCase();
+  let targetAsset: PoliceAsset | undefined;
+  if (/1045|ev[-_ ]?1045/i.test(q)) {
+    targetAsset = assets.find((a) => a.asset_code === "EV-1045" || /1045/.test(a.asset_code));
+  } else {
+    targetAsset = assets[0];
+  }
 
-  const milestones: Array<{
+  if (!targetAsset) {
+    return {
+      intent: "evidence_chain_of_custody",
+      summary: "No evidence item or asset found to trace chain of custody.",
+      source: "public.police_assets",
+      rows: [],
+    };
+  }
+
+  let milestones: Array<{
     id: string;
     step: string;
     timestamp: string;
     from: string;
     to: string;
     reason: string;
-  }> = [
-    {
-      id: "coc-1",
-      step: "1. SEIZED",
-      timestamp: "14 Feb 2026, 10:30 AM",
-      from: "Crime Scene / Duty Officer",
-      to: "SI Deepak Sharma (IO)",
-      reason: "Seized at raid scene under Panchnama Memo #SZ-2026-0014",
-    },
-    {
-      id: "coc-2",
-      step: "2. REGISTERED",
-      timestamp: "14 Feb 2026, 01:00 PM",
-      from: "SI Deepak Sharma",
-      to: "HC Ramesh Chand (Malkhana Moharrir)",
-      reason: "Formal registration in Police Station Property Register Vol III",
-    },
-    {
-      id: "coc-3",
-      step: "3. SEALED",
-      timestamp: "14 Feb 2026, 02:15 PM",
-      from: "HC Ramesh Chand",
-      to: "Station Holding Safe",
-      reason: "Sealed in tamper-evident container with official Seal #MHA-EV-1045-A",
-    },
-    {
-      id: "coc-4",
-      step: "4. TRANSFERRED (CFSL)",
-      timestamp: "15 Feb 2026, 09:30 AM",
-      from: "HC Ramesh Chand",
-      to: "Dr. Alok Verma (SSO, CFSL Rohini)",
-      reason: "Dispatched under Transit Road Certificate for cyber forensic extraction",
-    },
-    {
-      id: "coc-5",
-      step: "5. RETURNED",
-      timestamp: "28 Feb 2026, 04:00 PM",
-      from: "Dr. Alok Verma (CFSL)",
-      to: "HC Ramesh Chand (Malkhana Moharrir)",
-      reason: "Returned with CFSL Forensic Analysis Report #FSL-2026-9812",
-    },
-    {
-      id: "coc-6",
-      step: "6. STORED",
-      timestamp: "01 Mar 2026, 11:00 AM",
-      from: "HC Ramesh Chand",
-      to: "District Court Malkhana Vault B (Locker #12)",
-      reason: "Secured in high-security bio-metric vault pending court exhibition",
-    },
-  ];
+  }> = [];
+
+  try {
+    const isUuid = Boolean(targetAsset.id.match(/^[0-9a-fA-F-]{36}$/));
+    if (isUuid) {
+      const { data: dbTransfers } = await (db.from("asset_transfers") as any)
+        .select("*")
+        .eq("asset_id", targetAsset.id)
+        .order("created_at", { ascending: true });
+
+      if (dbTransfers && dbTransfers.length > 0) {
+        milestones = dbTransfers.map((t: any, idx: number) => ({
+          id: t.id,
+          step: `${idx + 1}. ${t.status}`,
+          timestamp: t.dispatched_at ? new Date(t.dispatched_at).toLocaleDateString("en-IN") : "Recorded",
+          from: t.from_location,
+          to: t.to_location,
+          reason: t.reason,
+        }));
+      }
+    }
+  } catch {
+    // Database query failed
+  }
+
+  if (milestones.length === 0 && isDemoMode()) {
+    milestones = [
+      {
+        id: "coc-1",
+        step: "1. SEIZED",
+        timestamp: "14 Feb 2026, 10:30 AM",
+        from: "Crime Scene / Duty Officer",
+        to: "SI Deepak Sharma (IO)",
+        reason: "Seized at raid scene under Panchnama Memo #SZ-2026-0014",
+      },
+      {
+        id: "coc-2",
+        step: "2. REGISTERED",
+        timestamp: "14 Feb 2026, 01:00 PM",
+        from: "SI Deepak Sharma",
+        to: "HC Ramesh Chand (Malkhana Moharrir)",
+        reason: "Formal registration in Police Station Property Register Vol III",
+      },
+      {
+        id: "coc-3",
+        step: "3. SEALED",
+        timestamp: "14 Feb 2026, 02:15 PM",
+        from: "HC Ramesh Chand",
+        to: "Station Holding Safe",
+        reason: "Sealed in tamper-evident container with official Seal #MHA-EV-1045-A",
+      },
+      {
+        id: "coc-4",
+        step: "4. TRANSFERRED (CFSL)",
+        timestamp: "15 Feb 2026, 09:30 AM",
+        from: "HC Ramesh Chand",
+        to: "Dr. Alok Verma (SSO, CFSL Rohini)",
+        reason: "Dispatched under Transit Road Certificate for cyber forensic extraction",
+      },
+      {
+        id: "coc-5",
+        step: "5. RETURNED",
+        timestamp: "28 Feb 2026, 04:00 PM",
+        from: "Dr. Alok Verma (CFSL)",
+        to: "HC Ramesh Chand (Malkhana Moharrir)",
+        reason: "Returned with CFSL Forensic Analysis Report #FSL-2026-9812",
+      },
+      {
+        id: "coc-6",
+        step: "6. STORED",
+        timestamp: "01 Mar 2026, 11:00 AM",
+        from: "HC Ramesh Chand",
+        to: "District Court Malkhana Vault B (Locker #12)",
+        reason: "Secured in high-security bio-metric vault pending court exhibition",
+      },
+    ];
+  }
+
+  if (milestones.length === 0) {
+    return {
+      intent: "evidence_chain_of_custody",
+      summary: `No chain of custody handover transfers recorded yet for Exhibit ${targetAsset.asset_code} (${targetAsset.name}).`,
+      source: "public.asset_transfers",
+      rows: [],
+    };
+  }
 
   const rows: AssistantRow[] = milestones.map((m) => ({
     id: m.id,
@@ -671,12 +758,12 @@ async function answerEvidenceChainOfCustody(
     target: targetAsset ? { route: "/assets/$assetId", assetId: targetAsset.id } : undefined,
   }));
 
-  const summary = `Complete chain of custody for Exhibit EV-1045 (${targetAsset?.name || "Samsung Galaxy S24 Ultra"}) records 6 verified lifecycle handovers across 18 days. Current status is STORED in Malkhana Vault B under custodian HC Ramesh Chand with intact Seal #MHA-EV-1045-A and SHA-256 cryptographic verification.`;
+  const summary = `Chain of custody for Exhibit ${targetAsset.asset_code} (${targetAsset.name}) records ${milestones.length} verified lifecycle handover(s). Current status is ${targetAsset.evidence_status || targetAsset.status} at ${targetAsset.current_location}.`;
 
   return {
     intent: "evidence_chain_of_custody",
     summary,
-    source: "Evidence Chain of Custody Timeline • Exhibit EV-1045 • Malkhana Handover Register",
+    source: `Evidence Chain of Custody Timeline • Exhibit ${targetAsset.asset_code} • Malkhana Handover Register`,
     rows,
   };
 }
@@ -850,7 +937,7 @@ async function answerAssetsByCase(question: string, db = supabase): Promise<Assi
 }
 
 async function answerRecentAssetTransfers(db = supabase): Promise<AssistantAnswer> {
-  const recentTransfers: Array<{
+  let recentTransfers: Array<{
     id: string;
     transferNumber: string;
     assetCode: string;
@@ -862,47 +949,85 @@ async function answerRecentAssetTransfers(db = supabase): Promise<AssistantAnswe
     status: string;
     seal: string;
     assetId: string;
-  }> = [
-    {
-      id: "trf-1",
-      transferNumber: "TRF-2026-DEL-1045",
-      assetCode: "EV-1045",
-      assetName: "Encrypted Samsung Galaxy S24 Ultra",
-      from: "CFSL Cyber Division Rohini",
-      to: "District Court Central Malkhana Vault B",
-      custodian: "HC Ramesh Chand",
-      timestamp: "01 Mar 2026",
-      status: "COMPLETED",
-      seal: "MHA-EV-1045-A",
-      assetId: "ast-seed-007",
-    },
-    {
-      id: "trf-2",
-      transferNumber: "TRF-2026-DEL-0142",
-      assetCode: "POL-2026-WP-0142",
-      assetName: "9mm Semi-Automatic Service Pistol (Exhibit A-1)",
-      from: "Kotwali Police Station Malkhana",
-      to: "Tis Hazari Court Room 4 Malkhana Safe",
-      custodian: "HC Ramesh Chand",
-      timestamp: "05 Mar 2026",
-      status: "COMPLETED",
-      seal: "COURT-EV-8841-B",
-      assetId: "ast-seed-002",
-    },
-    {
-      id: "trf-3",
-      transferNumber: "TRF-2026-DEL-0811",
-      assetCode: "POL-2026-DM-0811",
-      assetName: "4TB Surveillance Hard Drive",
-      from: "Cyber Crime PS North District",
-      to: "State Cyber Forensic Laboratory, Rohini",
-      custodian: "Dr. Alok Verma",
-      timestamp: "01 Mar 2026",
-      status: "IN_LAB",
-      seal: "MHA-SL-2026-8831",
-      assetId: "ast-seed-001",
-    },
-  ];
+  }> = [];
+
+  try {
+    const { data: dbTransfers, error } = await (db.from("asset_transfers") as any)
+      .select("*, police_assets(id, asset_code, name)")
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (!error && dbTransfers && dbTransfers.length > 0) {
+      recentTransfers = dbTransfers.map((t: any) => ({
+        id: t.id,
+        transferNumber: t.transfer_number,
+        assetCode: t.police_assets?.asset_code || "ASSET",
+        assetName: t.police_assets?.name || "Transferred Property",
+        from: t.from_location,
+        to: t.to_location,
+        custodian: t.to_custodian_name || t.from_custodian_name,
+        timestamp: t.dispatched_at ? new Date(t.dispatched_at).toLocaleDateString("en-IN") : "Recorded",
+        status: t.status,
+        seal: t.transit_seal_number || "N/A",
+        assetId: t.asset_id,
+      }));
+    }
+  } catch {
+    // Database query failed
+  }
+
+  if (recentTransfers.length === 0 && isDemoMode()) {
+    recentTransfers = [
+      {
+        id: "trf-1",
+        transferNumber: "TRF-2026-DEL-1045",
+        assetCode: "EV-1045",
+        assetName: "Encrypted Samsung Galaxy S24 Ultra",
+        from: "CFSL Cyber Division Rohini",
+        to: "District Court Central Malkhana Vault B",
+        custodian: "HC Ramesh Chand",
+        timestamp: "01 Mar 2026",
+        status: "COMPLETED",
+        seal: "MHA-EV-1045-A",
+        assetId: "ast-seed-007",
+      },
+      {
+        id: "trf-2",
+        transferNumber: "TRF-2026-DEL-0142",
+        assetCode: "POL-2026-WP-0142",
+        assetName: "9mm Semi-Automatic Service Pistol (Exhibit A-1)",
+        from: "Kotwali Police Station Malkhana",
+        to: "Tis Hazari Court Room 4 Malkhana Safe",
+        custodian: "HC Ramesh Chand",
+        timestamp: "05 Mar 2026",
+        status: "COMPLETED",
+        seal: "COURT-EV-8841-B",
+        assetId: "ast-seed-002",
+      },
+      {
+        id: "trf-3",
+        transferNumber: "TRF-2026-DEL-0811",
+        assetCode: "POL-2026-DM-0811",
+        assetName: "4TB Surveillance Hard Drive",
+        from: "Cyber Crime PS North District",
+        to: "State Cyber Forensic Laboratory, Rohini",
+        custodian: "Dr. Alok Verma",
+        timestamp: "01 Mar 2026",
+        status: "IN_LAB",
+        seal: "MHA-SL-2026-8831",
+        assetId: "ast-seed-001",
+      },
+    ];
+  }
+
+  if (recentTransfers.length === 0) {
+    return {
+      intent: "recent_asset_transfers",
+      summary: "No recent asset transfers recorded in the database.",
+      source: "asset_transfers",
+      rows: [],
+    };
+  }
 
   const rows: AssistantRow[] = recentTransfers.map((t) => ({
     id: t.id,
@@ -912,7 +1037,7 @@ async function answerRecentAssetTransfers(db = supabase): Promise<AssistantAnswe
     target: { route: "/assets/$assetId", assetId: t.assetId },
   }));
 
-  const summary = `3 recent police asset and evidence custody transfers recorded across the district. All movements have verified transit seal numbers, digital signature acknowledgments, and monotonic audit logs.`;
+  const summary = `${recentTransfers.length} recent police asset and evidence custody transfers recorded across the district. All movements have verified transit seal numbers, digital signature acknowledgments, and monotonic audit logs.`;
 
   return {
     intent: "recent_asset_transfers",

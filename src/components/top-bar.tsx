@@ -24,6 +24,7 @@ import { NetworkBadge } from "@/components/network-badge";
 import { GlobalSearchDialog } from "@/components/global-search-dialog";
 import { clearOfflineStaffSession } from "@/lib/offline-auth";
 import { ROLE_METADATA } from "@/lib/rbac";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export function TopBar() {
   const { data: staff } = useCurrentStaff();
@@ -67,6 +68,11 @@ export function TopBar() {
                 {roleLabel[staff.role]}
               </span>
             )}
+            {isDemoMode() && (
+              <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 text-[9.5px] font-bold text-amber-600 dark:text-amber-400" title="Explicit DEMO_MODE active: Mock fixtures permitted">
+                DEMO MODE
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -98,6 +104,14 @@ export function TopBar() {
       <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        {isDemoMode() && (
+          <span
+            className="md:hidden inline-flex items-center gap-1 rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 shrink-0"
+            title="Explicit DEMO_MODE active: Mock fixtures permitted"
+          >
+            DEMO
+          </span>
+        )}
         <NetworkBadge />
         {staff?.role !== "judge" && <NotificationsBell />}
 

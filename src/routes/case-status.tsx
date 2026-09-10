@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PublicCaseSummary } from "@/components/public-case-summary";
 import { supabase } from "@/integrations/supabase/client";
+import { isDemoMode } from "@/lib/demo-mode";
 
 const STATUS_LABELS: Record<string, string> = {
   filed: "Filed — awaiting listing",
@@ -279,24 +280,26 @@ function CaseStatusPage() {
             </Button>
           </form>
 
-          {/* Quick Demo Case Chips */}
-          <div className="mt-4 flex flex-wrap items-center gap-2 pt-3 border-t text-xs text-muted-foreground">
-            <span className="font-medium text-foreground/80">Try sample cases:</span>
-            {SAMPLE_CASES.map((sample) => (
-              <button
-                key={sample.num}
-                type="button"
-                onClick={() => {
-                  setCaseNumber(sample.num);
-                  executeSearch(sample.num);
-                }}
-                className="inline-flex items-center gap-1 rounded-md border bg-muted/60 hover:bg-muted px-2.5 py-1 text-xs font-mono transition-colors text-foreground"
-              >
-                <span>{sample.num}</span>
-                <span className="text-[10px] text-muted-foreground">({sample.label})</span>
-              </button>
-            ))}
-          </div>
+          {/* Quick Demo Case Chips (Demo Mode only) */}
+          {isDemoMode() && (
+            <div className="mt-4 flex flex-wrap items-center gap-2 pt-3 border-t text-xs text-muted-foreground">
+              <span className="font-medium text-foreground/80">Try sample cases:</span>
+              {SAMPLE_CASES.map((sample) => (
+                <button
+                  key={sample.num}
+                  type="button"
+                  onClick={() => {
+                    setCaseNumber(sample.num);
+                    executeSearch(sample.num);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-md border bg-muted/60 hover:bg-muted px-2.5 py-1 text-xs font-mono transition-colors text-foreground"
+                >
+                  <span>{sample.num}</span>
+                  <span className="text-[10px] text-muted-foreground">({sample.label})</span>
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Results Area */}

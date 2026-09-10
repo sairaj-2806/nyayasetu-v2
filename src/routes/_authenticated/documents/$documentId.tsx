@@ -90,6 +90,7 @@ import {
   recordDocumentAccess,
   restoreDocumentContent,
   secureDocumentDetailQuery,
+  setCurrentDocumentVersion,
   simulateDocumentTamper,
   verifyDocumentVersionIntegrity,
   type DocumentCategory,
@@ -681,6 +682,41 @@ function DocumentDetailPage() {
   const [compareVersionB, setCompareVersionB] = useState<number>(1);
   const [compareDiffFilter, setCompareDiffFilter] = useState<"all" | "changes_only">("all");
 
+  // Set Active Document Version State (Statutory Judicial Authority)
+  const [isSetActiveOpen, setIsSetActiveOpen] = useState(false);
+  const [targetSetActiveVersion, setTargetSetActiveVersion] = useState<number | null>(null);
+  const [setActiveReason, setSetActiveReason] = useState("");
+
+  const setActiveMutation = useMutation({
+    mutationFn: async () => {
+      if (!detailQuery.data?.document || targetSetActiveVersion === null) return;
+      return setCurrentDocumentVersion({
+        documentId: detailQuery.data.document.id,
+        versionNumber: targetSetActiveVersion,
+        legalReason: setActiveReason.trim(),
+      });
+    },
+    onSuccess: (res) => {
+      if (res?.success) {
+        toast.success(res.message || `Active document version successfully changed to v${targetSetActiveVersion}.`);
+        setIsSetActiveOpen(false);
+        setSetActiveReason("");
+        setTargetSetActiveVersion(null);
+        queryClient.invalidateQueries({ queryKey: ["secure-document-detail", documentId] });
+        queryClient.invalidateQueries({ queryKey: ["secure-documents"] });
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to update active document version.");
+    },
+  });
+
+  const openSetActiveModal = (verNum: number) => {
+    setTargetSetActiveVersion(verNum);
+    setSetActiveReason("");
+    setIsSetActiveOpen(true);
+  };
+
   // Integrity Verification State
   const [isVerifyOpen, setIsVerifyOpen] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -1202,14 +1238,18 @@ function DocumentDetailPage() {
             <div className="flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded border border-border/60">
               <Gavel className="size-3.5 text-primary" />
               <span className="text-muted-foreground">Case:</span>
-              <Link
-                to="/cases/$caseId"
-                params={{ caseId: doc.case_id || "demo-case" }}
-                className="font-medium text-foreground hover:underline flex items-center gap-1"
-              >
-                {doc.case_number}
-                <ExternalLink className="size-2.5" />
-              </Link>
+              {doc.case_id ? (
+                <Link
+                  to="/cases/$caseId"
+                  params={{ caseId: doc.case_id }}
+                  className="font-medium text-foreground hover:underline flex items-center gap-1"
+                >
+                  {doc.case_number}
+                  <ExternalLink className="size-2.5" />
+                </Link>
+              ) : (
+                <span className="font-medium text-foreground">{doc.case_number}</span>
+              )}
             </div>
           )}
 
@@ -1217,14 +1257,18 @@ function DocumentDetailPage() {
             <div className="flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded border border-border/60">
               <Tag className="size-3.5 text-amber-600" />
               <span className="text-muted-foreground">Evidence Exhibit:</span>
-              <Link
-                to="/assets/$assetId"
-                params={{ assetId: doc.asset_id || "ast_ev_01" }}
-                className="font-medium text-foreground hover:underline flex items-center gap-1 font-mono"
-              >
-                {doc.asset_code}
-                <ExternalLink className="size-2.5" />
-              </Link>
+              {doc.asset_id ? (
+                <Link
+                  to="/assets/$assetId"
+                  params={{ assetId: doc.asset_id }}
+                  className="font-medium text-foreground hover:underline flex items-center gap-1 font-mono"
+                >
+                  {doc.asset_code}
+                  <ExternalLink className="size-2.5" />
+                </Link>
+              ) : (
+                <span className="font-medium text-foreground font-mono">{doc.asset_code}</span>
+              )}
             </div>
           )}
 
@@ -1834,6 +1878,18 @@ function DocumentDetailPage() {
 
                         <TableCell className="text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1">
+                            {(staffRole === "admin" || staffRole === "registrar") && !isCurrent && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1 hover:bg-amber-500/10"
+                                onClick={() => openSetActiveModal(ver.version_number)}
+                              >
+                                <Scale className="size-3" />
+                                Set Active
+                              </Button>
+                            )}
+
                             <Button
                               variant="outline"
                               size="sm"
@@ -2777,6 +2833,55 @@ function DocumentDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ========================================================================= */}
+      {/* DIALOG 6: SET ACTIVE VERSION STATUTORY DIALOG */}
+      {/* ========================================================================= */}
+      <Dialog open={isSetActiveOpen} onOpenChange={setIsSetActiveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Scale className="size-5 text-primary" />
+              Set Authoritative Active Version
+            </DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed">
+              Designate version v{targetSetActiveVersion} as the current active version for document{" "}
+              <span className="font-mono font-semibold">{detailQuery.data?.document?.document_number}</span>.
+              A statutory legal justification (minimum 10 characters) is legally mandatory and permanently recorded in the audit trail.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="set-active-reason" className="text-xs">Statutory Judicial / Administrative Reason</Label>
+              <Textarea
+                id="set-active-reason"
+                placeholder="e.g. In accordance with judicial bench order dated 2026-09-09, reverting active filing to original version v1."
+                value={setActiveReason}
+                onChange={(e) => setSetActiveReason(e.target.value)}
+                rows={3}
+                className="text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Minimum 10 characters required. Current: {setActiveReason.trim().length}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setIsSetActiveOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={setActiveReason.trim().length < 10 || setActiveMutation.isPending}
+              onClick={() => setActiveMutation.mutate()}
+            >
+              {setActiveMutation.isPending ? "Updating Active Version..." : "Confirm Set Active"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

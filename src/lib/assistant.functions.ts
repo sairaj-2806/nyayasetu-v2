@@ -2,7 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 
+/**
+ * ARCHITECTURAL MANDATE:
+ * Browser storage is never authoritative for legal records, evidence, documents, custody, permissions, or audit history.
+ */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { isDemoMode } from "@/lib/demo-mode";
 import { answerQuestion, type AssistantAnswer, type AssistantRow } from "@/lib/assistant";
 import { queryLLM, getEnvVar } from "@/lib/ai.server";
 import { DEFAULT_COURT_HOLIDAYS_2026 } from "@/lib/holidays";
@@ -10,7 +15,7 @@ import { checkRateLimit } from "@/lib/rate-limit.server";
 import { sanitizeUserInput, detectPromptInjection } from "@/lib/security.server";
 import { fetchConflictData, scanSystemConflicts } from "@/lib/conflicts";
 import { SEED_POLICE_ASSETS } from "@/lib/assets";
-import { getStoredDocuments } from "@/lib/documents";
+import { seedInitialDocuments } from "@/lib/documents";
 
 const Input = z.object({
   question: z.string().min(1).max(500),
@@ -127,8 +132,8 @@ function generateLegalOrDashboardFallback(
     };
   }
 
-  // 3. Evidence Exhibit EV-1045 / Malkhana Vault Query
-  if (/ev[-_ ]?1045|1045|evidence.*laptop|laptop.*evidence/i.test(q)) {
+  // 3. Evidence Exhibit EV-1045 / Malkhana Vault Query (Demo Mode only)
+  if (isDemoMode() && /ev[-_ ]?1045|1045|evidence.*laptop|laptop.*evidence/i.test(q)) {
     return {
       intent: "evidence_location",
       summary:
@@ -146,8 +151,8 @@ function generateLegalOrDashboardFallback(
     };
   }
 
-  // 4. Case BNS/2026/0014 Dossier Query
-  if (/bns\/2026\/0014|case.*0014/i.test(q)) {
+  // 4. Case BNS/2026/0014 Dossier Query (Demo Mode only)
+  if (isDemoMode() && /bns\/2026\/0014|case.*0014/i.test(q)) {
     return {
       intent: "case_documents_summary",
       summary:
@@ -499,13 +504,13 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
         },
       );
 
-      // Fetch assets from Supabase or fallback
+      // Fetch assets from Supabase or demo fixtures
       let policeAssetsList: SnapshotData["policeAssets"] = [];
       try {
         const assetsRes = await supabaseAdmin.from("police_assets").select("*").limit(50);
         if (!assetsRes.error && assetsRes.data && assetsRes.data.length > 0) {
           policeAssetsList = assetsRes.data as unknown as SnapshotData["policeAssets"];
-        } else {
+        } else if (isDemoMode()) {
           policeAssetsList = SEED_POLICE_ASSETS.map((a) => ({
             id: a.id,
             asset_code: a.asset_code,
@@ -521,34 +526,73 @@ export const askRegistryAssistant = createServerFn({ method: "POST" })
           }));
         }
       } catch {
-        policeAssetsList = SEED_POLICE_ASSETS.map((a) => ({
-          id: a.id,
-          asset_code: a.asset_code,
-          name: a.name,
-          status: a.status,
-          condition: a.condition,
-          current_location: a.current_location,
-          current_custodian_name: a.current_custodian_name,
-          assigned_officer_name: a.assigned_officer_name,
-          case_number: a.case_number,
-          evidence_status: a.evidence_status,
-          tamper_seal_number: a.tamper_seal_number,
-        }));
+        if (isDemoMode()) {
+          policeAssetsList = SEED_POLICE_ASSETS.map((a) => ({
+            id: a.id,
+            asset_code: a.asset_code,
+            name: a.name,
+            status: a.status,
+            condition: a.condition,
+            current_location: a.current_location,
+            current_custodian_name: a.current_custodian_name,
+            assigned_officer_name: a.assigned_officer_name,
+            case_number: a.case_number,
+            evidence_status: a.evidence_status,
+            tamper_seal_number: a.tamper_seal_number,
+          }));
+        }
       }
 
-      // Fetch documents from Secure DMS store
-      let documentsList: SnapshotData["documents"] = getStoredDocuments().map((d) => ({
-        id: d.id,
-        document_number: d.document_number,
-        title: d.title,
-        category: d.category,
-        current_version: d.current_version,
-        case_number: d.case_number,
-        sensitivity_tier: d.sensitivity_tier,
-        latest_sha256: d.latest_sha256,
-        uploaded_by_name: d.uploaded_by_name,
-        is_sealed: d.is_sealed,
-      }));
+      // Fetch documents from authoritative Supabase case_documents
+      let documentsList: SnapshotData["documents"] = [];
+      try {
+        const docRes = await supabaseAdmin
+          .from("case_documents")
+          .select("*, cases(case_number)")
+          .limit(50);
+        if (!docRes.error && docRes.data && docRes.data.length > 0) {
+          documentsList = docRes.data.map((d: any) => ({
+            id: d.id,
+            document_number: d.document_number,
+            title: d.title,
+            category: d.category,
+            current_version: d.current_version,
+            case_number: d.cases?.case_number || (d.metadata as any)?.case_number || null,
+            sensitivity_tier: d.sensitivity_tier,
+            latest_sha256: d.latest_sha256,
+            uploaded_by_name: (d.metadata as any)?.uploaded_by_name || "Registry Staff",
+            is_sealed: d.is_sealed,
+          }));
+        } else if (isDemoMode()) {
+          documentsList = seedInitialDocuments().map((d) => ({
+            id: d.id,
+            document_number: d.document_number,
+            title: d.title,
+            category: d.category,
+            current_version: d.current_version,
+            case_number: d.case_number,
+            sensitivity_tier: d.sensitivity_tier,
+            latest_sha256: d.latest_sha256,
+            uploaded_by_name: d.uploaded_by_name,
+            is_sealed: d.is_sealed,
+          }));
+        }
+      } catch {
+        if (isDemoMode()) {
+          documentsList = seedInitialDocuments().map((d) => ({
+            id: d.id,
+            document_number: d.document_number,
+            title: d.title,
+            category: d.category,
+            current_version: d.current_version,
+            case_number: d.case_number,
+            sensitivity_tier: d.sensitivity_tier,
+            latest_sha256: d.latest_sha256,
+            uploaded_by_name: d.uploaded_by_name,
+            is_sealed: d.is_sealed,
+          }));
+        }
+      }
 
       // Respect user role permissions: Standard clearance cannot view SEALED_COVER_IN_CAMERA documents
       if (cacheTier !== "privileged") {
