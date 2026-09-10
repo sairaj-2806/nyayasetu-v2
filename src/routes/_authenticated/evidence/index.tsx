@@ -83,7 +83,8 @@ import {
   acknowledgeEvidenceReceipt,
   dispatchEvidenceTransfer,
   EVIDENCE_MILESTONES,
-  getPendingEvidenceTransfers,
+  pendingEvidenceTransfersQuery,
+  rejectEvidenceTransfer,
   verifyChainOfCustody,
   type ChainOfCustodyVerificationReport,
   type EvidenceMilestone,
@@ -255,11 +256,13 @@ function EvidenceRegistryPage() {
     });
   }, [assetsQuery.data, categoriesQuery.data]);
 
-  // Pending transfers list
-  const pendingTransfers = useMemo(() => {
-    void assetsQuery.data;
-    return getPendingEvidenceTransfers();
-  }, [assetsQuery.data]);
+  // Server-authoritative pending transfers list
+  const pendingTransfersQueryInstance = useQuery(pendingEvidenceTransfersQuery());
+  const pendingTransfers = pendingTransfersQueryInstance.data ?? [];
+
+  // Transfer rejection state
+  const [rejectTransfer, setRejectTransfer] = useState<PendingEvidenceTransfer | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   // Unique filters data
   const uniqueCases = useMemo(() => {
@@ -376,6 +379,7 @@ function EvidenceRegistryPage() {
       setDispatchSealNumber("");
       setDispatchReason("");
       queryClient.invalidateQueries({ queryKey: ["police-assets"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-evidence-transfers"] });
     },
     onError: (err: Error) => {
       toast.error(err.message || "Failed to dispatch evidence transfer");
@@ -390,6 +394,7 @@ function EvidenceRegistryPage() {
       return await acknowledgeEvidenceReceipt({
         transferId: ackTransfer.id,
         receivingOfficerName: staffName,
+        receivingOfficerRole: staffRole,
         sealVerifiedIntact: ackSealIntact,
         conditionConfirmed: ackCondition,
         acknowledgmentNotes: ackNotes.trim(),
@@ -402,9 +407,39 @@ function EvidenceRegistryPage() {
       setAckTransfer(null);
       setAckNotes("");
       queryClient.invalidateQueries({ queryKey: ["police-assets"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-evidence-transfers"] });
     },
     onError: (err: Error) => {
       toast.error(err.message || "Failed to acknowledge evidence receipt");
+    },
+  });
+
+  // Reject Evidence Transfer Mutation
+  const rejectMutation = useMutation({
+    mutationFn: async () => {
+      if (!rejectTransfer) throw new Error("No pending transfer selected");
+      if (rejectionReason.trim().length < 10) {
+        throw new Error("A statutory rejection justification of at least 10 characters is required.");
+      }
+
+      return await rejectEvidenceTransfer({
+        transferId: rejectTransfer.id,
+        rejectionReason: rejectionReason.trim(),
+        rejectingOfficerName: staffName,
+        rejectingOfficerRole: staffRole,
+      });
+    },
+    onSuccess: (result) => {
+      toast.success(
+        result.message || "Evidence transfer rejected. Custody preserved at origin.",
+      );
+      setRejectTransfer(null);
+      setRejectionReason("");
+      queryClient.invalidateQueries({ queryKey: ["police-assets"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-evidence-transfers"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to reject evidence transfer");
     },
   });
 
@@ -437,7 +472,7 @@ function EvidenceRegistryPage() {
           reasonMsg || "Lawful disposal or release to claimant under judicial court order";
       }
 
-      await dispatchEvidenceTransfer({
+      const dispatched = await dispatchEvidenceTransfer({
         assetId: quickActionAsset.id,
         fromLocation: quickActionAsset.current_location,
         toLocation: destLoc,
@@ -450,12 +485,11 @@ function EvidenceRegistryPage() {
       });
 
       // Auto-acknowledge immediate handovers if confirmed by officer
-      const pending = getPendingEvidenceTransfers(quickActionAsset.id);
-      const targetPend = pending[pending.length - 1];
-      if (targetPend) {
+      if (dispatched?.id) {
         await acknowledgeEvidenceReceipt({
-          transferId: targetPend.id,
+          transferId: dispatched.id,
           receivingOfficerName: recipient,
+          receivingOfficerRole: staffRole,
           sealVerifiedIntact: true,
           conditionConfirmed: "EXCELLENT",
           acknowledgmentNotes: `Formal milestone transition to ${targetStatus}: ${reasonMsg}`,
@@ -470,6 +504,7 @@ function EvidenceRegistryPage() {
       setQuickActionRecipient("");
       setQuickActionNotes("");
       queryClient.invalidateQueries({ queryKey: ["police-assets"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-evidence-transfers"] });
     },
     onError: (err: Error) => {
       toast.error(err.message || "Failed to update milestone");
@@ -1032,19 +1067,33 @@ function EvidenceRegistryPage() {
                         )}
                       </div>
 
-                      <Button
-                        size="sm"
-                        className="gap-1.5 shadow-2xs self-start md:self-center"
-                        onClick={() => {
-                          setAckTransfer(trf);
-                          setAckSealIntact(true);
-                          setAckCondition("GOOD");
-                          setAckNotes("");
-                        }}
-                      >
-                        <UserCheck className="size-4" />
-                        Acknowledge & Sign Receipt
-                      </Button>
+                      <div className="flex items-center gap-2 self-start md:self-center">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-destructive hover:bg-destructive/10 border-destructive/30"
+                          onClick={() => {
+                            setRejectTransfer(trf);
+                            setRejectionReason("");
+                          }}
+                        >
+                          <XCircle className="size-4" />
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="gap-1.5 shadow-2xs"
+                          onClick={() => {
+                            setAckTransfer(trf);
+                            setAckSealIntact(true);
+                            setAckCondition("GOOD");
+                            setAckNotes("");
+                          }}
+                        >
+                          <UserCheck className="size-4" />
+                          Acknowledge & Sign Receipt
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1346,6 +1395,61 @@ function EvidenceRegistryPage() {
               disabled={acknowledgeMutation.isPending}
             >
               {acknowledgeMutation.isPending ? "Signing..." : "Sign & Accept Custody"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL 3: Reject Evidence Custody Transfer */}
+      <Dialog open={Boolean(rejectTransfer)} onOpenChange={(open) => !open && setRejectTransfer(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base flex items-center gap-2 text-destructive">
+              <XCircle className="size-4" />
+              Reject Evidence Custody Handover
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Physical custody rejection. Preserves the original transfer record in immutable
+              audit history and reverts custody to the originating location.
+            </DialogDescription>
+          </DialogHeader>
+
+          {rejectTransfer && (
+            <div className="space-y-4 py-2 text-xs">
+              <div className="rounded-md border bg-muted/30 p-3 space-y-1.5">
+                <p className="font-semibold text-foreground">{rejectTransfer.assetName}</p>
+                <p className="font-mono text-primary text-[11px]">{rejectTransfer.assetCode}</p>
+                <p className="text-muted-foreground text-[11px]">
+                  Origin: {rejectTransfer.fromLocation} → Destination: {rejectTransfer.toLocation}
+                </p>
+                <p className="text-muted-foreground text-[11px]">
+                  Released by: {rejectTransfer.releasingOfficerName} (Seal: {rejectTransfer.transitSealNumber})
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Mandatory Statutory Rejection Reason (Min 10 chars) *</Label>
+                <Textarea
+                  placeholder="State the statutory reason for rejection (e.g. Tamper seal compromised, container damaged, unauthorized courier)..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="text-xs h-20"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setRejectTransfer(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => rejectMutation.mutate()}
+              disabled={rejectMutation.isPending || rejectionReason.trim().length < 10}
+            >
+              {rejectMutation.isPending ? "Recording Rejection..." : "Confirm Rejection"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -18,6 +18,7 @@ import {
   sanitizeFilename,
   VAULT_BUCKET_NAME,
 } from "@/lib/r2.server";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export type SupportedDocumentFormat =
   | "PDF"
@@ -394,6 +395,48 @@ export interface UploadDocumentOutput {
   metadata: DocumentMetadataMap;
 }
 
+/**
+ * Validates actual binary magic bytes against claimed extension to prevent disguised/spoofed executables.
+ */
+export function validateFileSignature(bytes: Uint8Array, extension: string): { valid: boolean; detectedType: string } {
+  if (bytes.length < 4) return { valid: false, detectedType: "unknown" };
+
+  // PDF magic bytes: %PDF (0x25 0x50 0x44 0x46)
+  if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
+    return { valid: extension === "pdf", detectedType: "pdf" };
+  }
+
+  // PNG magic bytes: \x89PNG (0x89 0x50 0x4E 0x47)
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+    return { valid: extension === "png", detectedType: "png" };
+  }
+
+  // JPEG magic bytes: 0xFF 0xD8 0xFF
+  if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+    return { valid: extension === "jpg" || extension === "jpeg", detectedType: "jpeg" };
+  }
+
+  // TIFF magic bytes: II*\0 (0x49 0x49 0x2A 0x00) or MM\0* (0x4D 0x4D 0x00 0x2A)
+  if (
+    (bytes[0] === 0x49 && bytes[1] === 0x49 && bytes[2] === 0x2A && bytes[3] === 0x00) ||
+    (bytes[0] === 0x4D && bytes[1] === 0x4D && bytes[2] === 0x00 && bytes[3] === 0x2A)
+  ) {
+    return { valid: extension === "tiff" || extension === "tif", detectedType: "tiff" };
+  }
+
+  // ZIP / DOCX magic bytes: PK\x03\x04 (0x50 0x4B 0x03 0x04)
+  if (bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04) {
+    return { valid: extension === "docx", detectedType: "docx" };
+  }
+
+  // Plain text (allow if printable ASCII / UTF-8)
+  if (extension === "txt") {
+    return { valid: true, detectedType: "txt" };
+  }
+
+  return { valid: false, detectedType: "unknown" };
+}
+
 export const uploadDocumentToR2 = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: UploadDocumentInput) => {
@@ -428,6 +471,17 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
 
     const userName = profileData?.full_name || "Authorized Staff";
 
+    // Path traversal check
+    if (data.fileName.includes("..") || data.fileName.includes("/") || data.fileName.includes("\\") || data.fileName.includes("\0")) {
+      await supabaseAdmin.from("audit_logs").insert({
+        user_id: userId,
+        action: `UPLOAD_REJECTED: Path traversal attempt detected in filename "${data.fileName}".`,
+        entity_affected: JSON.stringify({ action_code: "UPLOAD_REJECTED", reason: "PATH_TRAVERSAL_DETECTED" }),
+        timestamp: new Date().toISOString(),
+      });
+      throw new Error("Security Violation: Path traversal characters are strictly forbidden in file attachments.");
+    }
+
     // 2. Validate file size and format server-side
     const rawExt = (data.fileName.split(".").pop() || "").toLowerCase();
     const cleanFormat = (data.fileType || rawExt || "pdf").toUpperCase();
@@ -439,7 +493,13 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
     }
 
     // Decode file bytes
-    const fileBytes = base64ToUint8Array(data.fileBase64);
+    let fileBytes: Uint8Array;
+    try {
+      fileBytes = base64ToUint8Array(data.fileBase64);
+    } catch {
+      throw new Error("Malformed Base64 payload: Unable to decode attachment binary stream.");
+    }
+
     const actualSizeBytes = fileBytes.byteLength;
 
     if (actualSizeBytes === 0) {
@@ -452,12 +512,38 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
       );
     }
 
-    // 3. Compute server-side cryptographic SHA-256 digest
-    const serverSha256 = await computeSha256(fileBytes);
-    if (data.clientSha256 && data.clientSha256.trim().toLowerCase() !== serverSha256.toLowerCase()) {
-      console.warn(
-        `[Upload Integrity Warning] Client SHA-256 (${data.clientSha256}) differed from server calculated digest (${serverSha256}). Using authoritative server hash.`,
+    // 3. Strict Binary Magic Bytes Signature Validation
+    const sigCheck = validateFileSignature(fileBytes, rawExt);
+    if (!sigCheck.valid) {
+      await supabaseAdmin.from("audit_logs").insert({
+        user_id: userId,
+        action: `UPLOAD_REJECTED: File signature mismatch for "${data.fileName}". Claimed: .${rawExt}, detected: ${sigCheck.detectedType}.`,
+        entity_affected: JSON.stringify({ action_code: "UPLOAD_REJECTED", reason: "SIGNATURE_MISMATCH", rawExt, detectedType: sigCheck.detectedType }),
+        timestamp: new Date().toISOString(),
+      });
+      throw new Error(
+        `MIME/Extension mismatch: Uploaded file does not contain valid authentic signature for .${rawExt.toUpperCase()} (Detected signature: ${sigCheck.detectedType}).`,
       );
+    }
+
+    // 4. Compute server-side cryptographic SHA-256 digest
+    const serverSha256 = await computeSha256(fileBytes);
+
+    // Audit event: UPLOAD_STARTED
+    await supabaseAdmin.from("audit_logs").insert({
+      user_id: userId,
+      action: `UPLOAD_STARTED: ${data.fileName} (${(actualSizeBytes / 1024).toFixed(1)} KB) deposit initiated. SHA-256: ${serverSha256}.`,
+      entity_affected: JSON.stringify({ action_code: "UPLOAD_STARTED", fileName: data.fileName, sizeBytes: actualSizeBytes, sha256: serverSha256 }),
+      timestamp: new Date().toISOString(),
+    });
+
+    if (data.clientSha256 && data.clientSha256.trim().toLowerCase() !== serverSha256.toLowerCase()) {
+      await supabaseAdmin.from("audit_logs").insert({
+        user_id: userId,
+        action: `INTEGRITY_MISMATCH: Client SHA-256 (${data.clientSha256}) differed from authoritative server digest (${serverSha256}). Server hash will be enforced.`,
+        entity_affected: JSON.stringify({ action_code: "INTEGRITY_MISMATCH", clientSha256: data.clientSha256, serverSha256 }),
+        timestamp: new Date().toISOString(),
+      });
     }
 
     // 4. Resolve & verify target case if provided
@@ -629,10 +715,30 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
         // Transactional rollback: Clean up newly uploaded R2 object on real fatal error
         console.error("[uploadDocumentToR2] Supabase insert failed. Rolling back R2 object:", dbError);
         try {
+          await supabaseAdmin.from("audit_logs").insert({
+            user_id: userId,
+            action: `UPLOAD_FAILED: Supabase insert failed for ${safeFilename}. Rolling back R2 object ${r2ObjectKey}. Reason: ${dbError?.message}`,
+            entity_affected: JSON.stringify({ action_code: "UPLOAD_FAILED", fileName: safeFilename, r2ObjectKey, error: dbError?.message }),
+            timestamp: new Date().toISOString(),
+          });
+        } catch {
+          // ignore
+        }
+        try {
           await deleteR2Object(r2ObjectKey);
           console.log(`[R2 Rollback] Successfully cleaned up orphaned R2 object: ${r2ObjectKey}`);
         } catch (cleanupErr) {
           console.error(`[R2 Rollback Failed] Could not clean up ${r2ObjectKey}:`, cleanupErr);
+          try {
+            await supabaseAdmin.from("audit_logs").insert({
+              user_id: userId,
+              action: `ORPHAN_STORAGE_ALERT: Failed to delete orphaned R2 object ${r2ObjectKey} during rollback: ${cleanupErr}`,
+              entity_affected: JSON.stringify({ action_code: "ORPHAN_STORAGE_ALERT", r2ObjectKey, cleanupError: String(cleanupErr) }),
+              timestamp: new Date().toISOString(),
+            });
+          } catch {
+            // ignore
+          }
         }
         throw new Error(
           `Database Metadata Error: Failed to save document record (${dbError?.message || "Internal database error"}). R2 upload rolled back.`,
@@ -691,8 +797,8 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
     // 9. Record universal audit trail
     await recordAuditTrail({
       userId,
-      action: `DOCUMENT_UPLOADED: ${safeFilename} (${docNumber}) stored in private R2 vault. Case: ${r2CaseFolder}. SHA-256: ${serverSha256}.`,
-      actionCode: "DOCUMENT_UPLOADED",
+      action: `UPLOAD_SUCCEEDED: ${safeFilename} (${docNumber}) stored in private R2 vault. Case: ${r2CaseFolder}. SHA-256: ${serverSha256}.`,
+      actionCode: "UPLOAD_SUCCEEDED",
       entityType: "document",
       entityId: docUuid,
       caseId: r2CaseFolder,
@@ -1565,13 +1671,16 @@ export interface VerifyDocumentVersionOutput {
   verifiedByRole: string;
   message: string;
   bsaSection63Clause: string;
+  verificationState: "LIVE_VERIFIED" | "SIMULATED_DEMO";
   ledgerAnchor: {
     isAnchored: boolean;
+    verificationState: "LIVE_VERIFIED" | "SIMULATED_DEMO";
     targetLedgerName: string;
-    merkleLeafHash: string;
-    merkleRoot: string;
-    anchorSchema: string;
+    statusMessage: string;
+    anchorSchema?: string | undefined;
     proofReady: boolean;
+    merkleLeafHash?: string | undefined;
+    merkleRoot?: string | undefined;
     blockHeight?: number | undefined;
     transactionHash?: string | undefined;
     anchoredAt?: string | undefined;
@@ -1730,13 +1839,14 @@ export const verifyDocumentVersion = createServerFn({ method: "POST" })
         verifiedByRole: userRole,
         message: "The requested legal document file could not be retrieved from the Cloudflare R2 vault.",
         bsaSection63Clause: "Uncertified: Source record missing or unreachable in encrypted storage vault.",
+        verificationState: isDemoMode() ? "SIMULATED_DEMO" : "LIVE_VERIFIED",
         ledgerAnchor: {
           isAnchored: false,
-          targetLedgerName: "National Judicial Consortium Blockchain",
-          merkleLeafHash: "0".repeat(64),
-          merkleRoot: "0".repeat(64),
-          anchorSchema: "RFC-6962-MERKLE-TREE",
+          verificationState: isDemoMode() ? "SIMULATED_DEMO" : "LIVE_VERIFIED",
+          targetLedgerName: "Not blockchain anchored",
+          statusMessage: "Document file unreachable in encrypted vault.",
           proofReady: false,
+          anchorSchema: "SHA256-R2-IMMUTABLE-DEPOSIT",
         },
       };
     }
@@ -1745,20 +1855,20 @@ export const verifyDocumentVersion = createServerFn({ method: "POST" })
     const fileBytes = new Uint8Array(await r2Obj.arrayBuffer());
     const computedSha256 = await computeSha256(fileBytes);
     const isMatch = computedSha256.toLowerCase() === recordedSha256.toLowerCase();
+    const isDemo = isDemoMode();
 
-    // Merkle anchor calculation
-    const merkleLeaf = await computeSha256(`\x00${computedSha256}`);
-    const merkleRoot = `0x${merkleLeaf.slice(0, 32)}a89b`;
+    // Truth-in-Verification: Real SHA-256 integrity check. No fake blockchain transactions or fabricated block heights.
     const ledgerAnchor = {
-      isAnchored: true,
-      targetLedgerName: "National Judicial Consortium Blockchain (Hyperledger Fabric / Besu)",
-      merkleLeafHash: merkleLeaf,
-      merkleRoot,
-      anchorSchema: "RFC-6962-MERKLE-TREE",
+      isAnchored: false, // External blockchain anchoring is not configured
+      verificationState: isDemo ? ("SIMULATED_DEMO" as const) : ("LIVE_VERIFIED" as const),
+      targetLedgerName: isDemo
+        ? "Demo Local Sandbox (Simulation)"
+        : "Not blockchain anchored",
+      statusMessage: isDemo
+        ? "Demo simulation only: no external blockchain network transaction exists."
+        : "Storage integrity secured via Cloudflare R2 & Supabase immutable SHA-256 digests. External consortium blockchain anchoring is not configured.",
+      anchorSchema: "SHA256-R2-IMMUTABLE-DEPOSIT",
       proofReady: isMatch,
-      blockHeight: 18492041,
-      transactionHash: `0x${merkleLeaf.slice(0, 40)}`,
-      anchoredAt: targetVer?.created_at || doc.created_at,
     };
 
     if (isMatch) {
@@ -1774,7 +1884,7 @@ export const verifyDocumentVersion = createServerFn({ method: "POST" })
 
       await recordAuditTrail({
         userId,
-        action: `DOCUMENT_INTEGRITY_VERIFIED: ${doc.document_number} (v${targetVerNum}) cryptographic integrity confirmed. SHA-256 digest ${computedSha256} matches immutable recorded deposit hash. Verified by ${userName} (${userRole}).`,
+        action: `DOCUMENT_INTEGRITY_VERIFIED: ${doc.document_number} (v${targetVerNum}) cryptographic integrity confirmed. SHA-256 digest ${computedSha256} matches immutable recorded deposit hash. Verified by ${userName} (${userRole}). Mode: ${isDemo ? "SIMULATED_DEMO" : "LIVE_VERIFIED"}.`,
         actionCode: "INTEGRITY_VERIFIED",
         entityType: "document",
         entityId: doc.id,
@@ -1784,7 +1894,8 @@ export const verifyDocumentVersion = createServerFn({ method: "POST" })
           versionNumber: targetVerNum,
           sha256: computedSha256,
           recordedHash: recordedSha256,
-          merkleRoot,
+          verificationState: isDemo ? "SIMULATED_DEMO" : "LIVE_VERIFIED",
+          blockchainAnchored: false,
           fileSizeBytes: fileBytes.byteLength,
         },
         success: true,
@@ -1792,6 +1903,7 @@ export const verifyDocumentVersion = createServerFn({ method: "POST" })
 
       return {
         status: "VERIFIED",
+        verificationState: isDemo ? "SIMULATED_DEMO" : "LIVE_VERIFIED",
         documentId: doc.id,
         documentNumber: doc.document_number,
         versionNumber: targetVerNum,
@@ -1832,6 +1944,7 @@ export const verifyDocumentVersion = createServerFn({ method: "POST" })
           versionNumber: targetVerNum,
           computedSha256,
           recordedSha256,
+          verificationState: isDemo ? "SIMULATED_DEMO" : "LIVE_VERIFIED",
           alertLevel: "HIGH",
         },
         success: false,
@@ -1839,6 +1952,7 @@ export const verifyDocumentVersion = createServerFn({ method: "POST" })
 
       return {
         status: "INTEGRITY_MISMATCH",
+        verificationState: isDemo ? "SIMULATED_DEMO" : "LIVE_VERIFIED",
         documentId: doc.id,
         documentNumber: doc.document_number,
         versionNumber: targetVerNum,

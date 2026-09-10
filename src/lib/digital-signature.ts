@@ -428,7 +428,8 @@ export async function signDocumentVersion(payload: {
   const allSigs = getAllDigitalSignatures();
   const now = new Date().toISOString();
   const cleanDocNum = payload.documentNumber.replace(/[^A-Za-z0-9_-]/g, "-");
-  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const sigHash = sha256Sync(`SIG_TOKEN:${payload.contentHash}:${payload.signerUser}:${now}`);
+  const randomSuffix = sigHash.slice(0, 6).toUpperCase();
   const sigRef = `SIG-DOC-${cleanDocNum}-V${payload.versionNumber}-${randomSuffix}`;
 
   // Filter out any previous signature specifically for this exact (docId, version) pair to overwrite with latest approval
@@ -442,7 +443,7 @@ export async function signDocumentVersion(payload: {
   );
 
   const newRecord: DigitalSignatureRecord = {
-    id: `sig_${Date.now()}_${randomSuffix.toLowerCase()}`,
+    id: `sig_${sigHash.slice(0, 16)}`,
     signature_reference: sigRef,
     entity_type: "DOCUMENT_VERSION",
     entity_id: payload.documentId,
@@ -453,16 +454,16 @@ export async function signDocumentVersion(payload: {
     signer_department: payload.signerDepartment?.trim() || "District Judicial Registry",
     signer_identifier:
       payload.signerIdentifier?.trim() ||
-      `UID-${payload.signerRole.toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      `UID-${payload.signerRole.toUpperCase()}-${sigHash.slice(16, 22).toUpperCase()}`,
     signed_at: now,
     signature_status: "SIGNED",
     signature_algorithm: "ECDSA-P256-SHA256",
     provider_metadata: {
       ...SIGNATURE_PROVIDER_DECLARATION,
-      key_reference_id: `KEY-${payload.signerRole.toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}-P256`,
+      key_reference_id: `KEY-${payload.signerRole.toUpperCase()}-${sigHash.slice(22, 28).toUpperCase()}-P256`,
     },
     signed_content_hash: payload.contentHash.trim().toLowerCase(),
-    signature_payload: `MEQCIB${Math.random().toString(36).substring(2, 8).toUpperCase()}...[ECDSA-P256-SHA256-SEAL-${payload.contentHash.slice(0, 12)}]...${Math.random().toString(36).substring(2, 6).toUpperCase()}==`,
+    signature_payload: `MEQCIB_${sigHash.slice(0, 32)}_${sigHash.slice(32, 64)}==`,
     purpose_or_reason:
       payload.purpose?.trim() ||
       `Official Electronic Endorsement & Approval for ${payload.documentNumber} (Version v${payload.versionNumber})`,
@@ -563,11 +564,12 @@ export async function signEvidenceCustodyTransfer(payload: {
 
   const allSigs = getAllDigitalSignatures();
   const now = new Date().toISOString();
-  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const sigHash = sha256Sync(`CUSTODY_SIG:${payload.contentHash}:${payload.signerUser}:${now}`);
+  const randomSuffix = sigHash.slice(0, 6).toUpperCase();
   const sigRef = `SIG-CUSTODY-${payload.assetCode}-${randomSuffix}`;
 
   const newRecord: DigitalSignatureRecord = {
-    id: `sig_c_${Date.now()}_${randomSuffix.toLowerCase()}`,
+    id: `sig_c_${sigHash.slice(0, 16)}`,
     signature_reference: sigRef,
     entity_type: "EVIDENCE_CUSTODY_TRANSFER",
     entity_id: payload.assetId,
@@ -575,7 +577,7 @@ export async function signEvidenceCustodyTransfer(payload: {
     signer_user: payload.signerUser.trim(),
     signer_role: payload.signerRole.trim(),
     signer_department: "Police Malkhana & Forensic Registry",
-    signer_identifier: `CUSTODIAN-${Math.floor(1000 + Math.random() * 9000)}`,
+    signer_identifier: `CUSTODIAN-${sigHash.slice(16, 22).toUpperCase()}`,
     signed_at: now,
     signature_status: "SIGNED",
     signature_algorithm: "ECDSA-P256-SHA256",
@@ -584,7 +586,7 @@ export async function signEvidenceCustodyTransfer(payload: {
       key_reference_id: `KEY-CUSTODY-${payload.assetCode}-P256`,
     },
     signed_content_hash: payload.contentHash.trim().toLowerCase(),
-    signature_payload: `MEQCIB${Math.random().toString(36).substring(2, 8).toUpperCase()}...[ECDSA-P256-CUSTODY-SEAL]...${Math.random().toString(36).substring(2, 6).toUpperCase()}==`,
+    signature_payload: `MEQCIB_${sigHash.slice(0, 32)}_${sigHash.slice(32, 64)}==`,
     purpose_or_reason:
       payload.purpose?.trim() ||
       `Custody Transfer Acknowledgment for Evidence ${payload.assetCode} (${payload.fromCustodian} → ${payload.toCustodian})`,

@@ -1378,23 +1378,33 @@ function DocumentsListPage() {
                     <p>{liveIntegrityResult.bsaSection63Clause}</p>
                   </div>
 
-                  {/* Blockchain / Consortium Ledger Anchoring Note */}
+                  {/* Verification State & Ledger Anchoring Note */}
                   <div className="rounded-lg border border-border/80 bg-muted/15 p-3 space-y-1.5 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-foreground flex items-center gap-1.5 text-[11px]">
                         <Scale className="size-3 text-primary" />
-                        Consortium Ledger Anchoring Readiness
+                        Verification Status
                       </span>
-                      <Badge variant="outline" className="text-[9px] text-primary">
-                        RFC-6962
+                      <Badge
+                        variant="outline"
+                        className={
+                          liveIntegrityResult.ledgerAnchor?.verificationState === "LIVE_VERIFIED"
+                            ? "text-[9px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
+                            : "text-[9px] bg-amber-500/10 text-amber-700 border-amber-500/30 dark:text-amber-400"
+                        }
+                      >
+                        {liveIntegrityResult.ledgerAnchor?.verificationState === "LIVE_VERIFIED"
+                          ? "LIVE_VERIFIED"
+                          : "SIMULATED_DEMO"}
                       </Badge>
                     </div>
-                    <div className="font-mono text-[10px] text-muted-foreground truncate">
-                      Merkle Leaf: {liveIntegrityResult.ledgerAnchor.merkleLeafHash}
+                    <div className="text-[10px] text-muted-foreground">
+                      <span className="text-foreground font-semibold">Ledger Anchoring:</span>{" "}
+                      {liveIntegrityResult.ledgerAnchor?.isAnchored ? "ANCHORED" : "Not blockchain anchored"}
                     </div>
                     <p className="text-[10px] text-muted-foreground italic pt-1 border-t border-border/40">
-                      SHA-256 provides deterministic mathematical integrity verification. Hashes are
-                      formatted for periodic anchoring to the National Judicial Consortium Ledger.
+                      {liveIntegrityResult.ledgerAnchor?.statusMessage ||
+                        "SHA-256 calculated from actual uploaded file bytes provides verified storage integrity. External blockchain anchoring is not configured."}
                     </p>
                   </div>
                 </div>

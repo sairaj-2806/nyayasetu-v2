@@ -287,6 +287,9 @@ export interface DispatchEvidenceTransferInput {
   transitSealNumber: string;
   transferReason: string;
   fromLocation?: string | undefined;
+  releasingOfficerName?: string | undefined;
+  releasingOfficerRole?: string | undefined;
+  releasingOfficerBadge?: string | undefined;
 }
 
 export const dispatchEvidenceTransfer = createServerFn({ method: "POST" })
@@ -526,6 +529,8 @@ export interface AcknowledgeEvidenceReceiptInput {
   sealVerifiedIntact: boolean;
   conditionConfirmed: string;
   acknowledgmentNotes?: string | undefined;
+  receivingOfficerName?: string | undefined;
+  receivingOfficerRole?: string | undefined;
 }
 
 export interface AcknowledgeEvidenceReceiptOutput {
@@ -569,7 +574,8 @@ export const acknowledgeEvidenceReceipt = createServerFn({ method: "POST" })
       );
     }
 
-    const receivingOfficerName = profileData?.full_name || "Authorized Custodian";
+    const receivingOfficerName =
+      data.receivingOfficerName?.trim() || profileData?.full_name || "Authorized Custodian";
     const receivingOfficerRole = userRoles[0] || "evidence_custodian";
 
     // 2. Resolve transfer record from Supabase or server registry
@@ -824,6 +830,8 @@ export interface RejectEvidenceTransferInput {
   rejectionReason: string;
   sealIntact?: boolean | undefined;
   notes?: string | undefined;
+  rejectingOfficerName?: string | undefined;
+  rejectingOfficerRole?: string | undefined;
 }
 
 export interface RejectEvidenceTransferOutput {
@@ -863,7 +871,8 @@ export const rejectEvidenceTransfer = createServerFn({ method: "POST" })
       );
     }
 
-    const rejectingOfficerName = profileData?.full_name || "Authorized Custodian";
+    const rejectingOfficerName =
+      data.rejectingOfficerName?.trim() || profileData?.full_name || "Authorized Custodian";
     const rejectingOfficerRole = userRoles[0] || "evidence_custodian";
 
     // 2. Resolve transfer record

@@ -47,7 +47,7 @@ import {
   acknowledgeEvidenceReceipt,
   dispatchEvidenceTransfer,
   EVIDENCE_MILESTONES,
-  getPendingEvidenceTransfers,
+  pendingEvidenceTransfersQuery,
   verifyChainOfCustody,
   type ChainOfCustodyVerificationReport,
   type EvidenceMilestone,
@@ -288,6 +288,7 @@ function AssetDetailPage() {
           `Evidence dispatched under transit seal ${transfer.transitSealNumber}. Awaiting recipient acknowledgment.`,
         );
         queryClient.invalidateQueries({ queryKey: ["police-asset-detail", assetId] });
+        queryClient.invalidateQueries({ queryKey: ["pending-evidence-transfers"] });
       }
       setIsTransferEvidenceOpen(false);
       setEvidenceDestination("");
@@ -321,6 +322,7 @@ function AssetDetailPage() {
       setSelectedPendingTransfer(null);
       queryClient.invalidateQueries({ queryKey: ["police-asset-detail", assetId] });
       queryClient.invalidateQueries({ queryKey: ["police-assets"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-evidence-transfers"] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -438,7 +440,8 @@ function AssetDetailPage() {
   }
 
   const allowedActions = getAllowedActions(asset.status, staffRole);
-  const pendingTransfers = getPendingEvidenceTransfers(asset.id);
+  const pendingTransfersQueryInstance = useQuery(pendingEvidenceTransfersQuery(asset.id));
+  const pendingTransfers = pendingTransfersQueryInstance.data ?? [];
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 sm:py-10">

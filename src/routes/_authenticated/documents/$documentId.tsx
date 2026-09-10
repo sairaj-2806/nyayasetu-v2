@@ -273,38 +273,54 @@ function IntegrityStatusCard({
         <p>{result.bsaSection63Clause}</p>
       </div>
 
-      {/* Consortium Blockchain / Immutable Ledger Architecture Panel */}
+      {/* Cryptographic Verification State & Anchoring Architecture Panel */}
       <div className="rounded-lg border border-border/80 bg-muted/15 p-4 space-y-2.5 text-xs">
         <div className="flex items-center justify-between border-b border-border/60 pb-2">
           <span className="font-semibold text-foreground flex items-center gap-1.5">
             <Scale className="size-3.5 text-primary" />
-            Consortium Ledger Anchoring Readiness
+            Verification Mode & Ledger Anchoring
           </span>
-          <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
-            {result.ledgerAnchor.anchorSchema}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            <Badge
+              variant="outline"
+              className={
+                result.ledgerAnchor?.verificationState === "LIVE_VERIFIED"
+                  ? "text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
+                  : "text-[10px] bg-amber-500/10 text-amber-700 border-amber-500/30 dark:text-amber-400"
+              }
+            >
+              {result.ledgerAnchor?.verificationState === "LIVE_VERIFIED"
+                ? "LIVE_VERIFIED"
+                : "SIMULATED_DEMO"}
+            </Badge>
+            <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">
+              {result.ledgerAnchor?.isAnchored ? "ANCHORED" : "Not blockchain anchored"}
+            </Badge>
+          </div>
         </div>
 
-        <div className="space-y-1.5 text-[11px] text-muted-foreground font-mono">
+        <div className="space-y-1.5 text-[11px] text-muted-foreground">
           <div>
-            <span className="text-foreground font-sans font-semibold">Target Ledger:</span>{" "}
+            <span className="text-foreground font-semibold">Ledger Architecture:</span>{" "}
             {result.ledgerAnchor.targetLedgerName}
           </div>
-          <div className="truncate">
-            <span className="text-foreground font-sans font-semibold">Merkle Leaf:</span>{" "}
-            {result.ledgerAnchor.merkleLeafHash}
-          </div>
-          <div className="truncate">
-            <span className="text-foreground font-sans font-semibold">Merkle Root:</span>{" "}
-            {result.ledgerAnchor.merkleRoot}
-          </div>
+          {result.ledgerAnchor.merkleLeafHash && (
+            <div className="truncate font-mono">
+              <span className="text-foreground font-sans font-semibold">Merkle Leaf:</span>{" "}
+              {result.ledgerAnchor.merkleLeafHash}
+            </div>
+          )}
+          {result.ledgerAnchor.merkleRoot && (
+            <div className="truncate font-mono">
+              <span className="text-foreground font-sans font-semibold">Merkle Root:</span>{" "}
+              {result.ledgerAnchor.merkleRoot}
+            </div>
+          )}
         </div>
 
         <p className="text-[10px] text-muted-foreground italic pt-1 border-t border-border/40 leading-relaxed">
-          Architectural Note: SHA-256 provides local deterministic integrity verification. The
-          system is designed so hashes are pre-formatted as RFC-6962 Merkle tree leaves and can be
-          anchored to an immutable permissioned blockchain ledger for multi-agency non-repudiation
-          across Police, Prosecution, and Judiciary.
+          {result.ledgerAnchor.statusMessage ||
+            "SHA-256 calculated from actual uploaded file bytes provides verified storage integrity. External blockchain anchoring is not configured."}
         </p>
       </div>
 
@@ -1992,6 +2008,7 @@ function DocumentDetailPage() {
                 result={
                   integrityResult || {
                     status: doc.is_tampered ? "INTEGRITY_MISMATCH" : "VERIFIED",
+                    verificationState: ((doc as any).verification_state as "LIVE_VERIFIED" | "SIMULATED_DEMO") || "LIVE_VERIFIED",
                     documentId: doc.id,
                     documentNumber: doc.document_number,
                     versionNumber: selectedVersionNumber || doc.current_version,

@@ -128,12 +128,16 @@ export function sanitizeStorageFileName(rawName: string): string {
   return sanitized.slice(0, 120) || "document.pdf";
 }
 
+export type VerificationState = "LIVE_VERIFIED" | "SIMULATED_DEMO";
+
 export interface LedgerAnchorMetadata {
   isAnchored: boolean;
+  verificationState: VerificationState;
   targetLedgerName: string;
-  merkleLeafHash: string;
-  merkleRoot: string;
-  anchorSchema: "RFC-6962-MERKLE-TREE";
+  statusMessage: string;
+  merkleLeafHash?: string | undefined;
+  merkleRoot?: string | undefined;
+  anchorSchema?: string | undefined;
   proofReady: boolean;
   blockHeight?: number | undefined;
   transactionHash?: string | undefined;
@@ -142,6 +146,7 @@ export interface LedgerAnchorMetadata {
 
 export interface DocumentIntegrityResult {
   status: "VERIFIED" | "INTEGRITY_MISMATCH" | "UNAVAILABLE";
+  verificationState: VerificationState;
   documentId: string;
   documentNumber: string;
   versionNumber: number;
@@ -553,20 +558,18 @@ export const secureDocumentDetailQuery = (documentId: string) => ({
       versions[versions.length - 1];
     const activeHash = activeVer?.sha256_hash || doc.latest_sha256;
 
-    // Build ledger anchor architecture metadata
-    const merkleLeaf = sha256Sync(`\x00${activeHash}`);
-    const merkleRoot = "0x" + merkleLeaf.slice(0, 32) + "a89b";
-
+    const isDemo = isDemoMode();
     const ledgerAnchor: LedgerAnchorMetadata = {
-      isAnchored: true,
-      targetLedgerName: "National Judicial Consortium Blockchain (Hyperledger Besu / Polygon PoS)",
-      merkleLeafHash: merkleLeaf,
-      merkleRoot,
-      anchorSchema: "RFC-6962-MERKLE-TREE",
+      isAnchored: false,
+      verificationState: isDemo ? "SIMULATED_DEMO" : "LIVE_VERIFIED",
+      targetLedgerName: isDemo
+        ? "Demo Local Sandbox (Simulation)"
+        : "Not blockchain anchored",
+      statusMessage: isDemo
+        ? "Demo simulation only: no external blockchain network transaction exists."
+        : "Storage integrity secured via Cloudflare R2 & Supabase immutable SHA-256 digests. External consortium blockchain anchoring is not configured.",
+      anchorSchema: "SHA256-R2-IMMUTABLE-DEPOSIT",
       proofReady: true,
-      blockHeight: 18492041,
-      transactionHash: `0x${merkleLeaf.slice(0, 40)}`,
-      anchoredAt: doc.created_at,
     };
 
     // Build cryptographic integrity metadata
@@ -575,13 +578,13 @@ export const secureDocumentDetailQuery = (documentId: string) => ({
       document_id: doc.id,
       version_number: doc.current_version,
       sha256_hash: activeHash,
-      merkle_root: merkleRoot,
-      validator_node: "DL-HC-VALIDATOR-NODE-03.court.gov.in",
-      digital_signature: activeVer?.digital_signature || "",
-      signer_identity: activeVer?.signer_identity || "",
-      certificate_ref: `BSA-SEC63-${doc.document_number}`,
+      merkle_root: "NOT_CONFIGURED",
+      validator_node: "Cloudflare R2 Encrypted Storage Vault",
+      digital_signature: activeVer?.digital_signature || "PLATFORM_KEYSTORE_RECORD",
+      signer_identity: activeVer?.signer_identity || doc.uploaded_by_name,
+      certificate_ref: "INTERNAL_PLATFORM_KEY",
       bsa_compliance_clause:
-        "Certified under Section 63, Bharatiya Sakshya Adhiniyam, 2023 (Electronic Record Authenticity)",
+        "Certified under Section 63, Bharatiya Sakshya Adhiniyam, 2023 (Algorithmic Electronic Record Hash)",
       verification_status: doc.is_tampered ? "INTEGRITY_MISMATCH" : "VERIFIED",
       last_verified_at: new Date().toISOString(),
       ledger_anchor: ledgerAnchor,
@@ -920,8 +923,10 @@ export async function verifyDocumentVersionIntegrity(payload: {
     },
   });
 
+  const isDemo = isDemoMode();
   return {
     status: res.status,
+    verificationState: res.verificationState || (isDemo ? "SIMULATED_DEMO" : "LIVE_VERIFIED"),
     documentId: res.documentId,
     documentNumber: res.documentNumber,
     versionNumber: res.versionNumber,
@@ -937,10 +942,12 @@ export async function verifyDocumentVersionIntegrity(payload: {
     bsaSection63Clause: res.bsaSection63Clause,
     ledgerAnchor: {
       isAnchored: res.ledgerAnchor.isAnchored,
+      verificationState: res.ledgerAnchor.verificationState || (isDemo ? "SIMULATED_DEMO" : "LIVE_VERIFIED"),
       targetLedgerName: res.ledgerAnchor.targetLedgerName,
+      statusMessage: res.ledgerAnchor.statusMessage,
       merkleLeafHash: res.ledgerAnchor.merkleLeafHash,
       merkleRoot: res.ledgerAnchor.merkleRoot,
-      anchorSchema: (res.ledgerAnchor.anchorSchema as "RFC-6962-MERKLE-TREE") || "RFC-6962-MERKLE-TREE",
+      anchorSchema: res.ledgerAnchor.anchorSchema || "SHA256-R2-IMMUTABLE-DEPOSIT",
       proofReady: res.ledgerAnchor.proofReady,
       blockHeight: res.ledgerAnchor.blockHeight,
       transactionHash: res.ledgerAnchor.transactionHash,
