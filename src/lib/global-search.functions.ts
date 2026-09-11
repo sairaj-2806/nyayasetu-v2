@@ -59,7 +59,9 @@ export const searchGlobalRegistry = createServerFn({ method: "POST" })
     });
 
     if (!rateCheck.allowed) {
-      throw new Error("Rate limit exceeded: Too many global registry searches. Please wait a minute.");
+      throw new Error(
+        "Rate limit exceeded: Too many global registry searches. Please wait a minute.",
+      );
     }
 
     // 3. Strict Server-Side Role Resolution from authoritative Supabase database
@@ -77,4 +79,3 @@ export const searchGlobalRegistry = createServerFn({ method: "POST" })
       db: supabaseAdmin,
     });
   });
-

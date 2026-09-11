@@ -8,11 +8,7 @@ import { priorityBand } from "@/lib/cases";
 import { DEFAULT_MAX_JUDGE_WORKLOAD, isActiveSchedule, scanSystemConflicts } from "@/lib/conflicts";
 import type { Judge, Courtroom } from "@/lib/registry";
 import { SEED_POLICE_ASSETS, type PoliceAsset } from "@/lib/assets";
-import {
-  getDocumentVersions,
-  seedInitialDocuments,
-  type SecureDocument,
-} from "@/lib/documents";
+import { getDocumentVersions, seedInitialDocuments, type SecureDocument } from "@/lib/documents";
 
 export type AssistantIntent =
   | "availability"
@@ -50,7 +46,6 @@ export type AssistantRowTarget =
   | { route: "/dashboard" }
   | { route: "/auth" }
   | { route: "/case-status" };
-
 
 export type AssistantRow = {
   id: string;
@@ -680,7 +675,9 @@ async function answerEvidenceChainOfCustody(
         milestones = dbTransfers.map((t: any, idx: number) => ({
           id: t.id,
           step: `${idx + 1}. ${t.status}`,
-          timestamp: t.dispatched_at ? new Date(t.dispatched_at).toLocaleDateString("en-IN") : "Recorded",
+          timestamp: t.dispatched_at
+            ? new Date(t.dispatched_at).toLocaleDateString("en-IN")
+            : "Recorded",
           from: t.from_location,
           to: t.to_location,
           reason: t.reason,
@@ -969,7 +966,9 @@ async function answerRecentAssetTransfers(db = supabase): Promise<AssistantAnswe
         from: t.from_location,
         to: t.to_location,
         custodian: t.to_custodian_name || t.from_custodian_name,
-        timestamp: t.dispatched_at ? new Date(t.dispatched_at).toLocaleDateString("en-IN") : "Recorded",
+        timestamp: t.dispatched_at
+          ? new Date(t.dispatched_at).toLocaleDateString("en-IN")
+          : "Recorded",
         status: t.status,
         seal: t.transit_seal_number || "N/A",
         assetId: t.asset_id,
@@ -1100,7 +1099,6 @@ export async function answerQuestion(
           detail: "Sign in with your official judiciary or police credentials",
           badge: "Authentication Required",
           target: { route: "/auth" },
-
         },
         {
           id: "public-status",
@@ -1114,7 +1112,6 @@ export async function answerQuestion(
   }
 
   switch (intent) {
-
     case "availability":
       return answerAvailability(question, db);
     case "conflict_count":
@@ -1151,8 +1148,8 @@ export async function answerQuestion(
       return {
         intent: "legal_consultation",
         summary:
-          "I am your Personal Legal AI Assistant & Judicial Copilot. I provide authoritative analysis on Indian Law (BNS 2023, BNSS 2023, BSA 2023, IPC, CrPC, CPC, bail, arrest, evidence) and live court dashboard operations (cause lists, hearings, judge workloads, Malkhana vault evidence, and case records).",
-        source: "NyayaSetu Legal Intelligence",
+          "I am NyayaSetu Assistant. I provide authorized intelligence on Indian Law (BNS 2023, BNSS 2023, BSA 2023), legal investigation records, evidence chains of custody, and case dossiers under strict human supervision.",
+        source: "NyayaSetu Document & Legal Intelligence",
         rows: [
           {
             id: "suggest-bns",

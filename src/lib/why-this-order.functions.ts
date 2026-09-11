@@ -9,7 +9,8 @@ import { sanitizeUserInput, detectPromptInjection } from "@/lib/security.server"
 
 const Input = z.object({ breakdownText: z.string().min(1).max(4000) });
 
-const ADVISORY_NOTICE = "\n\n[Advisory: This summary is an automated priority explanation for registry information only and does not supersede judicial orders.]";
+const ADVISORY_NOTICE =
+  "\n\n[Advisory: This summary is an automated priority explanation for registry information only and does not supersede judicial orders.]";
 
 const SYSTEM_PROMPT = [
   "You rephrase an already-computed court case priority breakdown into one short paragraph",

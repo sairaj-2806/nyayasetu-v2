@@ -38,9 +38,7 @@ export const getBacklogSimulationCases = createServerFn({ method: "GET" })
 
       const primaryRole = userRoles[0];
       const isAuthorized =
-        primaryRole === "admin" ||
-        primaryRole === "registrar" ||
-        primaryRole === "judge";
+        primaryRole === "admin" || primaryRole === "registrar" || primaryRole === "judge";
 
       if (!isAuthorized) {
         return [];

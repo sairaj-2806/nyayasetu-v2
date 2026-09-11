@@ -10,9 +10,7 @@ export function isDemoMode(): boolean {
   try {
     // 1. Check client-side Vite import.meta.env
     if (typeof import.meta !== "undefined" && import.meta.env) {
-      const metaDemo =
-        import.meta.env["VITE_DEMO_MODE"] ??
-        import.meta.env["DEMO_MODE"];
+      const metaDemo = import.meta.env["VITE_DEMO_MODE"] ?? import.meta.env["DEMO_MODE"];
       if (metaDemo === true || metaDemo === "true" || metaDemo === "1") {
         return true;
       }
@@ -20,9 +18,7 @@ export function isDemoMode(): boolean {
 
     // 2. Check Node/server-side process.env
     if (typeof process !== "undefined" && process.env) {
-      const procDemo =
-        process.env["DEMO_MODE"] ??
-        process.env["VITE_DEMO_MODE"];
+      const procDemo = process.env["DEMO_MODE"] ?? process.env["VITE_DEMO_MODE"];
       if (procDemo === "true" || procDemo === "1") {
         return true;
       }
@@ -35,4 +31,3 @@ export function isDemoMode(): boolean {
   // Strict architectural guarantee: default to false in all environments
   return false;
 }
-

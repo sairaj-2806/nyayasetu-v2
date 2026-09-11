@@ -138,7 +138,9 @@ export interface ChainOfCustodyVerificationReport {
 /**
  * Maps a server-authoritative transfer record to client representation.
  */
-export function toPendingEvidenceTransfer(serverTrf: ServerEvidenceTransfer): PendingEvidenceTransfer {
+export function toPendingEvidenceTransfer(
+  serverTrf: ServerEvidenceTransfer,
+): PendingEvidenceTransfer {
   return {
     id: serverTrf.id,
     assetId: serverTrf.asset_id,
@@ -368,7 +370,9 @@ export function verifyChainOfCustody(
   });
 
   // Check 4: Cryptographic & Digital Signature Presence
-  const hasSignatures = timeline.every((evt) => Boolean(evt.digital_signature) && Boolean(evt.verification_hash));
+  const hasSignatures = timeline.every(
+    (evt) => Boolean(evt.digital_signature) && Boolean(evt.verification_hash),
+  );
   checks.push({
     id: "check_signatures",
     name: "Cryptographic Digital Signatures",
@@ -510,13 +514,15 @@ export async function advanceEvidenceMilestone(payload: {
   if (asset) {
     const isUuid = Boolean(asset.id.match(/^[0-9a-fA-F-]{36}$/));
     if (isUuid) {
-      const { error: updateErr } = await (supabase.from("police_assets") as any).update({
-        evidence_status: targetStatus,
-        current_custodian_name: payload.custodianName || asset.current_custodian_name,
-        current_location: payload.location || asset.current_location,
-        tamper_seal_number: payload.sealNumber || asset.tamper_seal_number,
-        updated_at: now,
-      }).eq("id", asset.id);
+      const { error: updateErr } = await (supabase.from("police_assets") as any)
+        .update({
+          evidence_status: targetStatus,
+          current_custodian_name: payload.custodianName || asset.current_custodian_name,
+          current_location: payload.location || asset.current_location,
+          tamper_seal_number: payload.sealNumber || asset.tamper_seal_number,
+          updated_at: now,
+        })
+        .eq("id", asset.id);
 
       if (updateErr && !updateErr.message?.includes("schema cache")) {
         throw new Error(`Database Error: Could not update evidence status (${updateErr.message})`);

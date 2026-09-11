@@ -32,18 +32,31 @@ export function AppSidebar() {
 
   const sectionLabelKey: Record<string, TranslationKey> = {
     Overview: "nav.overview",
+    "Core Investigation & DMS": "nav.command-center",
+    "Core Investigation": "nav.command-center",
+    "Core Vault & Evidence": "nav.documents",
+    "Case & Hearing Operations": "nav.case-ops",
     Scheduling: "nav.scheduling",
     Administration: "nav.administration",
-    "Court Operations": "nav.scheduling",
+    "Court Operations": "nav.case-ops",
     "Secure Vault": "nav.documents",
+    "Secure Document Vault": "nav.documents",
     "Investigation & Evidence": "nav.evidence",
     "Police Assets": "nav.assets",
     "Evidence & Custody": "nav.evidence",
     "Investigation & Documents": "nav.documents",
     "Forensic Records": "nav.documents",
+    "Forensic Records & Custody": "nav.documents",
     "Malkhana Vault": "nav.evidence",
+    "Malkhana Vault & Custody": "nav.evidence",
     "Custody Records": "nav.documents",
     "Legal Vault": "nav.documents",
+    "Legal Vault & Filings": "nav.documents",
+    "Courtroom Proceedings": "nav.scheduling",
+    "Tactical Equipment": "nav.assets",
+    "Evidence & Asset Management": "nav.police-assets",
+    "Reports & Intelligence": "nav.reports",
+    "Intelligence & Compliance": "nav.governance",
     "My bench": "nav.overview",
   };
 
@@ -145,7 +158,9 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="px-2 py-1 text-[11px] text-sidebar-foreground/80 flex items-center justify-between">
             <span className="truncate">{roleInfo?.label || "National Justice Core"}</span>
-            <span className="font-mono text-[10px] text-sidebar-primary font-semibold">BSA §63</span>
+            <span className="font-mono text-[10px] text-sidebar-primary font-semibold">
+              BSA §63
+            </span>
           </div>
         )}
       </SidebarFooter>

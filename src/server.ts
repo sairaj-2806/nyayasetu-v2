@@ -45,6 +45,23 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+function applySecurityHeaders(res: Response): Response {
+  const headers = new Headers(res.headers);
+  if (!headers.has("X-Content-Type-Options")) headers.set("X-Content-Type-Options", "nosniff");
+  if (!headers.has("X-Frame-Options")) headers.set("X-Frame-Options", "SAMEORIGIN");
+  if (!headers.has("Referrer-Policy"))
+    headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  if (!headers.has("Permissions-Policy"))
+    headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+  if (!headers.has("Cross-Origin-Opener-Policy"))
+    headers.set("Cross-Origin-Opener-Policy", "same-origin");
+  return new Response(res.body, {
+    status: res.status,
+    statusText: res.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     if (env && typeof env === "object") {
@@ -58,13 +75,15 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalized = await normalizeCatastrophicSsrResponse(response);
+      return applySecurityHeaders(normalized);
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(error), {
+      const errRes = new Response(renderErrorPage(error), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },
       });
+      return applySecurityHeaders(errRes);
     }
   },
 };

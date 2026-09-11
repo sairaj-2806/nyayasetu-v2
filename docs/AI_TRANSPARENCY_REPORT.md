@@ -1,4 +1,5 @@
 # NyayaSetu: Official AI Transparency & Architecture Report
+
 **Submission Document for Evaluation Panel & Judicial Bench**
 
 ---
@@ -20,15 +21,15 @@ In Indian district and taluka courts, algorithmic hallucination, unpredictable s
 
 ## 1. Clear Separation: What Uses AI vs. What Does NOT
 
-| Function in NyayaSetu | Technology Used | Is it AI / LLM? | Why this design choice? |
-| :--- | :--- | :--- | :--- |
-| **Case Scheduling (Date & Time Allocation)** | Constraint Satisfaction Logic (Hard Constraints) | ❌ **NO AI** | Prevents double-booking, court holiday clashes, and slot overflow with 100% mathematical certainty. |
-| **Judge Bench Assignment** | Multi-Factor Weighted Scoring (Soft Preferences) | ❌ **NO AI** | Pure deterministic math: 35% Specialisation, 30% Workload, 20% Priority, 15% Room efficiency. |
-| **Case Priority Scoring (POCSO, Senior Citizen, etc.)** | Statutory Rules Matrix (0–100 points) | ❌ **NO AI** | 100% audit-traceable statutory scoring based on High Court / Supreme Court case management guidelines. |
-| **Conflict & Double-Booking Detection** | Direct Relational Validation Checks | ❌ **NO AI** | Instant database scans across judicial benches and physical rooms. |
-| **Multilingual Litigant Translation** | Gemini 2.5 Flash / Groq LLM | ✅ **YES (AI)** | Converts dense legalese into simple, respectful Hindi and Marathi for ordinary citizens. |
-| **Registry Staff Copilot (Help Assistant)** | RAG / LLM Advisory Assistant | ✅ **YES (AI)** | Answers clerical queries regarding court circulars, scheduling SOPs, and user navigation. |
-| **Plain-Language Rationale Summaries** | Advisory LLM (with Rule-based Fallback) | ✅ **Advisory Only** | Translates already-calculated mathematical scores into plain English sentences for human review. |
+| Function in NyayaSetu                                   | Technology Used                                  | Is it AI / LLM?      | Why this design choice?                                                                                |
+| :------------------------------------------------------ | :----------------------------------------------- | :------------------- | :----------------------------------------------------------------------------------------------------- |
+| **Case Scheduling (Date & Time Allocation)**            | Constraint Satisfaction Logic (Hard Constraints) | ❌ **NO AI**         | Prevents double-booking, court holiday clashes, and slot overflow with 100% mathematical certainty.    |
+| **Judge Bench Assignment**                              | Multi-Factor Weighted Scoring (Soft Preferences) | ❌ **NO AI**         | Pure deterministic math: 35% Specialisation, 30% Workload, 20% Priority, 15% Room efficiency.          |
+| **Case Priority Scoring (POCSO, Senior Citizen, etc.)** | Statutory Rules Matrix (0–100 points)            | ❌ **NO AI**         | 100% audit-traceable statutory scoring based on High Court / Supreme Court case management guidelines. |
+| **Conflict & Double-Booking Detection**                 | Direct Relational Validation Checks              | ❌ **NO AI**         | Instant database scans across judicial benches and physical rooms.                                     |
+| **Multilingual Litigant Translation**                   | Gemini 2.5 Flash / Groq LLM                      | ✅ **YES (AI)**      | Converts dense legalese into simple, respectful Hindi and Marathi for ordinary citizens.               |
+| **Registry Staff Copilot (Help Assistant)**             | RAG / LLM Advisory Assistant                     | ✅ **YES (AI)**      | Answers clerical queries regarding court circulars, scheduling SOPs, and user navigation.              |
+| **Plain-Language Rationale Summaries**                  | Advisory LLM (with Rule-based Fallback)          | ✅ **Advisory Only** | Translates already-calculated mathematical scores into plain English sentences for human review.       |
 
 ---
 
@@ -109,11 +110,13 @@ When a case is listed, the scheduling engine (`src/lib/scheduling.ts`) executes 
 ## 4. Why Does the Dashboard Say "AI Recommendations"?
 
 In the user interface and database schema, you will see labels such as:
+
 - Table: `ai_recommendations`
-- UI Metric: *"AI Recommendations Issued: 24"*
-- Button: *"View AI Recommendation"*
+- UI Metric: _"AI Recommendations Issued: 24"_
+- Button: _"View AI Recommendation"_
 
 ### Why is it named that way?
+
 1. **Industry Product Terminology:** In software development, automated smart decision-support systems are frequently branded as "AI Recommendations" to communicate intelligent automation to non-technical end users.
 2. **Audit Logging Container:** The database table `ai_recommendations` simply stores the mathematically generated slot options alongside the **Human Registrar's final audit verdict** (`ACCEPTED`, `MODIFIED`, `REJECTED`) and the mandatory justification note.
 3. **Who is the Registrar?** The Registrar is the **human judicial clerk** who retains final legal authority. The system **never recommends, replaces, or alters registrars**.
@@ -139,7 +142,9 @@ All external LLM interactions route through a single hardened endpoint (`src/lib
 ```
 
 ### Safety & Fallback Mechanism:
+
 If the internet is down, or if the external AI API is unresponsive:
+
 - **Court scheduling continues 100% uninterrupted.**
 - The system automatically serves built-in, rule-based deterministic text explanations without throwing errors.
 
@@ -153,4 +158,5 @@ If the internet is down, or if the external AI API is unresponsive:
 4. **100% Human-in-the-Loop Governance:** Every proposed schedule must be explicitly validated and signed off by a human court registrar with full audit logging.
 
 ---
-*NyayaSetu Architecture & Compliance Documentation — Verified against production codebase.*
+
+_NyayaSetu Architecture & Compliance Documentation — Verified against production codebase._

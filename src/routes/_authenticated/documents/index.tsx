@@ -100,7 +100,8 @@ export const Route = createFileRoute("/_authenticated/documents/")({
       search["upload"] === true || search["upload"] === "true" || search["upload"] === "1"
         ? true
         : undefined,
-    caseNumber: typeof search["caseNumber"] === "string" ? (search["caseNumber"] as string) : undefined,
+    caseNumber:
+      typeof search["caseNumber"] === "string" ? (search["caseNumber"] as string) : undefined,
   }),
   head: () => ({
     meta: [
@@ -568,7 +569,10 @@ function DocumentsListPage() {
         actions={
           staff.isLoading ? (
             <Skeleton className="h-9 w-32" />
-          ) : permissions.canUploadDocuments || permissions.isAdmin || staff.data?.role === "admin" || staff.data?.role === "registrar" ? (
+          ) : permissions.canUploadDocuments ||
+            permissions.isAdmin ||
+            staff.data?.role === "admin" ||
+            staff.data?.role === "registrar" ? (
             <Button onClick={() => setIsUploadOpen(true)} className="gap-1.5 text-xs shadow-xs">
               <UploadCloud className="size-4" />
               Upload Document
@@ -755,7 +759,10 @@ function DocumentsListPage() {
               <p className="text-xs text-muted-foreground mt-0.5">
                 Try adjusting your category or search query, or upload a new record.
               </p>
-              {(permissions.canUploadDocuments || permissions.isAdmin || staff.data?.role === "admin" || staff.data?.role === "registrar") && (
+              {(permissions.canUploadDocuments ||
+                permissions.isAdmin ||
+                staff.data?.role === "admin" ||
+                staff.data?.role === "registrar") && (
                 <Button
                   onClick={() => setIsUploadOpen(true)}
                   size="sm"
@@ -1400,7 +1407,9 @@ function DocumentsListPage() {
                     </div>
                     <div className="text-[10px] text-muted-foreground">
                       <span className="text-foreground font-semibold">Ledger Anchoring:</span>{" "}
-                      {liveIntegrityResult.ledgerAnchor?.isAnchored ? "ANCHORED" : "Not blockchain anchored"}
+                      {liveIntegrityResult.ledgerAnchor?.isAnchored
+                        ? "ANCHORED"
+                        : "Not blockchain anchored"}
                     </div>
                     <p className="text-[10px] text-muted-foreground italic pt-1 border-t border-border/40">
                       {liveIntegrityResult.ledgerAnchor?.statusMessage ||
@@ -1588,11 +1597,9 @@ function DocumentsListPage() {
                     )}
 
                     <div className="rounded-lg border border-border bg-muted/20 p-5 font-mono text-xs leading-relaxed text-foreground whitespace-pre-wrap max-h-[500px] overflow-y-auto">
-                      {previewDoc.content_text ? (
-                        previewDoc.content_text
-                      ) : (
-                        `NyayaSetu Certified Legal Archive Record\n=========================================\nTitle: ${previewDoc.title}\nDocument Number: ${previewDoc.document_number}\nCategory: ${previewDoc.category}\nSensitivity Tier: ${previewDoc.sensitivity_tier}\nOriginating Agency: ${previewDoc.originating_agency || "State Criminal Registry & CCTNS"}\nPolice Station: ${previewDoc.police_station || "N/A"}\nFIR Number: ${previewDoc.fir_number || "N/A"}\nAssociated Case: ${previewDoc.case_number || "N/A"}\nVault Storage Path: ${previewDoc.storage_path || previewDoc.r2_object_key || "cases/general/documents"}\nImmutable SHA-256 Digest: ${previewDoc.latest_sha256}\nSection 63 BSA 2023 Digital Seal: VERIFIED`
-                      )}
+                      {previewDoc.content_text
+                        ? previewDoc.content_text
+                        : `NyayaSetu Certified Legal Archive Record\n=========================================\nTitle: ${previewDoc.title}\nDocument Number: ${previewDoc.document_number}\nCategory: ${previewDoc.category}\nSensitivity Tier: ${previewDoc.sensitivity_tier}\nOriginating Agency: ${previewDoc.originating_agency || "State Criminal Registry & CCTNS"}\nPolice Station: ${previewDoc.police_station || "N/A"}\nFIR Number: ${previewDoc.fir_number || "N/A"}\nAssociated Case: ${previewDoc.case_number || "N/A"}\nVault Storage Path: ${previewDoc.storage_path || previewDoc.r2_object_key || "cases/general/documents"}\nImmutable SHA-256 Digest: ${previewDoc.latest_sha256}\nSection 63 BSA 2023 Digital Seal: VERIFIED`}
                     </div>
                   </div>
                 )}

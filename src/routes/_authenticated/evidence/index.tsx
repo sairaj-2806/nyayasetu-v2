@@ -419,7 +419,9 @@ function EvidenceRegistryPage() {
     mutationFn: async () => {
       if (!rejectTransfer) throw new Error("No pending transfer selected");
       if (rejectionReason.trim().length < 10) {
-        throw new Error("A statutory rejection justification of at least 10 characters is required.");
+        throw new Error(
+          "A statutory rejection justification of at least 10 characters is required.",
+        );
       }
 
       return await rejectEvidenceTransfer({
@@ -430,9 +432,7 @@ function EvidenceRegistryPage() {
       });
     },
     onSuccess: (result) => {
-      toast.success(
-        result.message || "Evidence transfer rejected. Custody preserved at origin.",
-      );
+      toast.success(result.message || "Evidence transfer rejected. Custody preserved at origin.");
       setRejectTransfer(null);
       setRejectionReason("");
       queryClient.invalidateQueries({ queryKey: ["police-assets"] });
@@ -1401,7 +1401,10 @@ function EvidenceRegistryPage() {
       </Dialog>
 
       {/* MODAL 3: Reject Evidence Custody Transfer */}
-      <Dialog open={Boolean(rejectTransfer)} onOpenChange={(open) => !open && setRejectTransfer(null)}>
+      <Dialog
+        open={Boolean(rejectTransfer)}
+        onOpenChange={(open) => !open && setRejectTransfer(null)}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-base flex items-center gap-2 text-destructive">
@@ -1409,8 +1412,8 @@ function EvidenceRegistryPage() {
               Reject Evidence Custody Handover
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Physical custody rejection. Preserves the original transfer record in immutable
-              audit history and reverts custody to the originating location.
+              Physical custody rejection. Preserves the original transfer record in immutable audit
+              history and reverts custody to the originating location.
             </DialogDescription>
           </DialogHeader>
 
@@ -1423,12 +1426,15 @@ function EvidenceRegistryPage() {
                   Origin: {rejectTransfer.fromLocation} → Destination: {rejectTransfer.toLocation}
                 </p>
                 <p className="text-muted-foreground text-[11px]">
-                  Released by: {rejectTransfer.releasingOfficerName} (Seal: {rejectTransfer.transitSealNumber})
+                  Released by: {rejectTransfer.releasingOfficerName} (Seal:{" "}
+                  {rejectTransfer.transitSealNumber})
                 </p>
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs">Mandatory Statutory Rejection Reason (Min 10 chars) *</Label>
+                <Label className="text-xs">
+                  Mandatory Statutory Rejection Reason (Min 10 chars) *
+                </Label>
                 <Textarea
                   placeholder="State the statutory reason for rejection (e.g. Tamper seal compromised, container damaged, unauthorized courier)..."
                   value={rejectionReason}

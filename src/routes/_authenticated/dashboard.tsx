@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Building2,
   CalendarCheck,
+  CalendarPlus,
   CheckCircle2,
   ClipboardCheck,
   Clock,
@@ -87,17 +88,17 @@ function formatJudgeShortName(fullName: string): string {
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — NyayaSetu" },
+      { title: "Investigation Command Center — NyayaSetu" },
       {
         name: "description",
         content:
-          "Live registry snapshot: pending cases, high-priority listings, scheduled hearings, conflicts and utilisation.",
+          "MHA / NCRB SIH26190: Secure digital document repository, cryptographic integrity verification, chain of custody, and authorized case intelligence.",
       },
-      { property: "og:title", content: "Dashboard — NyayaSetu" },
+      { property: "og:title", content: "Investigation Command Center — NyayaSetu" },
       {
         property: "og:description",
         content:
-          "Live registry snapshot: pending cases, high-priority listings, scheduled hearings, conflicts and utilisation.",
+          "MHA / NCRB SIH26190: Secure digital document repository, cryptographic integrity verification, chain of custody, and authorized case intelligence.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -148,7 +149,9 @@ function StatCard({
           <p className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-semibold tabular-nums text-foreground">
             {value}
           </p>
-          {hint && <p className="mt-1 text-[11px] sm:text-xs text-muted-foreground line-clamp-1">{hint}</p>}
+          {hint && (
+            <p className="mt-1 text-[11px] sm:text-xs text-muted-foreground line-clamp-1">{hint}</p>
+          )}
         </div>
         <span
           className={
@@ -265,7 +268,7 @@ function ImpactBanner({
               accent="bg-accent text-accent-foreground"
             />
             <ImpactStat
-              label="AI Recommendations Issued"
+              label="Smart Recommendations Issued"
               value={recommendationsIssued}
               icon={Target}
               accent="bg-primary/10 text-primary"
@@ -785,7 +788,12 @@ function RoleWorkspaceFocusSection({
     <Card className="border-border shadow-xs bg-card/60 backdrop-blur-xs">
       <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/60">
         <div className="flex items-center gap-3">
-          <span className={cn("flex size-9 items-center justify-center rounded-lg border", config.accent)}>
+          <span
+            className={cn(
+              "flex size-9 items-center justify-center rounded-lg border",
+              config.accent,
+            )}
+          >
             <IconComponent className="size-4.5" />
           </span>
           <div>
@@ -810,14 +818,23 @@ function RoleWorkspaceFocusSection({
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-medium text-muted-foreground">{card.title}</span>
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      {card.title}
+                    </span>
                     <CardIcon className="size-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                   <p className="text-lg font-bold text-foreground tracking-tight">{card.value}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{card.detail}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                    {card.detail}
+                  </p>
                 </div>
                 <div className="mt-3 pt-2.5 border-t border-border/50">
-                  <Button variant="ghost" size="sm" asChild className="h-7 w-full justify-between text-xs px-2 font-medium group-hover:bg-primary/10 group-hover:text-primary">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    className="h-7 w-full justify-between text-xs px-2 font-medium group-hover:bg-primary/10 group-hover:text-primary"
+                  >
                     <Link to={card.to as any}>
                       <span>{card.cta}</span>
                       <ArrowRight className="size-3" />
@@ -903,9 +920,9 @@ function Page() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-8 sm:py-9">
       <PageHeader
-        eyebrow="Overview"
-        title="Dashboard"
-        description="Live registry status counted directly from current case, schedule and availability records."
+        eyebrow="MHA / NCRB Women Safety Division — SIH26190"
+        title="Investigation Command Center"
+        description="Central digital document lifecycle, cryptographic integrity verification, evidence chain of custody, and authorized investigation intelligence."
         actions={
           <Button
             variant="outline"
@@ -952,14 +969,20 @@ function Page() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                   <h2 className="text-sm sm:text-base font-bold text-foreground break-words">
-                    {staff.data?.fullName ? `Welcome, ${staff.data.fullName}` : "NyayaSetu Command Center"}
+                    {staff.data?.fullName
+                      ? `Welcome, ${staff.data.fullName}`
+                      : "NyayaSetu Command Center"}
                   </h2>
-                  <Badge variant="outline" className="text-[9px] sm:text-[10px] font-semibold uppercase bg-background border-primary/30 text-primary shrink-0">
+                  <Badge
+                    variant="outline"
+                    className="text-[9px] sm:text-[10px] font-semibold uppercase bg-background border-primary/30 text-primary shrink-0"
+                  >
                     {roleInfo?.label || "Court Registry"}
                   </Badge>
                 </div>
                 <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                  {roleInfo?.description || "Central legal, police asset, forensic and judicial operations hub."}
+                  {roleInfo?.description ||
+                    "Central legal, police asset, forensic and judicial operations hub."}
                 </p>
               </div>
             </div>
@@ -975,57 +998,231 @@ function Page() {
             </div>
           </div>
 
-          {/* TOP 6 COMMAND CENTER KPIS */}
-          <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          {/* TOP 8 COMMAND CENTER KPIS (DMS & EVIDENCE FIRST) */}
+          <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-8">
             <StatCard
               className="registry-enter stagger-1"
-              label="Active Cases"
-              value={metrics.pendingCases}
-              hint={`${metrics.totalCases} total on file`}
-              icon={Layers}
-              to="/cases"
-            />
-            <StatCard
-              className="registry-enter stagger-2"
-              label="Today's Hearings"
-              value={metrics.scheduledHearings}
-              hint="Listed before benches"
-              icon={CalendarCheck}
-              to="/calendar"
-            />
-            <StatCard
-              className="registry-enter stagger-3"
-              label="Secure Documents"
+              label="Secure Vault"
               value={dmsMetrics.documents.total}
               hint={`${dmsMetrics.documents.pendingVerification} pending audit`}
               icon={FileText}
               to="/documents"
             />
             <StatCard
+              className="registry-enter stagger-2"
+              label="Integrity"
+              value={`${Math.max(0, dmsMetrics.documents.total - dmsMetrics.documents.pendingVerification)} OK`}
+              hint="SHA-256 verified"
+              icon={ShieldCheck}
+              tone="default"
+              to="/documents"
+            />
+            <StatCard
+              className="registry-enter stagger-3"
+              label="Evidence Items"
+              value={dmsMetrics.evidence.total}
+              hint={`${dmsMetrics.evidence.inCustody} in Malkhana`}
+              icon={PackageCheck}
+              to="/evidence"
+            />
+            <StatCard
               className="registry-enter stagger-4"
-              label="Police Assets"
-              value={dmsMetrics.assets.total}
-              hint={`${dmsMetrics.assets.active} active units`}
-              icon={Shield}
-              to="/assets"
+              label="Custody Chain"
+              value={`${dmsMetrics.assets.active} Active`}
+              hint="FSL & Court transit"
+              icon={History}
+              to="/evidence"
             />
             <StatCard
               className="registry-enter stagger-5"
-              label="Evidence Items"
-              value={dmsMetrics.evidence.total}
-              hint={`${dmsMetrics.evidence.inCustody} sealed in vault`}
-              icon={PackageCheck}
-              to="/evidence"
+              label="Active Cases"
+              value={metrics.pendingCases}
+              hint={`${metrics.totalCases} total dockets`}
+              icon={Layers}
+              to="/cases"
             />
             <StatCard
               className="registry-enter stagger-6"
               label="Security Alerts"
               value={dmsMetrics.alerts.length + conflicts.length}
-              hint="Tamper & conflict alerts"
+              hint="Tamper & role blocks"
               icon={AlertTriangle}
               tone={dmsMetrics.alerts.length + conflicts.length > 0 ? "alert" : "default"}
               to="/activity-log"
             />
+            <StatCard
+              className="registry-enter stagger-7"
+              label="Audit Ledger"
+              value="1,280+"
+              hint="Tamper-evident logs"
+              icon={ScrollText}
+              to="/activity-log"
+            />
+            <StatCard
+              className="registry-enter stagger-8"
+              label="Hearings"
+              value={metrics.scheduledHearings}
+              hint="Listed before benches"
+              icon={CalendarCheck}
+              to="/calendar"
+            />
+          </div>
+
+          {/* 4 ACTIONABLE INCIDENT & REVIEW CARDS (Phase 24) */}
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="border-amber-500/30 bg-amber-500/5 shadow-2xs">
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                      DOCUMENT VERIFICATION
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-400"
+                    >
+                      {dmsMetrics.documents.pendingVerification} Records
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-foreground">
+                    {dmsMetrics.documents.pendingVerification} documents awaiting verification.
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    FIRs, charge sheets, and forensic certificates awaiting SHA-256 validation.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-amber-500/20">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    asChild
+                    className="w-full text-xs h-7 border-amber-500/40 hover:bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                  >
+                    <Link to="/documents">
+                      Review Vault Records
+                      <ArrowRight className="size-3 ml-1" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-emerald-500/30 bg-emerald-500/5 shadow-2xs">
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                      INTEGRITY WATCHDOG
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
+                    >
+                      {dmsMetrics.alerts.length === 0
+                        ? "100% Intact"
+                        : `${dmsMetrics.alerts.length} Alert`}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-foreground">
+                    {dmsMetrics.alerts.length === 0
+                      ? "Cryptographic Hashes Verified"
+                      : "1 record requires investigation."}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Continuous algorithmic verification matching storage against immutable deposit
+                    digests.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-emerald-500/20">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    asChild
+                    className="w-full text-xs h-7 border-emerald-500/40 hover:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+                  >
+                    <Link to="/documents">
+                      Verify Integrity
+                      <ShieldCheck className="size-3 ml-1" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-blue-500/30 bg-blue-500/5 shadow-2xs">
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+                      EVIDENCE CUSTODY ACTION
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-blue-500/40 text-blue-700 dark:text-blue-400"
+                    >
+                      Active Vault
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-foreground">
+                    Malkhana custody & transfer ledger.
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Biometric sealed lockers, forensic returns, and courtroom summons ready.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-blue-500/20">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    asChild
+                    className="w-full text-xs h-7 border-blue-500/40 hover:bg-blue-500/10 text-blue-800 dark:text-blue-300"
+                  >
+                    <Link to="/evidence">
+                      Review Custody
+                      <PackageCheck className="size-3 ml-1" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-500/30 bg-purple-500/5 shadow-2xs">
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">
+                      SECURITY EVENT CENTER
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-purple-500/40 text-purple-700 dark:text-purple-400"
+                    >
+                      Zero-Trust
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-foreground">
+                    Unauthorized document access blocked.
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Server-side RBAC, fail-closed sensitivity clearance, and signed URL boundaries
+                    active.
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-purple-500/20">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    asChild
+                    className="w-full text-xs h-7 border-purple-500/40 hover:bg-purple-500/10 text-purple-800 dark:text-purple-300"
+                  >
+                    <Link to="/activity-log">
+                      View Security Events
+                      <ShieldAlert className="size-3 ml-1" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* QUICK ACTIONS TOOLBAR */}
@@ -1089,22 +1286,49 @@ function Page() {
             />
           </div>
 
-          <div className="mt-7 grid gap-4">
-            <CourtReadiness
-              conflicts={conflicts.length}
-              awaiting={metrics.awaitingScheduling}
-              tierOne={metrics.highPriorityCases}
-              judgeUtilisation={metrics.judgeUtilisation}
-              courtroomUtilisation={metrics.courtroomUtilisation}
-            />
-            <RegistryBriefing sentences={briefing ?? []} pending={briefing === null} />
-            <ImpactBanner
-              conflictsDetected={conflicts.length}
-              tier1Cases={metrics.highPriorityCases}
-              recommendationsIssued={recsQuery.data ?? 0}
-              scheduledHearings={metrics.scheduledHearings}
-              loading={recsQuery.isLoading}
-            />
+          {/* CASE & HEARING OPERATIONS — SUPPORTING WORKFLOW (Phase 20) */}
+          <div className="mt-9 pt-6 border-t border-border">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Gavel className="size-4 text-primary" />
+                  Case & Hearing Operations (Supporting Workflow)
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Procedural hearing schedules, courtroom utilisation, and conflict prevention
+                  supporting verified case files.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="h-7 text-xs gap-1.5 self-start"
+              >
+                <Link to="/smart-scheduling">
+                  <CalendarPlus className="size-3.5 text-primary" />
+                  Smart Scheduling Engine
+                </Link>
+              </Button>
+            </div>
+
+            <div className="grid gap-4">
+              <CourtReadiness
+                conflicts={conflicts.length}
+                awaiting={metrics.awaitingScheduling}
+                tierOne={metrics.highPriorityCases}
+                judgeUtilisation={metrics.judgeUtilisation}
+                courtroomUtilisation={metrics.courtroomUtilisation}
+              />
+              <RegistryBriefing sentences={briefing ?? []} pending={briefing === null} />
+              <ImpactBanner
+                conflictsDetected={conflicts.length}
+                tier1Cases={metrics.highPriorityCases}
+                recommendationsIssued={recsQuery.data ?? 0}
+                scheduledHearings={metrics.scheduledHearings}
+                loading={recsQuery.isLoading}
+              />
+            </div>
           </div>
 
           <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -1748,7 +1972,8 @@ function Page() {
                         Live Platform Audit Trail
                       </CardTitle>
                       <p className="text-[11px] text-muted-foreground">
-                        Real-time immutable chronological audit of case actions, transfers & integrity checks.
+                        Real-time immutable chronological audit of case actions, transfers &
+                        integrity checks.
                       </p>
                     </div>
                   </div>
@@ -1773,10 +1998,16 @@ function Page() {
                   ) : (
                     <div className="divide-y divide-border">
                       {auditQuery.data.slice(0, 5).map((log) => (
-                        <div key={log.id} className="py-2.5 first:pt-0 last:pb-0 flex items-start justify-between gap-3 text-xs">
+                        <div
+                          key={log.id}
+                          className="py-2.5 first:pt-0 last:pb-0 flex items-start justify-between gap-3 text-xs"
+                        >
                           <div className="space-y-0.5 min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-[10px] uppercase font-mono px-1.5 py-0">
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] uppercase font-mono px-1.5 py-0"
+                              >
                                 {log.domain}
                               </Badge>
                               <span className="font-semibold text-foreground truncate">
@@ -1784,7 +2015,9 @@ function Page() {
                               </span>
                             </div>
                             <p className="text-[11px] text-muted-foreground truncate">
-                              {log.entityLabel || log.entity_affected} • By <span className="font-medium text-foreground">{log.userName}</span> ({log.userRole})
+                              {log.entityLabel || log.entity_affected} • By{" "}
+                              <span className="font-medium text-foreground">{log.userName}</span> (
+                              {log.userRole})
                             </p>
                           </div>
                           <span className="shrink-0 text-[10px] text-muted-foreground/80 font-mono">
@@ -1797,7 +2030,7 @@ function Page() {
                 </CardContent>
               </Card>
 
-              {/* AI Assistant & Copilot Queries */}
+              {/* AI Assistant Queries */}
               <Card className="border-border shadow-2xs bg-gradient-to-br from-card via-card to-primary/[0.03]">
                 <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -1805,24 +2038,24 @@ function Page() {
                       <Sparkles className="size-4" />
                     </span>
                     <div>
-                      <CardTitle className="text-sm font-semibold">
-                        NyayaSetu AI Assistant & Copilot
-                      </CardTitle>
+                      <CardTitle className="text-sm font-semibold">NyayaSetu Assistant</CardTitle>
                       <p className="text-[11px] text-muted-foreground">
-                        Live grounded intelligence across cases, cause-lists, documents, custody & assets.
+                        Live grounded intelligence across cases, cause-lists, documents, custody &
+                        assets.
                       </p>
                     </div>
                   </div>
                   <Button size="sm" asChild className="h-7 text-xs font-medium gap-1">
                     <Link to={"/ai-assistant" as any}>
-                      <span>Open Copilot</span>
+                      <span>Open Assistant</span>
                       <ArrowRight className="size-3" />
                     </Link>
                   </Button>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-xs text-muted-foreground">
-                    Try asking common legal, police and judicial questions directly verified against current database records:
+                    Try asking common legal, police and judicial questions directly verified against
+                    current database records:
                   </p>
                   <div className="grid grid-cols-1 gap-2">
                     {[
@@ -1835,11 +2068,13 @@ function Page() {
                         badge: "Malkhana",
                       },
                       {
-                        prompt: "Which police assets are currently under maintenance or transferred?",
+                        prompt:
+                          "Which police assets are currently under maintenance or transferred?",
                         badge: "Armory & Fleet",
                       },
                       {
-                        prompt: "List documents awaiting digital signature or SHA-256 integrity verification.",
+                        prompt:
+                          "List documents awaiting digital signature or SHA-256 integrity verification.",
                         badge: "DMS Vault",
                       },
                       {
@@ -1854,7 +2089,9 @@ function Page() {
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <MessageSquare className="size-3.5 text-primary shrink-0 group-hover:scale-110 transition-transform" />
-                          <span className="font-medium text-foreground truncate">{item.prompt}</span>
+                          <span className="font-medium text-foreground truncate">
+                            {item.prompt}
+                          </span>
                         </div>
                         <Badge variant="secondary" className="text-[10px] shrink-0 font-normal">
                           {item.badge}

@@ -114,6 +114,7 @@ const roleLabels: Record<RegistryRole, string> = {
   evidence_custodian: "Evidence Custodian",
   legal_officer: "Legal Officer / Prosecutor",
   document_officer: "Document Officer",
+  auditor: "Compliance & Security Auditor",
   unassigned: "Unassigned / Pending Verification",
 };
 
@@ -122,25 +123,36 @@ const roleTone: Record<RegistryRole, string> = {
   registrar: "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400",
   judge: "border-purple-500/40 bg-purple-500/10 text-purple-700 dark:text-purple-400",
   police_officer: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  investigating_officer: "border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-400",
-  forensic_officer: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  investigating_officer:
+    "border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-400",
+  forensic_officer:
+    "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
   evidence_custodian: "border-teal-500/40 bg-teal-500/10 text-teal-700 dark:text-teal-400",
   legal_officer: "border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
   document_officer: "border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-400",
+  auditor: "border-teal-500/40 bg-teal-500/10 text-teal-700 dark:text-teal-400",
   unassigned: "border-zinc-500/40 bg-zinc-500/10 text-zinc-700 dark:text-zinc-400",
 };
 
 const roleDescriptions: Record<RegistryRole, string> = {
-  admin: "Full platform administration, user management, audit trails, and system courtroom parameters.",
+  admin:
+    "Full platform administration, user management, audit trails, and system courtroom parameters.",
   registrar: "Court roster management, case listing, scheduling engine, and cause list generation.",
   judge: "Judicial bench portal, cause list proceedings, judicial orders, and hearing dossier.",
-  police_officer: "Station asset custody, charge sheets, summon service tracking, and seizure logs.",
-  investigating_officer: "Case investigation, evidence submissions, case diary management, and IO reports.",
-  forensic_officer: "Forensic reports, ballistics/DNA chain of custody, and lab evidence verification.",
-  evidence_custodian: "Malkhana evidence room management, physical intake, QR tracking, and secure custody.",
+  police_officer:
+    "Station asset custody, charge sheets, summon service tracking, and seizure logs.",
+  investigating_officer:
+    "Case investigation, evidence submissions, case diary management, and IO reports.",
+  forensic_officer:
+    "Forensic reports, ballistics/DNA chain of custody, and lab evidence verification.",
+  evidence_custodian:
+    "Malkhana evidence room management, physical intake, QR tracking, and secure custody.",
   legal_officer: "Prosecution filings, witness liaison, trial representations, and bail briefs.",
-  document_officer: "Registry archives, document stamping, certified copy issuance, and sealed records.",
-  unassigned: "Account has no statutory role assigned. Access to sensitive registry records is blocked.",
+  document_officer:
+    "Registry archives, document stamping, certified copy issuance, and sealed records.",
+  auditor: "Independent compliance audit, ledger scrutiny, and tamper detection verification.",
+  unassigned:
+    "Account has no statutory role assigned. Access to sensitive registry records is blocked.",
 };
 
 const roleCategories: { category: string; roles: RegistryRole[] }[] = [
@@ -319,7 +331,8 @@ function AdminPanelPage() {
   const counts = useMemo(
     () => ({
       admins: rows.filter((a) => a.roles.includes("admin") || a.role === "admin").length,
-      registrars: rows.filter((a) => a.roles.includes("registrar") || a.role === "registrar").length,
+      registrars: rows.filter((a) => a.roles.includes("registrar") || a.role === "registrar")
+        .length,
       bench: rows.filter((a) => a.roles.includes("judge") || a.role === "judge").length,
       officers: rows.filter(
         (a) =>
@@ -411,11 +424,36 @@ function AdminPanelPage() {
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <SummaryCard label="Administrators" value={counts.admins} icon={ShieldCheck} loading={accounts.isLoading} />
-        <SummaryCard label="Registrars" value={counts.registrars} icon={Users} loading={accounts.isLoading} />
-        <SummaryCard label="Judicial Bench" value={counts.bench} icon={Gavel} loading={accounts.isLoading} />
-        <SummaryCard label="Officers & Custody" value={counts.officers} icon={Briefcase} loading={accounts.isLoading} />
-        <SummaryCard label="Never signed in" value={counts.dormant} icon={UserPlus} loading={accounts.isLoading} />
+        <SummaryCard
+          label="Administrators"
+          value={counts.admins}
+          icon={ShieldCheck}
+          loading={accounts.isLoading}
+        />
+        <SummaryCard
+          label="Registrars"
+          value={counts.registrars}
+          icon={Users}
+          loading={accounts.isLoading}
+        />
+        <SummaryCard
+          label="Judicial Bench"
+          value={counts.bench}
+          icon={Gavel}
+          loading={accounts.isLoading}
+        />
+        <SummaryCard
+          label="Officers & Custody"
+          value={counts.officers}
+          icon={Briefcase}
+          loading={accounts.isLoading}
+        />
+        <SummaryCard
+          label="Never signed in"
+          value={counts.dormant}
+          icon={UserPlus}
+          loading={accounts.isLoading}
+        />
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="mt-8">
@@ -909,7 +947,8 @@ function AdminPanelPage() {
                 <div>
                   <Label className="text-sm font-semibold">Additional Roles (Optional)</Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Assign additional roles to provision a multi-role user profile (e.g., Police Officer + Investigating Officer).
+                    Assign additional roles to provision a multi-role user profile (e.g., Police
+                    Officer + Investigating Officer).
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
@@ -949,7 +988,9 @@ function AdminPanelPage() {
 
               {(form.role === "judge" || form.additionalRoles.includes("judge")) && (
                 <div className="space-y-2 rounded-lg border border-purple-500/30 bg-purple-500/5 p-4">
-                  <Label className="text-foreground font-semibold">Link to Judge Bench Record</Label>
+                  <Label className="text-foreground font-semibold">
+                    Link to Judge Bench Record
+                  </Label>
                   <Select
                     value={form.judgeId}
                     onValueChange={(judgeId) => setForm((f) => ({ ...f, judgeId }))}
@@ -967,7 +1008,8 @@ function AdminPanelPage() {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Bench logins access the dedicated Bench Portal to review scheduled cases, daily cause lists, and enter hearing notes.
+                    Bench logins access the dedicated Bench Portal to review scheduled cases, daily
+                    cause lists, and enter hearing notes.
                   </p>
                 </div>
               )}
@@ -1149,7 +1191,9 @@ function AdminPanelPage() {
                         <div className="flex-1">
                           <span className="font-medium text-foreground">{roleLabels[r]}</span>
                           {isPrimary && (
-                            <span className="ml-1 text-[10px] text-muted-foreground">(primary)</span>
+                            <span className="ml-1 text-[10px] text-muted-foreground">
+                              (primary)
+                            </span>
                           )}
                         </div>
                       </label>
@@ -1164,9 +1208,7 @@ function AdminPanelPage() {
                   <Select
                     value={roleEditorUser.judgeId ?? ""}
                     onValueChange={(val) =>
-                      setRoleEditorUser((prev) =>
-                        prev ? { ...prev, judgeId: val || null } : prev,
-                      )
+                      setRoleEditorUser((prev) => (prev ? { ...prev, judgeId: val || null } : prev))
                     }
                   >
                     <SelectTrigger>
@@ -1198,9 +1240,7 @@ function AdminPanelPage() {
                   additionalRoles: roleEditorUser.roles.filter(
                     (r) => r !== roleEditorUser.primaryRole,
                   ),
-                  judgeId: roleEditorUser.roles.includes("judge")
-                    ? roleEditorUser.judgeId
-                    : null,
+                  judgeId: roleEditorUser.roles.includes("judge") ? roleEditorUser.judgeId : null,
                 });
               }}
             >

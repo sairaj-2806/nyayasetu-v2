@@ -199,7 +199,7 @@ export const AUDIT_DOMAINS: { value: AuditDomain; label: string; description: st
   },
   {
     value: "recommendation",
-    label: "AI Recommendations",
+    label: "Smart Recommendations",
     description: "Listing recommendations approved or modified by registrar",
   },
   {

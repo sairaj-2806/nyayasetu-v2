@@ -8,14 +8,11 @@ export function getEnvVar(key: string): string | undefined {
   const envObj = g["__env__"] as Record<string, string> | undefined;
   const procEnv = (g["process"] as { env?: Record<string, string> } | undefined)?.env;
   const nodeEnv = (typeof process !== "undefined" ? process.env : undefined) as
-    | Record<string, string | undefined>
-    | undefined;
+    Record<string, string | undefined> | undefined;
 
   if (key === "GEMINI_API_KEY") {
     const val =
-      nodeEnv?.["GEMINI_API_KEY"] ||
-      envObj?.["GEMINI_API_KEY"] ||
-      procEnv?.["GEMINI_API_KEY"];
+      nodeEnv?.["GEMINI_API_KEY"] || envObj?.["GEMINI_API_KEY"] || procEnv?.["GEMINI_API_KEY"];
     return val && val.trim() ? val.trim() : undefined;
   }
 
@@ -29,27 +26,16 @@ export function getEnvVar(key: string): string | undefined {
   }
 
   if (key === "GROQ_API_KEY") {
-    const val =
-      nodeEnv?.["GROQ_API_KEY"] ||
-      envObj?.["GROQ_API_KEY"] ||
-      procEnv?.["GROQ_API_KEY"];
+    const val = nodeEnv?.["GROQ_API_KEY"] || envObj?.["GROQ_API_KEY"] || procEnv?.["GROQ_API_KEY"];
     return val && val.trim() ? val.trim() : undefined;
   }
 
   if (key === "OPENAI_API_KEY") {
-    return (
-      nodeEnv?.["OPENAI_API_KEY"] ||
-      envObj?.["OPENAI_API_KEY"] ||
-      procEnv?.["OPENAI_API_KEY"]
-    );
+    return nodeEnv?.["OPENAI_API_KEY"] || envObj?.["OPENAI_API_KEY"] || procEnv?.["OPENAI_API_KEY"];
   }
 
   if (key === "CUSTOM_LLM_URL") {
-    return (
-      nodeEnv?.["CUSTOM_LLM_URL"] ||
-      envObj?.["CUSTOM_LLM_URL"] ||
-      procEnv?.["CUSTOM_LLM_URL"]
-    );
+    return nodeEnv?.["CUSTOM_LLM_URL"] || envObj?.["CUSTOM_LLM_URL"] || procEnv?.["CUSTOM_LLM_URL"];
   }
 
   return (

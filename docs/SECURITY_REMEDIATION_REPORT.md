@@ -15,9 +15,10 @@ A comprehensive server-side, database, storage, and application-layer security h
 Prior to this pass, critical architectural vulnerabilities existed where client-supplied roles, user IDs, and permissions were accepted from browser state; fallback mechanisms defaulted unassigned users to the privileged `registrar` persona; AI responses and context caches lacked role and user isolation; sensitive court documents and police assets were fetched over the wire before JSX access checks (client-side authorization / IDOR); file upload storage paths were vulnerable to path manipulation; and rate limiting was shared globally or vulnerable to denial-of-service locks.
 
 All 12 findings and 4 supplementary vectors have been remediated using **Zero Trust** architecture:
+
 1. **Zero Trust Identity & Authoritative Server RBAC**: Roles, permissions, and judicial bench scoping are resolved strictly on the server from Supabase JWT claims and the database `public.user_roles`. Client-supplied roles and identities are completely ignored.
 2. **Fail-Closed by Default**: Unknown, unassigned, or malicious accounts are assigned the canonical `unassigned` role, possessing strictly **0** permissions. No default fallback to `registrar` exists.
-3. **Server-Side Enforcement for Record Access (Anti-IDOR)**: Dynamic routes (`/assets/$assetId`, `/documents/$documentId`, `/cases/$caseId`) now fetch records through server functions that enforce statutory clearance (`canAccessAssetRecord`, `canAccessDocumentRecord`, `canAccessCaseRecord`) *before* returning data. Unauthorized requests receive uniform, anti-enumeration 403/404 errors with zero record content.
+3. **Server-Side Enforcement for Record Access (Anti-IDOR)**: Dynamic routes (`/assets/$assetId`, `/documents/$documentId`, `/cases/$caseId`) now fetch records through server functions that enforce statutory clearance (`canAccessAssetRecord`, `canAccessDocumentRecord`, `canAccessCaseRecord`) _before_ returning data. Unauthorized requests receive uniform, anti-enumeration 403/404 errors with zero record content.
 4. **Isolated AI Assistant Context & Prompt Redaction**: Global prompt caches were eliminated in favor of per-user/role/bench cache keys (`${userId}:${effectiveRole}:${judgeId}`). Sensitive physical evidence locker numbers and custodian identities are redacted prior to prompt assembly. AI outputs are non-authoritative and advisory.
 5. **Storage Security & Path Traversal Immunity**: Filenames undergo URI decoding, NFKC normalization, null byte removal, and path traversal stripping. Storage object keys embed server-generated cryptographic UUIDs. Uploads are strictly validated by MIME whitelist, extension matching, and size limits.
 6. **State Machine & RLS Database Hardening**: A PostgreSQL trigger enforces that transitions into or out of `RETIRED` or `LOST` require administrative authorization, while asset IDs and asset codes are made permanently immutable.
@@ -28,26 +29,27 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
 
 ## Security Remediation Matrix
 
-| Finding | Original Vulnerability | Remediated Architecture | Status | Verification Evidence |
-| :--- | :--- | :--- | :--- | :--- |
-| **SEC-01** | `userRole` and `userId` accepted from browser in global search. `supabaseAdmin` bypassed RLS without server check. | Identity resolved from Supabase JWT; role resolved from DB via `getEffectiveRoles()`. Unassigned fails closed. Bench and sensitivity filters enforced server-side. | **FIXED** | `scripts/test-security-regression.mjs` (Tests 1–21) |
-| **SEC-02** | Documents downloadable without statutory sensitivity verification; differing errors enabled document ID enumeration. | `getDocumentFile` enforces `canAccessDocumentRecord`. Denied attempts log to `audit_logs` and return uniform opaque error. Short-lived signed URLs generated only after authorization. | **FIXED** | `scripts/test-version-management.mjs` (Tests 1–19) |
-| **SEC-03** | Shared AI cache keys (`"privileged"` vs `"standard"`) leaked confidential judicial records across roles. Evidence locker numbers exposed in prompts. | Scoped cache keys (`${userId}:${role}:${judgeId}`). Staff-only intent gating. Physical locker numbers and custodian identities redacted. | **FIXED** | `scripts/test-security-regression.mjs` (Tests 47–49) |
-| **SEC-04** | Evidence custody mutations trusted client-supplied `releasingOfficerName`/`role`. Empty roles bypassed permission gates via `userRoles.length > 0`. | Actor identity derived from JWT; role verified from DB. Bypasses removed (`if (!hasPerm \|\| userRoles.length === 0)`). Per-actor rate limiting applied. | **FIXED** | `scripts/test-custody-workflow.mjs` (Tests 1–15) |
-| **SEC-05** | IDOR: `/assets/$assetId`, `/documents/$documentId`, `/cases/$caseId` fetched records client-side, populating React Query cache before JSX guards. | Server functions (`getAuthorizedAssetDetail`, `getAuthorizedDocumentDetail`, `getAuthorizedCaseDetail`) authorize on the server and return zero body on denial. | **FIXED** | `scripts/test-security-regression.mjs` (Tests 22–46) |
-| **SEC-06** | Rate limiters used static keys (e.g. `"public-translate-summary"`), enabling one client to lock out all platform users. | All endpoints now use composite keys combining authenticated `userId` and client IP (`${userId}:${clientIp}`). | **FIXED** | `scripts/test-security-regression.mjs` (Tests 50–53) |
-| **SEC-07** | Client filenames concatenated into storage paths; potential directory traversal (`../`, `%2f`, null bytes). | `sanitizeFilename` applies URI decoding, NFKC normalization, traversal stripping, and null byte deletion. Keys embed server UUIDs. | **FIXED** | `scripts/test-security-regression.mjs` (Tests 54–60) |
-| **SEC-08** | Document uploads trusted client `fileSizeBytes` and lacked strict format enforcement. | Server-side MIME validation against strict whitelist, extension matching, and strict size caps enforced in `uploadDocumentToR2`. | **FIXED** | `scripts/test-version-management.mjs` (Tests 1–5) |
-| **SEC-09** | AI endpoints (`explain-candidate`, `why-this-order`) lacked authentication, prompt injection detection, and rate limits. | Added `requireSupabaseAuth`, `detectPromptInjection`, `sanitizeUserInput`, rate limiting, and statutory advisory disclaimers. | **FIXED** | `scripts/test-security-regression.mjs` (Tests 61–66) |
-| **SEC-10** | Police asset state transitions (`RETIRED`, `LOST`) could be executed without admin role via direct Supabase REST. | PostgreSQL trigger `enforce_police_asset_lifecycle_transitions()` prevents unauthorized status jumps and protects immutable columns. | **FIXED** | `supabase/migrations/20260910220000_harden_asset_state_machine_and_rls.sql` |
-| **SEC-11** | Multiple components fell back to `registrar` when role was missing (`data?.role \|\| "registrar"`), escalating privileges. | Introduced canonical `unassigned` role with 0 permissions. Removed all `"registrar"` fallback defaults across UI and backend. | **FIXED** | `scripts/test-security-regression.mjs` (Tests 5–20) |
-| **SEC-12** | `getBacklogSimulationCases` ran unauthenticated using `supabaseAdmin`, exposing active case priority scores and limitation deadlines. | Added `requireSupabaseAuth`, restricted access to admin/registrar/judge staff, and rate-limited calls per user/IP. | **FIXED** | `scripts/test-security-regression.mjs` (Tests 67–70) |
+| Finding    | Original Vulnerability                                                                                                                               | Remediated Architecture                                                                                                                                                                | Status    | Verification Evidence                                                       |
+| :--------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------- | :-------------------------------------------------------------------------- |
+| **SEC-01** | `userRole` and `userId` accepted from browser in global search. `supabaseAdmin` bypassed RLS without server check.                                   | Identity resolved from Supabase JWT; role resolved from DB via `getEffectiveRoles()`. Unassigned fails closed. Bench and sensitivity filters enforced server-side.                     | **FIXED** | `scripts/test-security-regression.mjs` (Tests 1–21)                         |
+| **SEC-02** | Documents downloadable without statutory sensitivity verification; differing errors enabled document ID enumeration.                                 | `getDocumentFile` enforces `canAccessDocumentRecord`. Denied attempts log to `audit_logs` and return uniform opaque error. Short-lived signed URLs generated only after authorization. | **FIXED** | `scripts/test-version-management.mjs` (Tests 1–19)                          |
+| **SEC-03** | Shared AI cache keys (`"privileged"` vs `"standard"`) leaked confidential judicial records across roles. Evidence locker numbers exposed in prompts. | Scoped cache keys (`${userId}:${role}:${judgeId}`). Staff-only intent gating. Physical locker numbers and custodian identities redacted.                                               | **FIXED** | `scripts/test-security-regression.mjs` (Tests 47–49)                        |
+| **SEC-04** | Evidence custody mutations trusted client-supplied `releasingOfficerName`/`role`. Empty roles bypassed permission gates via `userRoles.length > 0`.  | Actor identity derived from JWT; role verified from DB. Bypasses removed (`if (!hasPerm \|\| userRoles.length === 0)`). Per-actor rate limiting applied.                               | **FIXED** | `scripts/test-custody-workflow.mjs` (Tests 1–15)                            |
+| **SEC-05** | IDOR: `/assets/$assetId`, `/documents/$documentId`, `/cases/$caseId` fetched records client-side, populating React Query cache before JSX guards.    | Server functions (`getAuthorizedAssetDetail`, `getAuthorizedDocumentDetail`, `getAuthorizedCaseDetail`) authorize on the server and return zero body on denial.                        | **FIXED** | `scripts/test-security-regression.mjs` (Tests 22–46)                        |
+| **SEC-06** | Rate limiters used static keys (e.g. `"public-translate-summary"`), enabling one client to lock out all platform users.                              | All endpoints now use composite keys combining authenticated `userId` and client IP (`${userId}:${clientIp}`).                                                                         | **FIXED** | `scripts/test-security-regression.mjs` (Tests 50–53)                        |
+| **SEC-07** | Client filenames concatenated into storage paths; potential directory traversal (`../`, `%2f`, null bytes).                                          | `sanitizeFilename` applies URI decoding, NFKC normalization, traversal stripping, and null byte deletion. Keys embed server UUIDs.                                                     | **FIXED** | `scripts/test-security-regression.mjs` (Tests 54–60)                        |
+| **SEC-08** | Document uploads trusted client `fileSizeBytes` and lacked strict format enforcement.                                                                | Server-side MIME validation against strict whitelist, extension matching, and strict size caps enforced in `uploadDocumentToR2`.                                                       | **FIXED** | `scripts/test-version-management.mjs` (Tests 1–5)                           |
+| **SEC-09** | AI endpoints (`explain-candidate`, `why-this-order`) lacked authentication, prompt injection detection, and rate limits.                             | Added `requireSupabaseAuth`, `detectPromptInjection`, `sanitizeUserInput`, rate limiting, and statutory advisory disclaimers.                                                          | **FIXED** | `scripts/test-security-regression.mjs` (Tests 61–66)                        |
+| **SEC-10** | Police asset state transitions (`RETIRED`, `LOST`) could be executed without admin role via direct Supabase REST.                                    | PostgreSQL trigger `enforce_police_asset_lifecycle_transitions()` prevents unauthorized status jumps and protects immutable columns.                                                   | **FIXED** | `supabase/migrations/20260910220000_harden_asset_state_machine_and_rls.sql` |
+| **SEC-11** | Multiple components fell back to `registrar` when role was missing (`data?.role \|\| "registrar"`), escalating privileges.                           | Introduced canonical `unassigned` role with 0 permissions. Removed all `"registrar"` fallback defaults across UI and backend.                                                          | **FIXED** | `scripts/test-security-regression.mjs` (Tests 5–20)                         |
+| **SEC-12** | `getBacklogSimulationCases` ran unauthenticated using `supabaseAdmin`, exposing active case priority scores and limitation deadlines.                | Added `requireSupabaseAuth`, restricted access to admin/registrar/judge staff, and rate-limited calls per user/IP.                                                                     | **FIXED** | `scripts/test-security-regression.mjs` (Tests 67–70)                        |
 
 ---
 
 ## Detailed Remediation by Finding
 
 ### SEC-01 — Server-Side Authorization / Global Registry Search
+
 - **Status Before**: `src/lib/global-search.functions.ts` accepted `userRole` and `userId` directly from client parameters. It used `supabaseAdmin` to run searches, allowing any unauthenticated caller to supply `userRole: "admin"` and search privileged case records, sealed filings, and audit logs.
 - **Files Changed**:
   - `src/lib/global-search.functions.ts`
@@ -61,6 +63,7 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
   - Restricted audit log search results strictly to `admin` and `registrar`.
 
 ### SEC-02 — Secure Document Download & Anti-Enumeration
+
 - **Status Before**: `getDocumentFile` in `src/lib/documents.functions.ts` had a logic bug: `if (!hasPerm && userRoles.length > 0)`, meaning an account with 0 roles in the database bypassed the check! Furthermore, returning `"Document not found"` vs `"Security Clearance Violation"` created an enumeration oracle.
 - **Files Changed**:
   - `src/lib/documents.functions.ts`
@@ -72,6 +75,7 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
   - Signed URLs are short-lived (15 minutes) and generated only after clearance is cryptographically verified.
 
 ### SEC-03 — AI Assistant Data Isolation & Cache Partitioning
+
 - **Status Before**: `src/lib/assistant.functions.ts` utilized a shared global 2-tier cache (`"privileged"` vs `"standard"`). If a judge queried case documents, another staff member (or investigating officer) querying the assistant could receive the cached judge response. Prompts also contained exact evidence locker numbers and custodian details.
 - **Files Changed**:
   - `src/lib/assistant.functions.ts`
@@ -84,6 +88,7 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
   - Added non-binding advisory notices to all model responses.
 
 ### SEC-04 — Evidence Custody Authorization
+
 - **Status Before**: `dispatchEvidenceTransfer`, `acknowledgeEvidenceReceipt`, and `rejectEvidenceTransfer` accepted `releasingOfficerName` and `releasingOfficerRole` from the browser request. They also used `if (!hasPerm && userRoles.length > 0)`, allowing unassigned accounts to perform custody handoffs.
 - **Files Changed**:
   - `src/lib/evidence-custody.functions.ts`
@@ -94,6 +99,7 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
   - Audited all custody handoffs with real actor identity, transit seal verification, and location timestamps in `audit_logs`.
 
 ### SEC-05 — IDOR / Record-Level Access
+
 - **Status Before**:
   - `/assets/$assetId.tsx`: Executed client query `policeAssetDetailQuery(assetId)`, populating React Query cache with complete evidence particulars and transfer history before running a JSX guard `if (!isAuthorized)`.
   - `/documents/$documentId.tsx`: Executed `secureDocumentDetailQuery(documentId)`, loading entire document dossiers and version histories into the browser before evaluating `canAccessDocumentRecord`.
@@ -105,11 +111,12 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
   - `src/routes/_authenticated/cases/$caseId.tsx`
 - **Remediation**:
   - Built server functions `getAuthorizedAssetDetail`, `getAuthorizedDocumentDetail`, and `getAuthorizedCaseDetail`.
-  - Authorization is verified on the server *before* records are fetched from Supabase.
+  - Authorization is verified on the server _before_ records are fetched from Supabase.
   - If unauthorized, the server throws an error; no record payload is sent over the network, leaving the React Query cache clean.
   - In `cases/$caseId.tsx`, case documents and assets are filtered through `canAccessDocumentRecord` and `canAccessAssetRecord`, and audit logs are restricted to users with `canViewAudit`.
 
 ### SEC-06 — Rate Limiting Isolation
+
 - **Status Before**: Several endpoints used static string keys (e.g. `checkRateLimit("public-translate-summary")`), creating a shared global bucket where 20 requests from one malicious client locked out every user on the platform.
 - **Files Changed**:
   - `src/lib/case-status-translate.functions.ts`
@@ -124,6 +131,7 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
   - Prevents denial-of-service lockouts across distinct users.
 
 ### SEC-07 — Filename & Storage Path Sanitization
+
 - **Status Before**: Uploaded filenames were used directly in generating R2 storage paths without URI decoding or path traversal protection.
 - **Files Changed**:
   - `src/lib/r2.server.ts`
@@ -133,6 +141,7 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
   - Updated `generateR2ObjectKey` to accept server-generated cryptographic UUIDs (`crypto.randomUUID()`), ensuring storage object keys are immutable and safe: `cases/{caseId}/documents/{docId}/{versionId}/{uuid}.pdf`.
 
 ### SEC-08 — Upload Validation
+
 - **Status Before**: File uploads relied on client-supplied `fileSizeBytes` and lacked server-side MIME verification and size caps across version creation.
 - **Files Changed**:
   - `src/lib/documents.functions.ts`
@@ -143,6 +152,7 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
   - Enforced 50 MB server-side upload limit on both initial document uploads and version creations.
 
 ### SEC-09 — AI Prompt Injection & Input Sanitization
+
 - **Status Before**: `explainSchedulingRecommendation` and `summarisePriorityOrder` accepted unrestricted text inputs, lacked prompt injection pattern detection, and lacked authentication middleware.
 - **Files Changed**:
   - `src/lib/explain-candidate.functions.ts`
@@ -155,6 +165,7 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
   - Appended mandatory non-binding advisory disclaimers confirming that algorithmic outputs are advisory aids and do not supersede judicial discretion.
 
 ### SEC-10 — Police Asset RLS & State Machine
+
 - **Status Before**: While application code checked permissions, direct Supabase REST calls could update `police_assets` status to `RETIRED` or `LOST` without admin clearance, and mutable primary keys (`id`, `asset_code`) could be tampered with.
 - **Files Changed**:
   - `supabase/migrations/20260910220000_harden_asset_state_machine_and_rls.sql` (NEW)
@@ -165,6 +176,7 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
   - Disallows illegal status reversions (e.g. `LOST` directly back to `ACTIVE`).
 
 ### SEC-11 — Fail-Closed Role Defaults
+
 - **Status Before**: Across multiple components (`dashboard.tsx`, `index.tsx`, `admin.tsx`, `app-sidebar.tsx`, `global-search.ts`), role resolution defaulted to `"registrar"` via `data?.role || "registrar"`. Any user with an unassigned role was granted registrar privileges.
 - **Files Changed**:
   - `src/lib/rbac.ts`
@@ -181,6 +193,7 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
   - Removed hardcoded default credentials from `offline-auth.ts`.
 
 ### SEC-12 — Public Backlog / Information Disclosure Defense
+
 - **Status Before**: `getBacklogSimulationCases` was unauthenticated and queried `cases` with `supabaseAdmin`, exposing active case numbers, filing dates, internal priority scores, and limitation deadlines to any anonymous crawler.
 - **Files Changed**:
   - `src/lib/backlog.functions.ts`
@@ -208,6 +221,7 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
 ## Verification & Test Results
 
 ### 1. Security Regression Suite (`scripts/test-security-regression.mjs`)
+
 - **Total Tests**: 70
 - **Passed**: 70 (100%)
 - **Failed**: 0
@@ -230,21 +244,25 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
   ```
 
 ### 2. Document Version Management Suite (`scripts/test-version-management.mjs`)
+
 - **Total Tests**: 19
 - **Passed**: 19 (100%)
 - **Failed**: 0
 - **Key Verifications**: R2 SHA-256 integrity, tamper detection, unauthorized role denial, and immutable version tree.
 
 ### 3. Server-Authoritative Custody Suite (`scripts/test-custody-workflow.mjs`)
+
 - **Total Tests**: 15
 - **Passed**: 15 (100%)
 - **Failed**: 0
 - **Key Verifications**: SHA-256 transfer verification hashes, audit trail logging, 10-character statutory rejection reasons, duplicate transfer prevention, and role-enforced dispatch/acknowledgment.
 
 ### 4. Full TypeScript Compilation (`npx tsc --noEmit`)
+
 - **Result**: Exit code 0, zero errors.
 
 ### 5. Production Build (`npm run build`)
+
 - **Result**: Exit code 0. Nitro engine and Vite SSR bundles built cleanly.
 
 ---
@@ -260,5 +278,5 @@ All 12 findings and 4 supplementary vectors have been remediated using **Zero Tr
 
 ---
 
-*Report certified by Senior Security Engineer & Full-Stack Maintainer.*  
-*Repository Status: Fully Hardened & Production Ready.*
+_Report certified by Senior Security Engineer & Full-Stack Maintainer._  
+_Repository Status: Fully Hardened & Production Ready._

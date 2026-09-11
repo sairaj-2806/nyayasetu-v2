@@ -22,17 +22,10 @@ import {
   VAULT_BUCKET_NAME,
 } from "@/lib/r2.server";
 import { isDemoMode } from "@/lib/demo-mode";
+import { checkActiveShareGrant } from "@/lib/document-shares";
 
 export type SupportedDocumentFormat =
-  | "PDF"
-  | "PDF/A"
-  | "DOCX"
-  | "DOC"
-  | "TIFF"
-  | "TIF"
-  | "PNG"
-  | "JPG"
-  | "JPEG";
+  "PDF" | "PDF/A" | "DOCX" | "DOC" | "TIFF" | "TIF" | "PNG" | "JPG" | "JPEG";
 
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
@@ -80,27 +73,27 @@ function checkDocumentSensitivityAccess(
   sensitivityTier: string,
   isAssignedJudge: boolean,
 ): boolean {
-  const normalizedTier = (sensitivityTier || "PUBLIC").toUpperCase();
-  const isAdminOrRegistrar = userRoles.includes("admin") || userRoles.includes("registrar");
+  if (!userRoles || userRoles.length === 0) {
+    return (sensitivityTier || "PUBLIC").toUpperCase() === "PUBLIC";
+  }
 
-  if (isAdminOrRegistrar) return true;
+  // System administrator has administrative oversight
+  if (userRoles.includes("admin")) return true;
+
+  const normalizedTier = (sensitivityTier || "PUBLIC").toUpperCase();
 
   if (normalizedTier === "PUBLIC") return true;
 
-  if (normalizedTier === "CONFIDENTIAL") {
-    return (
-      userRoles.includes("judge") ||
-      userRoles.includes("police_officer") ||
-      userRoles.includes("police_staff") ||
-      userRoles.includes("investigating_officer") ||
-      userRoles.includes("forensic_officer") ||
-      userRoles.includes("evidence_custodian")
-    );
+  if (normalizedTier === "SEALED_COVER_IN_CAMERA") {
+    // Strictly judicial bench assigned to case. Non-judge roles (including registrar and police) are strictly forbidden.
+    return userRoles.includes("judge") && isAssignedJudge;
   }
 
   if (normalizedTier === "RESTRICTED" || normalizedTier === "RESTRICTED_INVESTIGATION") {
+    if (userRoles.includes("police_officer") && !userRoles.includes("investigating_officer"))
+      return false;
     return (
-      userRoles.includes("police_officer") ||
+      userRoles.includes("registrar") ||
       userRoles.includes("investigating_officer") ||
       userRoles.includes("forensic_officer") ||
       userRoles.includes("evidence_custodian") ||
@@ -108,9 +101,18 @@ function checkDocumentSensitivityAccess(
     );
   }
 
-  if (normalizedTier === "SEALED_COVER_IN_CAMERA") {
-    // Strictly judicial bench assigned to case, or registrar
-    return (userRoles.includes("judge") && isAssignedJudge) || userRoles.includes("registrar");
+  if (normalizedTier === "CONFIDENTIAL") {
+    if (userRoles.includes("police_officer") && !userRoles.includes("investigating_officer"))
+      return false;
+    return (
+      userRoles.includes("registrar") ||
+      userRoles.includes("judge") ||
+      userRoles.includes("investigating_officer") ||
+      userRoles.includes("forensic_officer") ||
+      userRoles.includes("evidence_custodian") ||
+      userRoles.includes("legal_officer") ||
+      userRoles.includes("document_officer")
+    );
   }
 
   return true;
@@ -331,7 +333,11 @@ async function resolveDocumentRecord(documentId: string): Promise<any | null> {
     const { data: dbDoc, error } = await supabaseAdmin
       .from("case_documents")
       .select("*")
-      .or(isUuid ? `id.eq.${documentId},document_number.eq.${documentId}` : `document_number.eq.${documentId}`)
+      .or(
+        isUuid
+          ? `id.eq.${documentId},document_number.eq.${documentId}`
+          : `document_number.eq.${documentId}`,
+      )
       .maybeSingle();
 
     if (!error && dbDoc) {
@@ -365,7 +371,12 @@ export interface UploadDocumentInput {
   fileSizeBytes?: number | undefined;
   title: string;
   category: string;
-  sensitivityTier: "PUBLIC" | "CONFIDENTIAL" | "RESTRICTED" | "RESTRICTED_INVESTIGATION" | "SEALED_COVER_IN_CAMERA";
+  sensitivityTier:
+    | "PUBLIC"
+    | "CONFIDENTIAL"
+    | "RESTRICTED"
+    | "RESTRICTED_INVESTIGATION"
+    | "SEALED_COVER_IN_CAMERA";
   caseId?: string | undefined;
   caseNumber?: string | undefined;
   firNumber?: string | undefined;
@@ -401,7 +412,10 @@ export interface UploadDocumentOutput {
 /**
  * Validates actual binary magic bytes against claimed extension to prevent disguised/spoofed executables.
  */
-export function validateFileSignature(bytes: Uint8Array, extension: string): { valid: boolean; detectedType: string } {
+export function validateFileSignature(
+  bytes: Uint8Array,
+  extension: string,
+): { valid: boolean; detectedType: string } {
   if (bytes.length < 4) return { valid: false, detectedType: "unknown" };
 
   // PDF magic bytes: %PDF (0x25 0x50 0x44 0x46)
@@ -410,25 +424,25 @@ export function validateFileSignature(bytes: Uint8Array, extension: string): { v
   }
 
   // PNG magic bytes: \x89PNG (0x89 0x50 0x4E 0x47)
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
     return { valid: extension === "png", detectedType: "png" };
   }
 
   // JPEG magic bytes: 0xFF 0xD8 0xFF
-  if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
     return { valid: extension === "jpg" || extension === "jpeg", detectedType: "jpeg" };
   }
 
   // TIFF magic bytes: II*\0 (0x49 0x49 0x2A 0x00) or MM\0* (0x4D 0x4D 0x00 0x2A)
   if (
-    (bytes[0] === 0x49 && bytes[1] === 0x49 && bytes[2] === 0x2A && bytes[3] === 0x00) ||
-    (bytes[0] === 0x4D && bytes[1] === 0x4D && bytes[2] === 0x00 && bytes[3] === 0x2A)
+    (bytes[0] === 0x49 && bytes[1] === 0x49 && bytes[2] === 0x2a && bytes[3] === 0x00) ||
+    (bytes[0] === 0x4d && bytes[1] === 0x4d && bytes[2] === 0x00 && bytes[3] === 0x2a)
   ) {
     return { valid: extension === "tiff" || extension === "tif", detectedType: "tiff" };
   }
 
   // ZIP / DOCX magic bytes: PK\x03\x04 (0x50 0x4B 0x03 0x04)
-  if (bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04) {
+  if (bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04) {
     return { valid: extension === "docx", detectedType: "docx" };
   }
 
@@ -469,7 +483,9 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
       windowMs: 60_000,
     });
     if (!uploadRate.allowed) {
-      throw new Error("Rate limit exceeded: Too many document upload attempts. Please wait a minute.");
+      throw new Error(
+        "Rate limit exceeded: Too many document upload attempts. Please wait a minute.",
+      );
     }
 
     // 1. Fetch user roles & profiles to verify permissions
@@ -491,14 +507,24 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
     const userName = profileData?.full_name || "Authorized Staff";
 
     // Path traversal check
-    if (data.fileName.includes("..") || data.fileName.includes("/") || data.fileName.includes("\\") || data.fileName.includes("\0")) {
+    if (
+      data.fileName.includes("..") ||
+      data.fileName.includes("/") ||
+      data.fileName.includes("\\") ||
+      data.fileName.includes("\0")
+    ) {
       await supabaseAdmin.from("audit_logs").insert({
         user_id: userId,
         action: `UPLOAD_REJECTED: Path traversal attempt detected in filename "${data.fileName}".`,
-        entity_affected: JSON.stringify({ action_code: "UPLOAD_REJECTED", reason: "PATH_TRAVERSAL_DETECTED" }),
+        entity_affected: JSON.stringify({
+          action_code: "UPLOAD_REJECTED",
+          reason: "PATH_TRAVERSAL_DETECTED",
+        }),
         timestamp: new Date().toISOString(),
       });
-      throw new Error("Security Violation: Path traversal characters are strictly forbidden in file attachments.");
+      throw new Error(
+        "Security Violation: Path traversal characters are strictly forbidden in file attachments.",
+      );
     }
 
     // 2. Validate file size and format server-side
@@ -537,7 +563,12 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
       await supabaseAdmin.from("audit_logs").insert({
         user_id: userId,
         action: `UPLOAD_REJECTED: File signature mismatch for "${data.fileName}". Claimed: .${rawExt}, detected: ${sigCheck.detectedType}.`,
-        entity_affected: JSON.stringify({ action_code: "UPLOAD_REJECTED", reason: "SIGNATURE_MISMATCH", rawExt, detectedType: sigCheck.detectedType }),
+        entity_affected: JSON.stringify({
+          action_code: "UPLOAD_REJECTED",
+          reason: "SIGNATURE_MISMATCH",
+          rawExt,
+          detectedType: sigCheck.detectedType,
+        }),
         timestamp: new Date().toISOString(),
       });
       throw new Error(
@@ -552,15 +583,27 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
     await supabaseAdmin.from("audit_logs").insert({
       user_id: userId,
       action: `UPLOAD_STARTED: ${data.fileName} (${(actualSizeBytes / 1024).toFixed(1)} KB) deposit initiated. SHA-256: ${serverSha256}.`,
-      entity_affected: JSON.stringify({ action_code: "UPLOAD_STARTED", fileName: data.fileName, sizeBytes: actualSizeBytes, sha256: serverSha256 }),
+      entity_affected: JSON.stringify({
+        action_code: "UPLOAD_STARTED",
+        fileName: data.fileName,
+        sizeBytes: actualSizeBytes,
+        sha256: serverSha256,
+      }),
       timestamp: new Date().toISOString(),
     });
 
-    if (data.clientSha256 && data.clientSha256.trim().toLowerCase() !== serverSha256.toLowerCase()) {
+    if (
+      data.clientSha256 &&
+      data.clientSha256.trim().toLowerCase() !== serverSha256.toLowerCase()
+    ) {
       await supabaseAdmin.from("audit_logs").insert({
         user_id: userId,
         action: `INTEGRITY_MISMATCH: Client SHA-256 (${data.clientSha256}) differed from authoritative server digest (${serverSha256}). Server hash will be enforced.`,
-        entity_affected: JSON.stringify({ action_code: "INTEGRITY_MISMATCH", clientSha256: data.clientSha256, serverSha256 }),
+        entity_affected: JSON.stringify({
+          action_code: "INTEGRITY_MISMATCH",
+          clientSha256: data.clientSha256,
+          serverSha256,
+        }),
         timestamp: new Date().toISOString(),
       });
     }
@@ -575,7 +618,9 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
       const { data: caseRow } = await supabaseAdmin
         .from("cases")
         .select("id, case_number")
-        .or(`id.eq.${requestedCase.match(/^[0-9a-fA-F-]{36}$/) ? requestedCase : "00000000-0000-0000-0000-000000000000"},case_number.eq.${requestedCase}`)
+        .or(
+          `id.eq.${requestedCase.match(/^[0-9a-fA-F-]{36}$/) ? requestedCase : "00000000-0000-0000-0000-000000000000"},case_number.eq.${requestedCase}`,
+        )
         .maybeSingle();
 
       if (caseRow) {
@@ -592,7 +637,10 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
     const documentId = `doc_${docUuid.replace(/-/g, "").slice(0, 10)}`;
     const safeFilename = sanitizeFilename(data.fileName);
 
-    const docPrefix = (data.category || "DOC").replace(/[^a-zA-Z0-9]/g, "-").toUpperCase().slice(0, 4);
+    const docPrefix = (data.category || "DOC")
+      .replace(/[^a-zA-Z0-9]/g, "-")
+      .toUpperCase()
+      .slice(0, 4);
     const docNumber = `DOC-${docPrefix}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     // 6. Generate canonical R2 object key with server-generated object ID:
@@ -605,7 +653,6 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
       generatedObjectId: `${docUuid}.${rawExt || "pdf"}`,
       safeFilename,
     });
-
 
     const now = new Date().toISOString();
     const mimeType =
@@ -641,7 +688,9 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
       });
     } catch (r2Error: any) {
       console.error("[uploadDocumentToR2] Failed to put object into Cloudflare R2:", r2Error);
-      throw new Error(`Cloudflare R2 Storage Error: ${r2Error?.message || "Failed to write file to R2 bucket."}`);
+      throw new Error(
+        `Cloudflare R2 Storage Error: ${r2Error?.message || "Failed to write file to R2 bucket."}`,
+      );
     }
 
     // 8. Save document metadata to Supabase (after R2 upload succeeds)
@@ -698,7 +747,8 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
           latest_sha256: serverSha256,
           is_sealed: data.sensitivityTier === "SEALED_COVER_IN_CAMERA",
           is_tampered: false,
-          originating_agency: data.originatingAgency?.trim() || "State Criminal Registry & CCTNS Portal",
+          originating_agency:
+            data.originatingAgency?.trim() || "State Criminal Registry & CCTNS Portal",
           created_by: userId.match(/^[0-9a-fA-F-]{36}$/) ? userId : null,
           metadata: metadataPayload,
           created_at: now,
@@ -709,7 +759,9 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
 
       if (insertError) {
         if (insertError.message?.includes("schema cache")) {
-          console.warn("[uploadDocumentToR2] public.case_documents table awaiting Supabase migration. Persisting to authoritative server registry and audit trail.");
+          console.warn(
+            "[uploadDocumentToR2] public.case_documents table awaiting Supabase migration. Persisting to authoritative server registry and audit trail.",
+          );
         } else {
           throw insertError;
         }
@@ -735,12 +787,20 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
     } catch (dbError: any) {
       if (!dbError?.message?.includes("schema cache")) {
         // Transactional rollback: Clean up newly uploaded R2 object on real fatal error
-        console.error("[uploadDocumentToR2] Supabase insert failed. Rolling back R2 object:", dbError);
+        console.error(
+          "[uploadDocumentToR2] Supabase insert failed. Rolling back R2 object:",
+          dbError,
+        );
         try {
           await supabaseAdmin.from("audit_logs").insert({
             user_id: userId,
             action: `UPLOAD_FAILED: Supabase insert failed for ${safeFilename}. Rolling back R2 object ${r2ObjectKey}. Reason: ${dbError?.message}`,
-            entity_affected: JSON.stringify({ action_code: "UPLOAD_FAILED", fileName: safeFilename, r2ObjectKey, error: dbError?.message }),
+            entity_affected: JSON.stringify({
+              action_code: "UPLOAD_FAILED",
+              fileName: safeFilename,
+              r2ObjectKey,
+              error: dbError?.message,
+            }),
             timestamp: new Date().toISOString(),
           });
         } catch {
@@ -755,7 +815,11 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
             await supabaseAdmin.from("audit_logs").insert({
               user_id: userId,
               action: `ORPHAN_STORAGE_ALERT: Failed to delete orphaned R2 object ${r2ObjectKey} during rollback: ${cleanupErr}`,
-              entity_affected: JSON.stringify({ action_code: "ORPHAN_STORAGE_ALERT", r2ObjectKey, cleanupError: String(cleanupErr) }),
+              entity_affected: JSON.stringify({
+                action_code: "ORPHAN_STORAGE_ALERT",
+                r2ObjectKey,
+                cleanupError: String(cleanupErr),
+              }),
               timestamp: new Date().toISOString(),
             });
           } catch {
@@ -786,7 +850,8 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
       latest_sha256: serverSha256,
       is_sealed: data.sensitivityTier === "SEALED_COVER_IN_CAMERA",
       is_tampered: false,
-      originating_agency: data.originatingAgency?.trim() || "State Criminal Registry & CCTNS Portal",
+      originating_agency:
+        data.originatingAgency?.trim() || "State Criminal Registry & CCTNS Portal",
       created_by: userId.match(/^[0-9a-fA-F-]{36}$/) ? userId : null,
       metadata: metadataPayload,
       created_at: now,
@@ -807,14 +872,13 @@ export const uploadDocumentToR2 = createServerFn({ method: "POST" })
       sha256_hash: serverSha256,
       uploaded_by: userId.match(/^[0-9a-fA-F-]{36}$/) ? userId : null,
       uploaded_by_name: userName,
-      uploaded_by_role: userRoles[0] || "registrar",
+      uploaded_by_role: userRoles[0] || "unassigned",
       change_summary: "Initial filing deposited to Cloudflare R2 vault",
       integrity_status: "VERIFIED",
       content_text: data.contentText?.trim() || undefined,
       created_at: now,
     };
     _serverVersionRegistry.set(docUuid, [initialVersionObj]);
-
 
     // 9. Record universal audit trail
     await recordAuditTrail({
@@ -904,7 +968,9 @@ export const getDocumentFile = createServerFn({ method: "POST" })
       windowMs: 60_000,
     });
     if (!downloadRate.allowed) {
-      throw new Error("Rate limit exceeded: Too many document download requests. Please wait a minute.");
+      throw new Error(
+        "Rate limit exceeded: Too many document download requests. Please wait a minute.",
+      );
     }
 
     // 1. Fetch user roles & profile
@@ -920,7 +986,9 @@ export const getDocumentFile = createServerFn({ method: "POST" })
     const docRecord = await resolveDocumentRecord(data.documentId);
     if (!docRecord || userRoles.length === 0) {
       // Prevent enumeration: opaque error regardless of whether record exists or is unauthorized
-      throw new Error("Access Denied: Document not found or you lack clearance to inspect this record.");
+      throw new Error(
+        "Access Denied: Document not found or you lack clearance to inspect this record.",
+      );
     }
 
     // 3. Permission & Case Clearance Verification
@@ -945,12 +1013,39 @@ export const getDocumentFile = createServerFn({ method: "POST" })
     }
 
     const assignedCaseIds = isAssignedJudge && docRecord.case_id ? [docRecord.case_id] : [];
-    const hasAccess = canAccessDocumentRecord(
-      userRoles[0] || "unassigned",
-      { sensitivity_tier: docRecord.sensitivity_tier, case_id: docRecord.case_id },
-      null,
-      assignedCaseIds,
-    );
+    let hasAccess =
+      userRoles.length > 0 &&
+      userRoles.some((r) =>
+        canAccessDocumentRecord(
+          r,
+          { sensitivity_tier: docRecord.sensitivity_tier, case_id: docRecord.case_id },
+          null,
+          assignedCaseIds,
+        ),
+      );
+
+    if (!hasAccess) {
+      const requiredPerm = (data.action || "VIEW") === "DOWNLOAD" ? "DOWNLOAD" : "VIEW";
+      const shareCheck = checkActiveShareGrant(docRecord.id, userId, userRoles, requiredPerm);
+      if (shareCheck.allowed) {
+        hasAccess = true;
+      } else if (shareCheck.reason === "SHARE_EXPIRED") {
+        await recordAuditTrail({
+          userId,
+          action: `EXPIRED_SHARE_ACCESS_ATTEMPTED: Blocked expired collaboration access to ${docRecord.document_number} by [${userRoles.join(", ")}].`,
+          actionCode: "EXPIRED_SHARE_ACCESS_ATTEMPTED",
+          entityType: "security",
+          entityId: docRecord.id,
+          caseId: docRecord.case_id,
+          metadata: {
+            documentNumber: docRecord.document_number,
+            shareId: shareCheck.share?.id,
+            expiredAt: shareCheck.share?.expires_at,
+          },
+          success: false,
+        });
+      }
+    }
 
     if (!hasAccess) {
       // Record unauthorized inspection security alert
@@ -970,7 +1065,9 @@ export const getDocumentFile = createServerFn({ method: "POST" })
       });
 
       // Uniform error message to prevent document ID enumeration
-      throw new Error("Access Denied: Document not found or you lack clearance to inspect this record.");
+      throw new Error(
+        "Access Denied: Document not found or you lack clearance to inspect this record.",
+      );
     }
 
     // 4. Resolve R2 Object Key
@@ -1006,7 +1103,9 @@ export const getDocumentFile = createServerFn({ method: "POST" })
     }
 
     if (!objectKey) {
-      throw new Error(`Document ${docRecord.document_number} does not have a valid Cloudflare R2 storage key.`);
+      throw new Error(
+        `Document ${docRecord.document_number} does not have a valid Cloudflare R2 storage key.`,
+      );
     }
 
     // 5. Retrieve object bytes from Cloudflare R2
@@ -1077,7 +1176,6 @@ export interface DeleteDocumentInput {
   reason?: string | undefined;
 }
 
-
 // ============================================================================
 // 5. SERVER FUNCTION: getDocumentVersions(documentId)
 // ============================================================================
@@ -1132,7 +1230,11 @@ export const getDocumentVersions = createServerFn({ method: "POST" })
       }
     }
 
-    const hasAccess = checkDocumentSensitivityAccess(userRoles, doc.sensitivity_tier, isAssignedJudge);
+    const hasAccess = checkDocumentSensitivityAccess(
+      userRoles,
+      doc.sensitivity_tier,
+      isAssignedJudge,
+    );
     if (!hasAccess) {
       await recordAuditTrail({
         userId,
@@ -1158,7 +1260,9 @@ export const getDocumentVersions = createServerFn({ method: "POST" })
     let versions: ServerDocumentVersion[] = [];
 
     try {
-      const { data: verRows, error: verErr } = await (supabaseAdmin.from("document_versions") as any)
+      const { data: verRows, error: verErr } = await (
+        supabaseAdmin.from("document_versions") as any
+      )
         .select("*")
         .eq("document_id", doc.id)
         .order("version_number", { ascending: true });
@@ -1176,7 +1280,7 @@ export const getDocumentVersions = createServerFn({ method: "POST" })
           sha256_hash: v.sha256_hash,
           uploaded_by: v.uploaded_by,
           uploaded_by_name: userName,
-          uploaded_by_role: userRoles[0] || "registrar",
+          uploaded_by_role: userRoles[0] || "unassigned",
           change_summary: v.change_summary || "Official legal filing version",
           integrity_status: "VERIFIED",
           content_text: undefined,
@@ -1209,7 +1313,7 @@ export const getDocumentVersions = createServerFn({ method: "POST" })
         sha256_hash: doc.latest_sha256,
         uploaded_by: doc.created_by || userId,
         uploaded_by_name: doc.uploaded_by_name || userName,
-        uploaded_by_role: doc.uploaded_by_role || userRoles[0] || "registrar",
+        uploaded_by_role: doc.uploaded_by_role || userRoles[0] || "unassigned",
         change_summary: "Initial filing deposited to Cloudflare R2 vault",
         integrity_status: "VERIFIED",
         created_at: doc.created_at || new Date().toISOString(),
@@ -1295,7 +1399,11 @@ export const getDocumentVersion = createServerFn({ method: "POST" })
       }
     }
 
-    const hasAccess = checkDocumentSensitivityAccess(userRoles, doc.sensitivity_tier, isAssignedJudge);
+    const hasAccess = checkDocumentSensitivityAccess(
+      userRoles,
+      doc.sensitivity_tier,
+      isAssignedJudge,
+    );
     if (!hasAccess) {
       await recordAuditTrail({
         userId,
@@ -1340,7 +1448,7 @@ export const getDocumentVersion = createServerFn({ method: "POST" })
           sha256_hash: verRow.sha256_hash,
           uploaded_by: verRow.uploaded_by,
           uploaded_by_name: userName,
-          uploaded_by_role: userRoles[0] || "registrar",
+          uploaded_by_role: userRoles[0] || "unassigned",
           change_summary: verRow.change_summary || "Official legal filing version",
           integrity_status: "VERIFIED",
           content_text: undefined,
@@ -1369,7 +1477,7 @@ export const getDocumentVersion = createServerFn({ method: "POST" })
         sha256_hash: doc.latest_sha256,
         uploaded_by: doc.created_by || userId,
         uploaded_by_name: doc.uploaded_by_name || userName,
-        uploaded_by_role: doc.uploaded_by_role || userRoles[0] || "registrar",
+        uploaded_by_role: doc.uploaded_by_role || userRoles[0] || "unassigned",
         change_summary: "Initial filing deposited to Cloudflare R2 vault",
         integrity_status: "VERIFIED",
         created_at: doc.created_at || new Date().toISOString(),
@@ -1377,7 +1485,9 @@ export const getDocumentVersion = createServerFn({ method: "POST" })
     }
 
     if (!targetVer) {
-      throw new Error(`Version v${data.versionNumber} not found for document ${doc.document_number}.`);
+      throw new Error(
+        `Version v${data.versionNumber} not found for document ${doc.document_number}.`,
+      );
     }
 
     // 5. Audit log
@@ -1458,7 +1568,9 @@ export const createDocumentVersion = createServerFn({ method: "POST" })
       windowMs: 60_000,
     });
     if (!versionRate.allowed) {
-      throw new Error("Rate limit exceeded: Too many version upload requests. Please wait a minute.");
+      throw new Error(
+        "Rate limit exceeded: Too many version upload requests. Please wait a minute.",
+      );
     }
 
     // Fail closed: unassigned accounts or accounts lacking upload permission cannot commit versions
@@ -1467,7 +1579,6 @@ export const createDocumentVersion = createServerFn({ method: "POST" })
         `Access Denied: Your account (${userRoles.join(", ") || "unassigned"}) lacks statutory clearance to commit document versions.`,
       );
     }
-
 
     const userName = profileData?.full_name || "Authorized Staff";
 
@@ -1497,7 +1608,11 @@ export const createDocumentVersion = createServerFn({ method: "POST" })
       }
     }
 
-    const hasAccess = checkDocumentSensitivityAccess(userRoles, doc.sensitivity_tier, isAssignedJudge);
+    const hasAccess = checkDocumentSensitivityAccess(
+      userRoles,
+      doc.sensitivity_tier,
+      isAssignedJudge,
+    );
     if (!hasAccess) {
       throw new Error(
         `Access Denied: Security clearance insufficient to add version to ${doc.sensitivity_tier} document.`,
@@ -1522,10 +1637,7 @@ export const createDocumentVersion = createServerFn({ method: "POST" })
       existingVers = _serverVersionRegistry.get(doc.id) || [];
     }
 
-    const maxVersionInHistory = existingVers.reduce(
-      (max, v) => Math.max(max, v.version_number),
-      0,
-    );
+    const maxVersionInHistory = existingVers.reduce((max, v) => Math.max(max, v.version_number), 0);
     const newVersionNumber = Math.max(doc.current_version || 1, maxVersionInHistory) + 1;
 
     // Validate that newVersionNumber is never silently overwritten
@@ -1584,7 +1696,6 @@ export const createDocumentVersion = createServerFn({ method: "POST" })
       safeFilename: `v${newVersionNumber}_${safeFilename}`,
     });
 
-
     const mimeType = data.mimeType || "application/pdf";
 
     try {
@@ -1606,7 +1717,9 @@ export const createDocumentVersion = createServerFn({ method: "POST" })
       });
     } catch (r2Error: any) {
       console.error("[createDocumentVersion] Failed to store in Cloudflare R2:", r2Error);
-      throw new Error(`Cloudflare R2 Storage Error: ${r2Error?.message || "Failed to commit version to R2."}`);
+      throw new Error(
+        `Cloudflare R2 Storage Error: ${r2Error?.message || "Failed to commit version to R2."}`,
+      );
     }
 
     // 8. Commit version record to Supabase public.document_versions
@@ -1622,7 +1735,7 @@ export const createDocumentVersion = createServerFn({ method: "POST" })
       sha256_hash: serverSha256,
       uploaded_by: userId.match(/^[0-9a-fA-F-]{36}$/) ? userId : null,
       uploaded_by_name: userName,
-      uploaded_by_role: userRoles[0] || "registrar",
+      uploaded_by_role: userRoles[0] || "unassigned",
       change_summary: data.changeSummary.trim(),
       integrity_status: "VERIFIED",
       content_text: data.contentText?.trim() || undefined,
@@ -1701,7 +1814,7 @@ export const createDocumentVersion = createServerFn({ method: "POST" })
         sha256: serverSha256,
         changeSummary: data.changeSummary.trim(),
         userName,
-        userRole: userRoles[0] || "registrar",
+        userRole: userRoles[0] || "unassigned",
       },
       success: true,
     });
@@ -1771,7 +1884,7 @@ export const verifyDocumentVersion = createServerFn({ method: "POST" })
 
     const userRoles = (rolesData || []).map((r) => r.role);
     const userName = profileData?.full_name || "Authorized Staff";
-    const userRole = userRoles[0] || "registrar";
+    const userRole = userRoles[0] || "unassigned";
 
     // 2. Resolve document record
     const doc = await resolveDocumentRecord(data.documentId);
@@ -1799,7 +1912,11 @@ export const verifyDocumentVersion = createServerFn({ method: "POST" })
       }
     }
 
-    const hasAccess = checkDocumentSensitivityAccess(userRoles, doc.sensitivity_tier, isAssignedJudge);
+    const hasAccess = checkDocumentSensitivityAccess(
+      userRoles,
+      doc.sensitivity_tier,
+      isAssignedJudge,
+    );
     if (!hasAccess) {
       throw new Error(
         `Access Denied: Your authenticated role does not possess statutory clearance to verify ${doc.sensitivity_tier} records.`,
@@ -1902,8 +2019,10 @@ export const verifyDocumentVersion = createServerFn({ method: "POST" })
         verifiedAt: now,
         verifiedByName: userName,
         verifiedByRole: userRole,
-        message: "The requested legal document file could not be retrieved from the Cloudflare R2 vault.",
-        bsaSection63Clause: "Uncertified: Source record missing or unreachable in encrypted storage vault.",
+        message:
+          "The requested legal document file could not be retrieved from the Cloudflare R2 vault.",
+        bsaSection63Clause:
+          "Uncertified: Source record missing or unreachable in encrypted storage vault.",
         verificationState: isDemoMode() ? "SIMULATED_DEMO" : "LIVE_VERIFIED",
         ledgerAnchor: {
           isAnchored: false,
@@ -1926,9 +2045,7 @@ export const verifyDocumentVersion = createServerFn({ method: "POST" })
     const ledgerAnchor = {
       isAnchored: false, // External blockchain anchoring is not configured
       verificationState: isDemo ? ("SIMULATED_DEMO" as const) : ("LIVE_VERIFIED" as const),
-      targetLedgerName: isDemo
-        ? "Demo Local Sandbox (Simulation)"
-        : "Not blockchain anchored",
+      targetLedgerName: isDemo ? "Demo Local Sandbox (Simulation)" : "Not blockchain anchored",
       statusMessage: isDemo
         ? "Demo simulation only: no external blockchain network transaction exists."
         : "Storage integrity secured via Cloudflare R2 & Supabase immutable SHA-256 digests. External consortium blockchain anchoring is not configured.",
@@ -1941,7 +2058,10 @@ export const verifyDocumentVersion = createServerFn({ method: "POST" })
       if (targetVerNum === doc.current_version) {
         doc.is_tampered = false;
         try {
-          await supabaseAdmin.from("case_documents").update({ is_tampered: false }).eq("id", doc.id);
+          await supabaseAdmin
+            .from("case_documents")
+            .update({ is_tampered: false })
+            .eq("id", doc.id);
         } catch {
           // ignore
         }
@@ -2241,7 +2361,9 @@ export const deleteDocumentFromR2 = createServerFn({ method: "POST" })
 
     const roles = (rolesData || []).map((r) => r.role);
     if (!roles.includes("admin") && !roles.includes("registrar")) {
-      throw new Error("Access Denied: Only administrators or registrars can archive or delete documents.");
+      throw new Error(
+        "Access Denied: Only administrators or registrars can archive or delete documents.",
+      );
     }
 
     const docRecord = await resolveDocumentRecord(data.documentId);
@@ -2306,5 +2428,3 @@ export const deleteDocumentFromR2 = createServerFn({ method: "POST" })
 
     return { success: true, documentId: docRecord.id };
   });
-
-

@@ -34,11 +34,11 @@ import { useCurrentStaff } from "@/hooks/use-current-staff";
 export const Route = createFileRoute("/_authenticated/ai-assistant")({
   head: () => ({
     meta: [
-      { title: "Personal Legal AI Assistant & Judicial Copilot — NyayaSetu" },
+      { title: "NyayaSetu Assistant — AI Investigation & Document Intelligence" },
       {
         name: "description",
         content:
-          "Comprehensive AI reasoning across Indian Law (BNS, BNSS, BSA, CPC, CrPC), court proceedings, cause-lists, Malkhana evidence vault, and case dossiers.",
+          "AI-assisted authorized investigation information and document intelligence across Indian Law (BNS, BNSS, BSA), legal documents, case dossiers, and evidence chains of custody.",
       },
     ],
   }),
@@ -52,34 +52,39 @@ type Turn =
 
 const SUGGESTED_QUERIES = [
   {
-    category: "BNSS vs CrPC Procedure",
-    prompt: "Explain the transition from Section 482 CrPC to Section 528 BNSS and grounds for quashing.",
-    description: "High Court inherent powers, Bhajan Lal principles, and abuse of process",
+    category: "Investigation & Documents",
+    prompt: "Summarize all documents attached to Case BNS/2026/0014",
+    description:
+      "FIRs, forensic reports, witness statements, and cryptographic verification status",
   },
   {
     category: "Electronic Evidence (BSA)",
-    prompt: "What are the mandatory requirements for a Section 63 BSA electronic evidence certificate?",
-    description: "Section 65B replacement, Arjun Panditrao Khotkar test, and hash verification",
-  },
-  {
-    category: "Undertrial Bail Rights",
-    prompt: "What are the undertrial bail rights under Section 479 BNSS compared to CrPC 436A?",
-    description: "Mandatory 1/3rd detention relief for first-time offenders on personal bond",
-  },
-  {
-    category: "Case Dossier & Charges",
-    prompt: "Summarize Case BNS/2026/0014 and list all critical evidence.",
-    description: "Multi-party overview, charges under BNS 318/336, and scheduled hearings",
+    prompt:
+      "What are the mandatory requirements for a Section 63 BSA electronic evidence certificate?",
+    description:
+      "Section 65B replacement, tamper-evident hash standards, and Road Certificate audit trail",
   },
   {
     category: "Malkhana Vault & Custody",
     prompt: "Where is evidence EV-1045 and what is its chain of custody?",
-    description: "Seizure, forensic status, tamper seals, and Vault B Locker #12",
+    description:
+      "Seizure panchnama, CFSL lab dispatch, tamper seals, and Central Vault B locker location",
+  },
+  {
+    category: "Document Integrity & Versions",
+    prompt: "Which documents have multiple versions or unverified integrity?",
+    description: "Version history audit, SHA-256 verification status, and recent modifications",
+  },
+  {
+    category: "BNSS Criminal Procedure",
+    prompt:
+      "Explain the transition from Section 482 CrPC to Section 528 BNSS and grounds for quashing.",
+    description: "High Court inherent powers, Bhajan Lal principles, and statutory procedures",
   },
   {
     category: "Courtroom Cause List",
     prompt: "Which hearings are scheduled today across all courtrooms and benches?",
-    description: "Live hearing slots, allocated judges, courtroom loads, and time slots",
+    description: "Live procedural listings, assigned judicial benches, and courtroom schedules",
   },
 ];
 
@@ -167,9 +172,9 @@ export function AIAssistantPage() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 sm:py-9 space-y-6">
       <PageHeader
-        eyebrow="Intelligence & Copilot"
-        title="Personal Legal AI Assistant & Judicial Copilot"
-        description="Authoritative intelligence across Indian Law (BNS 2023, BNSS 2023, BSA 2023, IPC, CrPC, CPC), active trial dossiers, Malkhana evidence custody, and courtroom cause-lists."
+        eyebrow="Authorized Intelligence"
+        title="NyayaSetu Assistant"
+        description="AI-assisted authorized investigation information and document intelligence across Indian Law (BNS 2023, BNSS 2023, BSA 2023), active case dossiers, Malkhana evidence custody, and courtroom cause-lists."
         actions={
           <div className="flex items-center gap-2">
             <Badge
@@ -200,9 +205,10 @@ export function AIAssistantPage() {
           <ShieldAlert className="size-4 text-primary shrink-0" />
           <span>
             <strong className="text-foreground font-semibold">Human-in-the-Loop Governance:</strong>{" "}
-            The AI assistant operates strictly as an informational decision-support tool. It cannot
-            unilaterally reschedule hearings, transfer evidence custody, overwrite official
-            documents, or modify audit logs.
+            The AI assistant operates strictly as an informational decision-support and retrieval
+            tool under human oversight. It cannot determine guilt, issue judicial verdicts,
+            unilaterally reschedule hearings, transfer evidence custody, overwrite official records,
+            or modify audit logs.
           </span>
         </div>
         <Badge variant="secondary" className="shrink-0 text-[10px] uppercase font-mono">
@@ -222,10 +228,14 @@ export function AIAssistantPage() {
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-base font-semibold text-foreground">
-                    How can I assist your legal research or court workflow today, {staff?.fullName || "Counselor / Officer"}?
+                    How can I assist your investigation research or document review today,{" "}
+                    {staff?.fullName || "Officer / Counselor"}?
                   </h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Ask any question regarding Indian criminal or civil laws (BNS, BNSS, BSA, bail, arrest, evidence), active case dossiers, Malkhana vault evidence, or courtroom cause lists. Every answer combines authoritative legal analysis with live database grounding.
+                    Ask any question regarding Indian criminal or civil laws (BNS, BNSS, BSA, bail,
+                    arrest, evidence), active case dossiers, Malkhana vault evidence, or courtroom
+                    cause lists. Every answer combines authoritative legal analysis with live
+                    database grounding.
                   </p>
                 </div>
 
@@ -328,7 +338,8 @@ export function AIAssistantPage() {
                           {/* Grounding Attribution Footnote */}
                           <div className="flex items-center justify-between pt-2 text-[10px] text-muted-foreground/80 border-t border-border/40 font-mono">
                             <span>
-                              Engine: {turn.answer.source || "Deterministic Multi-Constraint Grounding"}
+                              Engine:{" "}
+                              {turn.answer.source || "Deterministic Multi-Constraint Grounding"}
                             </span>
                             <span>Verified with RLS Boundaries</span>
                           </div>
@@ -351,7 +362,9 @@ export function AIAssistantPage() {
                     </div>
                     <div className="bg-muted/40 border border-border/70 rounded-xl p-4 text-xs text-muted-foreground flex items-center gap-2.5">
                       <Loader2 className="size-4 animate-spin text-primary" />
-                      <span>Searching case registry, FSL records, document hashes and asset logs…</span>
+                      <span>
+                        Searching case registry, FSL records, document hashes and asset logs…
+                      </span>
                     </div>
                   </div>
                 )}

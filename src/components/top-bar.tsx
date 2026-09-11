@@ -69,7 +69,10 @@ export function TopBar() {
               </span>
             )}
             {isDemoMode() && (
-              <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 text-[9.5px] font-bold text-amber-600 dark:text-amber-400" title="Explicit DEMO_MODE active: Mock fixtures permitted">
+              <span
+                className="inline-flex items-center gap-1 rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 text-[9.5px] font-bold text-amber-600 dark:text-amber-400"
+                title="Explicit DEMO_MODE active: Mock fixtures permitted"
+              >
                 DEMO MODE
               </span>
             )}

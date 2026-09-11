@@ -67,11 +67,14 @@ export const listRegistryAccounts = createServerFn({ method: "POST" })
         .map((u) => {
           const bench = benchById.get(u.id);
           const userRoles = rolesByUserId.get(u.id) || [];
-          const primaryRole = (userRoles[0] || u.user_metadata?.["role"] || null) as RegistryRole | null;
+          const primaryRole = (userRoles[0] ||
+            u.user_metadata?.["role"] ||
+            null) as RegistryRole | null;
           return {
             id: u.id,
             email: u.email ?? "",
-            fullName: (nameById.get(u.id) || "").trim() || (u.email ?? "").split("@")[0] || "Account",
+            fullName:
+              (nameById.get(u.id) || "").trim() || (u.email ?? "").split("@")[0] || "Account",
             role: primaryRole,
             roles: userRoles.length > 0 ? userRoles : primaryRole ? [primaryRole] : [],
             createdAt: u.created_at,

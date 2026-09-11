@@ -227,7 +227,9 @@ export function computeDmsAssetAnalytics(
   const evStatusMap = new Map<string, number>();
 
   for (const ev of evidenceItems) {
-    const cNum = ev.case_number || (isDemoMode() ? "State vs. Aman Sharma (BNS/2026/0014)" : "Unlinked / Direct Seizure");
+    const cNum =
+      ev.case_number ||
+      (isDemoMode() ? "State vs. Aman Sharma (BNS/2026/0014)" : "Unlinked / Direct Seizure");
     evCaseMap.set(cNum, (evCaseMap.get(cNum) || 0) + 1);
 
     const st = ev.evidence_status || "STORED";
@@ -249,12 +251,18 @@ export function computeDmsAssetAnalytics(
     ? [
         { status: "Seized & Registered", count: Math.max(evStatusMap.get("REGISTERED") || 2, 2) },
         { status: "Sealed in Vault", count: Math.max(evStatusMap.get("STORED") || 3, 3) },
-        { status: "In Transit / Transfer", count: Math.max(evStatusMap.get("TRANSFERRED") || 1, 1) },
+        {
+          status: "In Transit / Transfer",
+          count: Math.max(evStatusMap.get("TRANSFERRED") || 1, 1),
+        },
         {
           status: "Forensic Examination",
           count: Math.max(evStatusMap.get("FORENSIC_EXAMINATION") || 2, 2),
         },
-        { status: "Court Submission", count: Math.max(evStatusMap.get("COURT_SUBMISSION") || 1, 1) },
+        {
+          status: "Court Submission",
+          count: Math.max(evStatusMap.get("COURT_SUBMISSION") || 1, 1),
+        },
       ]
     : [
         { status: "Seized & Registered", count: evStatusMap.get("REGISTERED") || 0 },

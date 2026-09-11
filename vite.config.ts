@@ -12,22 +12,13 @@ export default defineConfig(({ mode }) => {
 
   return {
     define: {
-      "process.env.GEMINI_API_KEY": JSON.stringify(env["GEMINI_API_KEY"] || ""),
-      "process.env.GEMINI_MODEL": JSON.stringify(
-        env["GEMINI_MODEL"] || "gemini-flash-lite-latest",
-      ),
       "process.env.SUPABASE_URL": JSON.stringify(
         env["SUPABASE_URL"] || "https://keqlhaerxaliqljyibzx.supabase.co",
       ),
       "process.env.SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
         env["SUPABASE_PUBLISHABLE_KEY"] || "sb_publishable_FZvKCCOsCUtbS9qP7v2XAw_xblsYT8d",
       ),
-      "process.env.CUSTOM_LLM_URL": JSON.stringify(env["CUSTOM_LLM_URL"] || ""),
-      "process.env.OPENAI_API_KEY": JSON.stringify(env["OPENAI_API_KEY"] || ""),
-      "process.env.GROQ_API_KEY": JSON.stringify(env["GROQ_API_KEY"] || ""),
-      "process.env.DEMO_MODE": JSON.stringify(
-        env["DEMO_MODE"] || env["VITE_DEMO_MODE"] || "false",
-      ),
+      "process.env.DEMO_MODE": JSON.stringify(env["DEMO_MODE"] || env["VITE_DEMO_MODE"] || "false"),
       "process.env.VITE_DEMO_MODE": JSON.stringify(
         env["VITE_DEMO_MODE"] || env["DEMO_MODE"] || "false",
       ),

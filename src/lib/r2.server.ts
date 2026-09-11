@@ -31,11 +31,13 @@ export interface R2PutMetadata {
 }
 
 export interface R2PutOptions {
-  httpMetadata?: {
-    contentType?: string | undefined;
-    contentDisposition?: string | undefined;
-    cacheControl?: string | undefined;
-  } | undefined;
+  httpMetadata?:
+    | {
+        contentType?: string | undefined;
+        contentDisposition?: string | undefined;
+        cacheControl?: string | undefined;
+      }
+    | undefined;
   customMetadata?: R2PutMetadata | undefined;
   sha256?: ArrayBuffer | string | undefined;
 }
@@ -45,11 +47,13 @@ export interface R2StoredObject {
   size: number;
   etag?: string | undefined;
   uploaded?: Date | undefined;
-  httpMetadata?: {
-    contentType?: string | undefined;
-    contentDisposition?: string | undefined;
-    cacheControl?: string | undefined;
-  } | undefined;
+  httpMetadata?:
+    | {
+        contentType?: string | undefined;
+        contentDisposition?: string | undefined;
+        cacheControl?: string | undefined;
+      }
+    | undefined;
   customMetadata?: Record<string, string> | undefined;
   arrayBuffer: () => Promise<ArrayBuffer>;
   text: () => Promise<string>;
@@ -80,7 +84,9 @@ export function getVaultBucket(): any {
     cfEnv?.[VAULT_BINDING_NAME] ||
     g[VAULT_BINDING_NAME] ||
     procEnv?.[VAULT_BINDING_NAME] ||
-    (typeof process !== "undefined" ? (process.env as Record<string, any>)?.[VAULT_BINDING_NAME] : undefined)
+    (typeof process !== "undefined"
+      ? (process.env as Record<string, any>)?.[VAULT_BINDING_NAME]
+      : undefined)
   );
 }
 
@@ -146,7 +152,7 @@ export function sanitizeCaseIdForStorage(rawCaseId?: string | null): string {
   if (!rawCaseId || !rawCaseId.trim()) return "unassigned";
   const cleaned = rawCaseId
     .trim()
-    .replace(/[\/\\]/g, "-")
+    .replace(/[/\\]/g, "-")
     .replace(/[^a-zA-Z0-9._-]/g, "_");
   return cleaned || "unassigned";
 }
@@ -184,7 +190,6 @@ export function generateR2ObjectKey({
   const cleanFileName = sanitizeFilename(safeFilename || "document.pdf");
   return `cases/${safeCase}/documents/${cleanDocId}/${ver}/${cleanFileName}`;
 }
-
 
 /**
  * Computes cryptographically verified SHA-256 hash using Web Crypto API.
@@ -301,7 +306,11 @@ export async function getR2Object(key: string): Promise<R2StoredObject | null> {
       uploaded: local.uploadedAt,
       httpMetadata: local.options?.httpMetadata,
       customMetadata: local.options?.customMetadata as Record<string, string> | undefined,
-      arrayBuffer: async () => local.bytes.buffer.slice(local.bytes.byteOffset, local.bytes.byteOffset + local.bytes.byteLength) as ArrayBuffer,
+      arrayBuffer: async () =>
+        local.bytes.buffer.slice(
+          local.bytes.byteOffset,
+          local.bytes.byteOffset + local.bytes.byteLength,
+        ) as ArrayBuffer,
       text: async () => new TextDecoder().decode(local.bytes),
       body: null,
     };
@@ -328,9 +337,11 @@ export async function deleteR2Object(key: string): Promise<void> {
 /**
  * Checks metadata of an object in Cloudflare R2 bucket without retrieving its full body.
  */
-export async function headR2Object(
-  key: string,
-): Promise<{ size: number; etag?: string | undefined; customMetadata?: Record<string, string> | undefined } | null> {
+export async function headR2Object(key: string): Promise<{
+  size: number;
+  etag?: string | undefined;
+  customMetadata?: Record<string, string> | undefined;
+} | null> {
   const bucket = getVaultBucket();
 
   if (bucket && typeof bucket.head === "function") {

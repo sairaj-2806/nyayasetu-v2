@@ -39,8 +39,9 @@ export function useCurrentStaff() {
             supabase.from("judges").select("id, name").eq("user_id", user.id).maybeSingle(),
           ]);
 
-          const rawAssigned = (roles?.map((row) => normalizeRole(row.role)) || [])
-            .filter((r): r is StaffRole => r !== "unassigned");
+          const rawAssigned = (roles?.map((row) => normalizeRole(row.role)) || []).filter(
+            (r): r is StaffRole => r !== "unassigned",
+          );
           if (bench?.id && !rawAssigned.includes("judge")) {
             rawAssigned.push("judge");
           }
@@ -51,7 +52,8 @@ export function useCurrentStaff() {
           if (assignedRoles.includes("admin")) defaultRole = "admin";
           else if (assignedRoles.includes("judge")) defaultRole = "judge";
           else if (assignedRoles.includes("registrar")) defaultRole = "registrar";
-          else if (assignedRoles.includes("investigating_officer")) defaultRole = "investigating_officer";
+          else if (assignedRoles.includes("investigating_officer"))
+            defaultRole = "investigating_officer";
           else if (assignedRoles.includes("forensic_officer")) defaultRole = "forensic_officer";
           else if (assignedRoles.includes("evidence_custodian")) defaultRole = "evidence_custodian";
           else if (assignedRoles.includes("legal_officer")) defaultRole = "legal_officer";
@@ -191,5 +193,6 @@ export const roleLabel: Record<StaffRole, string> = {
   police_officer: ROLE_METADATA.police_officer.label,
   legal_officer: ROLE_METADATA.legal_officer.label,
   document_officer: ROLE_METADATA.document_officer.label,
+  auditor: ROLE_METADATA.auditor.label,
   unassigned: ROLE_METADATA.unassigned.label,
 };

@@ -40,6 +40,7 @@ import {
   UserCheck,
   Users,
   Video,
+  Workflow,
   Wrench,
   XCircle,
 } from "lucide-react";
@@ -49,11 +50,7 @@ import { toast } from "sonner";
 import { policeAssetsQuery, type CustodyTimelineEvent, type PoliceAsset } from "@/lib/assets";
 import { secureDocumentsQuery, type SecureDocument } from "@/lib/documents";
 import { auditLogQuery, formatAuditTime, type AuditLogEntry } from "@/lib/audit";
-import {
-  canAccessCaseRecord,
-  canAccessDocumentRecord,
-  canAccessAssetRecord,
-} from "@/lib/rbac";
+import { canAccessCaseRecord, canAccessDocumentRecord, canAccessAssetRecord } from "@/lib/rbac";
 import {
   verifyChainOfCustody,
   type ChainOfCustodyVerificationReport,
@@ -99,6 +96,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentStaff, usePermissions } from "@/hooks/use-current-staff";
 import { WhyThisOrderPanel } from "@/components/why-this-order";
 import { CaseTimeline } from "@/components/case-timeline";
+import { DocumentRelationshipGraph } from "@/components/document-relationship-graph";
 import { StoredReasoning } from "@/components/reasoning-list";
 import { CaseSchedulingPanel } from "@/components/case-scheduling-panel";
 import { EditCaseModal } from "@/components/edit-case-modal";
@@ -217,14 +215,13 @@ function CaseDossierPage() {
   const allCaseAssets = useMemo(() => {
     if (!record) return [];
     return (assetsQuery.data ?? []).filter((item) => {
-      const isMatch = (
+      const isMatch =
         item.case_id === caseId ||
         item.case_id === record.id ||
         item.case_number === record.case_number ||
         (Boolean(item.case_number) &&
           Boolean(record.case_number) &&
-          item.case_number!.includes(record.case_number))
-      );
+          item.case_number!.includes(record.case_number));
       if (!isMatch) return false;
       return canAccessAssetRecord(staff.data?.role, item);
     });
@@ -255,14 +252,13 @@ function CaseDossierPage() {
   const caseDocuments = useMemo(() => {
     if (!record) return [];
     return (docsQuery.data ?? []).filter((doc) => {
-      const isMatch = (
+      const isMatch =
         doc.case_id === caseId ||
         doc.case_id === record.id ||
         doc.case_number === record.case_number ||
         (Boolean(doc.case_number) &&
           Boolean(record.case_number) &&
-          doc.case_number!.includes(record.case_number))
-      );
+          doc.case_number!.includes(record.case_number));
       if (!isMatch) return false;
       return canAccessDocumentRecord(staff.data?.role, doc, staff.data?.judgeId);
     });
@@ -438,7 +434,8 @@ function CaseDossierPage() {
           <ShieldAlert className="size-10 text-destructive mx-auto mb-3" />
           <h2 className="text-lg font-semibold text-foreground">Record Access Restricted</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            This case record could not be found or your current role lacks statutory clearance to inspect its proceedings.
+            This case record could not be found or your current role lacks statutory clearance to
+            inspect its proceedings.
           </p>
           <Button asChild variant="outline" className="mt-4">
             <Link to="/cases">Back to cases</Link>
@@ -497,25 +494,33 @@ function CaseDossierPage() {
             <LayoutDashboard className="size-3.5" />
             Overview
           </TabsTrigger>
-          <TabsTrigger value="parties" className="text-xs sm:text-sm gap-1.5">
-            <Users className="size-3.5" />
-            Parties
-          </TabsTrigger>
-          <TabsTrigger value="investigation" className="text-xs sm:text-sm gap-1.5">
-            <FileSearch className="size-3.5" />
-            Investigation
-          </TabsTrigger>
           <TabsTrigger value="documents" className="text-xs sm:text-sm gap-1.5">
             <FileText className="size-3.5" />
             Documents ({caseDocuments.length})
+          </TabsTrigger>
+          <TabsTrigger value="relationships" className="text-xs sm:text-sm gap-1.5">
+            <Workflow className="size-3.5" />
+            Document Relationships
           </TabsTrigger>
           <TabsTrigger value="evidence" className="text-xs sm:text-sm gap-1.5">
             <PackageCheck className="size-3.5" />
             Criminal Evidence ({criminalEvidence.length})
           </TabsTrigger>
-          <TabsTrigger value="police-assets" className="text-xs sm:text-sm gap-1.5">
-            <ShieldAlert className="size-3.5" />
-            Police Assets ({policeAssets.length})
+          <TabsTrigger value="investigation" className="text-xs sm:text-sm gap-1.5">
+            <FileSearch className="size-3.5" />
+            Investigation
+          </TabsTrigger>
+          <TabsTrigger value="timeline" className="text-xs sm:text-sm gap-1.5">
+            <History className="size-3.5" />
+            Timeline
+          </TabsTrigger>
+          <TabsTrigger value="parties" className="text-xs sm:text-sm gap-1.5">
+            <Users className="size-3.5" />
+            Parties
+          </TabsTrigger>
+          <TabsTrigger value="audit" className="text-xs sm:text-sm gap-1.5">
+            <ScrollText className="size-3.5" />
+            Audit Trail ({caseAuditLogs.length})
           </TabsTrigger>
           <TabsTrigger value="hearings" className="text-xs sm:text-sm gap-1.5">
             <CalendarDays className="size-3.5" />
@@ -525,13 +530,9 @@ function CaseDossierPage() {
             <ListOrdered className="size-3.5" />
             Cause List
           </TabsTrigger>
-          <TabsTrigger value="timeline" className="text-xs sm:text-sm gap-1.5">
-            <History className="size-3.5" />
-            Timeline
-          </TabsTrigger>
-          <TabsTrigger value="audit" className="text-xs sm:text-sm gap-1.5">
-            <ScrollText className="size-3.5" />
-            Audit Trail ({caseAuditLogs.length})
+          <TabsTrigger value="police-assets" className="text-xs sm:text-sm gap-1.5">
+            <ShieldAlert className="size-3.5" />
+            Police Assets ({policeAssets.length})
           </TabsTrigger>
         </TabsList>
 
@@ -823,12 +824,16 @@ function CaseDossierPage() {
                   <FileSearch className="size-4 text-primary" />
                   Police Investigation & Case Diary Particulars
                 </CardTitle>
-                <Badge variant="outline" className="font-mono text-xs text-amber-700 bg-amber-50 border-amber-300 dark:text-amber-400 dark:bg-amber-950/40">
+                <Badge
+                  variant="outline"
+                  className="font-mono text-xs text-amber-700 bg-amber-50 border-amber-300 dark:text-amber-400 dark:bg-amber-950/40"
+                >
                   FIR No. 42/2026
                 </Badge>
               </div>
               <CardDescription className="text-xs">
-                Official investigation records compiled under Bharatiya Nagarik Suraksha Sanhita (BNSS, 2023) and Bharatiya Nyaya Sanhita (BNS, 2023).
+                Official investigation records compiled under Bharatiya Nagarik Suraksha Sanhita
+                (BNSS, 2023) and Bharatiya Nyaya Sanhita (BNS, 2023).
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6 sm:grid-cols-2">
@@ -840,25 +845,35 @@ function CaseDossierPage() {
                 <div className="space-y-2 text-xs">
                   <div>
                     <span className="text-muted-foreground">FIR Number & Date:</span>
-                    <p className="font-medium text-foreground">FIR No. 42/2026 (Registered: 14-Feb-2026, 09:30 AM)</p>
+                    <p className="font-medium text-foreground">
+                      FIR No. 42/2026 (Registered: 14-Feb-2026, 09:30 AM)
+                    </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Jurisdictional Police Station:</span>
-                    <p className="font-medium text-foreground">Special Cell Police Station, Lodhi Colony (North District)</p>
+                    <p className="font-medium text-foreground">
+                      Special Cell Police Station, Lodhi Colony (North District)
+                    </p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Statutory Acts & Sections Invoked:</span>
+                    <span className="text-muted-foreground">
+                      Statutory Acts & Sections Invoked:
+                    </span>
                     <p className="font-mono text-xs font-semibold text-primary">
                       BNS Sections 111 (Organised Crime), 318 (Cheating), 336 (Forgery)
                     </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Place of Occurrence:</span>
-                    <p className="font-medium text-foreground">Commercial Complex B-Block, Sector 62, New Delhi</p>
+                    <p className="font-medium text-foreground">
+                      Commercial Complex B-Block, Sector 62, New Delhi
+                    </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Crime Scene Seizure Panchnama:</span>
-                    <p className="font-medium text-foreground">Executed under Section 105 BNSS in presence of independent panch witnesses</p>
+                    <p className="font-medium text-foreground">
+                      Executed under Section 105 BNSS in presence of independent panch witnesses
+                    </p>
                   </div>
                 </div>
               </div>
@@ -871,25 +886,38 @@ function CaseDossierPage() {
                 <div className="space-y-2 text-xs">
                   <div>
                     <span className="text-muted-foreground">Lead Investigating Officer:</span>
-                    <p className="font-medium text-foreground">Inspector Vikram Rathore (Badge #8841)</p>
+                    <p className="font-medium text-foreground">
+                      Inspector Vikram Rathore (Badge #8841)
+                    </p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Field Assistant / Seizure Officer:</span>
-                    <p className="font-medium text-foreground">Sub-Inspector Sandeep Nain (Badge #3319)</p>
+                    <span className="text-muted-foreground">
+                      Field Assistant / Seizure Officer:
+                    </span>
+                    <p className="font-medium text-foreground">
+                      Sub-Inspector Sandeep Nain (Badge #3319)
+                    </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Witness Statements:</span>
-                    <p className="font-medium text-foreground">4 Statements recorded under Section 180 BNSS (SHA-256 verified)</p>
+                    <p className="font-medium text-foreground">
+                      4 Statements recorded under Section 180 BNSS (SHA-256 verified)
+                    </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Charge Sheet Filing:</span>
-                    <Badge variant="outline" className="text-[10px] text-emerald-700 bg-emerald-50 border-emerald-300 dark:text-emerald-400">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] text-emerald-700 bg-emerald-50 border-emerald-300 dark:text-emerald-400"
+                    >
                       Final Report u/s 193 BNSS Filed on 28-Feb-2026
                     </Badge>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Forensic Lab Dispatch:</span>
-                    <p className="font-medium text-foreground">Exhibits dispatched to CFSL Rohini under Road Certificate RC-8821</p>
+                    <p className="font-medium text-foreground">
+                      Exhibits dispatched to CFSL Rohini under Road Certificate RC-8821
+                    </p>
                   </div>
                 </div>
               </div>
@@ -901,13 +929,21 @@ function CaseDossierPage() {
                 <div className="grid gap-2 sm:grid-cols-2 text-xs">
                   <div className="p-2.5 rounded border bg-muted/30">
                     <span className="font-mono font-bold text-primary">EV-1045</span>
-                    <p className="text-foreground font-medium mt-0.5">Encrypted Samsung Galaxy S24 Ultra</p>
-                    <p className="text-[11px] text-muted-foreground">Tamper Seal: MHA-EV-1045-A · Custody: Malkhana Vault B</p>
+                    <p className="text-foreground font-medium mt-0.5">
+                      Encrypted Samsung Galaxy S24 Ultra
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Tamper Seal: MHA-EV-1045-A · Custody: Malkhana Vault B
+                    </p>
                   </div>
                   <div className="p-2.5 rounded border bg-muted/30">
                     <span className="font-mono font-bold text-primary">EV-1046</span>
-                    <p className="text-foreground font-medium mt-0.5">SanDisk Extreme 2TB Portable SSD</p>
-                    <p className="text-[11px] text-muted-foreground">Tamper Seal: MHA-EV-1046-B · Custody: Digital Forensic Locker #04</p>
+                    <p className="text-foreground font-medium mt-0.5">
+                      SanDisk Extreme 2TB Portable SSD
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Tamper Seal: MHA-EV-1046-B · Custody: Digital Forensic Locker #04
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1060,33 +1096,54 @@ function CaseDossierPage() {
                 </Badge>
               </div>
               <CardDescription className="text-xs">
-                Real-time position and courtroom listing details on the court's official daily cause list.
+                Real-time position and courtroom listing details on the court's official daily cause
+                list.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               {current ? (
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="rounded-lg border p-3.5 bg-muted/20">
-                    <span className="text-xs text-muted-foreground font-medium">Cause List Position:</span>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      Cause List Position:
+                    </span>
                     <p className="text-2xl font-bold text-primary mt-1">Item #04</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Regular Hearing Batch (Morning Session)</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Regular Hearing Batch (Morning Session)
+                    </p>
                   </div>
                   <div className="rounded-lg border p-3.5 bg-muted/20">
-                    <span className="text-xs text-muted-foreground font-medium">Bench & Courtroom:</span>
-                    <p className="text-sm font-bold text-foreground mt-1">{current.judges?.name ?? "Presiding Judge"}</p>
-                    <p className="text-xs text-muted-foreground">{current.courtrooms?.name ?? "Courtroom Hall"}</p>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      Bench & Courtroom:
+                    </span>
+                    <p className="text-sm font-bold text-foreground mt-1">
+                      {current.judges?.name ?? "Presiding Judge"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {current.courtrooms?.name ?? "Courtroom Hall"}
+                    </p>
                   </div>
                   <div className="rounded-lg border p-3.5 bg-muted/20">
-                    <span className="text-xs text-muted-foreground font-medium">Scheduled Hearing Slot:</span>
-                    <p className="text-sm font-bold text-foreground mt-1">{formatSlot(current.hearing_slots)}</p>
-                    <p className="text-xs text-muted-foreground">Category: {record.case_categories?.name || "Criminal Trial"}</p>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      Scheduled Hearing Slot:
+                    </span>
+                    <p className="text-sm font-bold text-foreground mt-1">
+                      {formatSlot(current.hearing_slots)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Category: {record.case_categories?.name || "Criminal Trial"}
+                    </p>
                   </div>
                 </div>
               ) : (
                 <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground">
                   <ListOrdered className="size-8 mx-auto mb-2 text-muted-foreground/60" />
-                  <p className="text-sm font-medium text-foreground">Not listed on today's cause list</p>
-                  <p className="text-xs mt-1">This case is currently unlisted or pending registrar schedule confirmation.</p>
+                  <p className="text-sm font-medium text-foreground">
+                    Not listed on today's cause list
+                  </p>
+                  <p className="text-xs mt-1">
+                    This case is currently unlisted or pending registrar schedule confirmation.
+                  </p>
                 </div>
               )}
 
@@ -1123,6 +1180,10 @@ function CaseDossierPage() {
         <TabsContent value="timeline" className="space-y-6 pt-2">
           <CaseTimeline
             caseData={record}
+            documents={caseDocuments}
+            evidence={criminalEvidence}
+            custodyEvents={custodyHistoryEvents}
+            auditLogs={caseAuditLogs}
             adjournments={adjournments.data ?? []}
             nextHearingSlot={
               current?.hearing_slots
@@ -1135,6 +1196,15 @@ function CaseDossierPage() {
                   }
                 : null
             }
+          />
+        </TabsContent>
+
+        {/* DOCUMENT RELATIONSHIPS TAB */}
+        <TabsContent value="relationships" className="space-y-6 pt-2">
+          <DocumentRelationshipGraph
+            caseNumber={record.case_number}
+            documents={caseDocuments}
+            evidence={criminalEvidence}
           />
         </TabsContent>
 

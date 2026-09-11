@@ -39,14 +39,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { AppRole, canAccessWorkspace, normalizeRole, ROLE_METADATA } from "@/lib/rbac";
 
 export type PortalWorkspace =
-  | "police"
-  | "investigation"
-  | "forensic"
-  | "court"
-  | "legal"
-  | "evidence"
-  | "documents"
-  | "admin";
+  "police" | "investigation" | "forensic" | "court" | "legal" | "evidence" | "documents" | "admin";
 
 const workspaceCopy: Record<
   PortalWorkspace,
@@ -657,7 +650,9 @@ function AuthPage() {
                   <Sparkles className="size-3 text-primary" />
                   Evaluation Accounts (1-Click Fill)
                 </span>
-                <span className="text-[10px] text-primary font-mono font-medium">PW: Court123!</span>
+                <span className="text-[10px] text-primary font-mono font-medium">
+                  PW: Court123!
+                </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px]">
                 {DEMO_OFFICIAL_ACCOUNTS.map((demo) => {
@@ -684,7 +679,8 @@ function AuthPage() {
                 })}
               </div>
               <p className="mt-2 text-[10px] text-muted-foreground">
-                Tip: Click any official account above to fill credentials, then click <strong>Sign In</strong>.
+                Tip: Click any official account above to fill credentials, then click{" "}
+                <strong>Sign In</strong>.
               </p>
             </div>
           )}

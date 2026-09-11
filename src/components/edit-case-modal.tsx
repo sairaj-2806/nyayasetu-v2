@@ -92,9 +92,7 @@ export function EditCaseModal({ caseRow, triggerButton, onUpdated }: EditCaseMod
   const [limitationDeadline, setLimitationDeadline] = useState(
     caseRow.statutory_limitation_deadline || "",
   );
-  const [legalPriorityFlag, setLegalPriorityFlag] = useState(
-    Boolean(caseRow.legal_priority_flag),
-  );
+  const [legalPriorityFlag, setLegalPriorityFlag] = useState(Boolean(caseRow.legal_priority_flag));
 
   // Registry Amendment Justification
   const [amendmentReason, setAmendmentReason] = useState("");
@@ -163,9 +161,7 @@ export function EditCaseModal({ caseRow, triggerButton, onUpdated }: EditCaseMod
 
       // Record immutable audit entry
       const modifier = staff.data?.fullName || staff.data?.email || "Registry Staff";
-      const reasonSuffix = amendmentReason.trim()
-        ? ` Reason: "${amendmentReason.trim()}"`
-        : "";
+      const reasonSuffix = amendmentReason.trim() ? ` Reason: "${amendmentReason.trim()}"` : "";
       await recordAudit(
         `Registrar/Admin ${modifier} edited particulars for Case ${caseNumber}.${reasonSuffix}`,
         `case:${caseNumber}`,
@@ -493,7 +489,10 @@ export function EditCaseModal({ caseRow, triggerButton, onUpdated }: EditCaseMod
 
         {/* Audit Justification Field */}
         <div className="mt-2 space-y-1.5 rounded-md border border-dashed border-border bg-muted/30 p-3">
-          <Label htmlFor="amendment-reason" className="text-xs font-semibold flex items-center gap-1.5">
+          <Label
+            htmlFor="amendment-reason"
+            className="text-xs font-semibold flex items-center gap-1.5"
+          >
             <History className="size-3.5 text-muted-foreground" />
             Amendment Reason / Judicial Order Ref (Optional)
           </Label>

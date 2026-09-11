@@ -40,14 +40,22 @@ export type NavSection = {
 /** Bench (judge) accounts get a self-scoped workspace */
 export const benchNavSections: NavSection[] = [
   {
-    label: "My bench",
+    label: "Core Vault & Evidence",
     items: [
       { title: "My Bench", to: "/bench", icon: GavelIcon },
-      { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
-      { title: "Global Search", to: "/search", icon: Search },
-      { title: "Cases", to: "/cases", icon: Folder },
-      { title: "Digital Documents", to: "/documents", icon: FileText },
+      { title: "Secure Document Vault", to: "/documents", icon: FileText },
       { title: "Evidence Exhibits", to: "/evidence", icon: PackageCheck },
+      { title: "Cases", to: "/cases", icon: Folder },
+      { title: "Unified Search", to: "/search", icon: Search },
+      { title: "NyayaSetu Assistant", to: "/ai-assistant", icon: Sparkles },
+    ],
+  },
+  {
+    label: "Courtroom Proceedings",
+    items: [
+      { title: "Daily Cause List", to: "/cause-list", icon: ListOrdered },
+      { title: "Calendar", to: "/calendar", icon: CalendarDays },
+      { title: "Audit Trail", to: "/activity-log", icon: ScrollText },
     ],
   },
 ];
@@ -55,16 +63,19 @@ export const benchNavSections: NavSection[] = [
 /** Standard Registry navigation sections */
 export const navSections: NavSection[] = [
   {
-    label: "Overview",
+    label: "Core Investigation & DMS",
     items: [
-      { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-      { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
-      { title: "Global Search", to: "/search", icon: Search },
+      { title: "Command Center", to: "/dashboard", icon: LayoutDashboard },
+      { title: "Secure Document Vault", to: "/documents", icon: FileText },
+      { title: "Evidence & Custody", to: "/evidence", icon: PackageCheck },
       { title: "Cases", to: "/cases", icon: Folder },
+      { title: "Unified Search", to: "/search", icon: Search },
+      { title: "Audit & Security", to: "/activity-log", icon: ScrollText },
+      { title: "NyayaSetu Assistant", to: "/ai-assistant", icon: Sparkles },
     ],
   },
   {
-    label: "Court Operations",
+    label: "Case & Hearing Operations",
     items: [
       { title: "Smart Scheduling", to: "/smart-scheduling", icon: CalendarPlus },
       { title: "Cause List", to: "/cause-list", icon: ListOrdered },
@@ -77,26 +88,14 @@ export const navSections: NavSection[] = [
     ],
   },
   {
-    label: "Secure Vault",
-    items: [{ title: "Digital Documents", to: "/documents", icon: FileText }],
+    label: "Evidence & Asset Management",
+    items: [{ title: "Police Assets & Equipment", to: "/assets", icon: ShieldAlert }],
   },
   {
-    label: "Investigation & Evidence",
-    items: [{ title: "Evidence Exhibits", to: "/evidence", icon: PackageCheck }],
-  },
-  {
-    label: "Police Assets",
-    items: [{ title: "Police Assets", to: "/assets", icon: ShieldAlert }],
-  },
-  {
-    label: "Intelligence",
-    items: [{ title: "Reports", to: "/reports", icon: FileBarChart }],
-  },
-  {
-    label: "Security & Audit",
+    label: "Reports & Intelligence",
     items: [
-      { title: "Activity Log", to: "/activity-log", icon: ScrollText },
-      { title: "Governance & Compliance", to: "/governance", icon: ShieldCheck },
+      { title: "Reports & Analytics", to: "/reports", icon: FileBarChart },
+      { title: "Governance & Policies", to: "/governance", icon: ShieldCheck },
     ],
   },
   {
@@ -130,16 +129,19 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
   if (role === "registrar") {
     return [
       {
-        label: "Overview",
+        label: "Core Investigation & DMS",
         items: [
-          { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-          { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
-          { title: "Global Search", to: "/search", icon: Search },
+          { title: "Command Center", to: "/dashboard", icon: LayoutDashboard },
+          { title: "Secure Document Vault", to: "/documents", icon: FileText },
+          { title: "Evidence & Custody", to: "/evidence", icon: PackageCheck },
           { title: "Cases", to: "/cases", icon: Folder },
+          { title: "Unified Search", to: "/search", icon: Search },
+          { title: "Audit & Security", to: "/activity-log", icon: ScrollText },
+          { title: "NyayaSetu Assistant", to: "/ai-assistant", icon: Sparkles },
         ],
       },
       {
-        label: "Court Operations",
+        label: "Case & Hearing Operations",
         items: [
           { title: "Smart Scheduling", to: "/smart-scheduling", icon: CalendarPlus },
           { title: "Cause List", to: "/cause-list", icon: ListOrdered },
@@ -152,22 +154,10 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
         ],
       },
       {
-        label: "Secure Vault",
-        items: [{ title: "Digital Documents", to: "/documents", icon: FileText }],
-      },
-      {
-        label: "Evidence",
-        items: [{ title: "Evidence Exhibits", to: "/evidence", icon: PackageCheck }],
-      },
-      {
-        label: "Intelligence",
-        items: [{ title: "Reports", to: "/reports", icon: FileBarChart }],
-      },
-      {
-        label: "Security & Audit",
+        label: "Reports & Intelligence",
         items: [
-          { title: "Activity Log", to: "/activity-log", icon: ScrollText },
-          { title: "Governance & Compliance", to: "/governance", icon: ShieldCheck },
+          { title: "Reports", to: "/reports", icon: FileBarChart },
+          { title: "Governance & Policies", to: "/governance", icon: ShieldCheck },
         ],
       },
     ];
@@ -176,29 +166,20 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
   if (role === "investigating_officer") {
     return [
       {
-        label: "Overview",
+        label: "Investigation & Documents",
         items: [
-          { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-          { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
-          { title: "Global Search", to: "/search", icon: Search },
-          { title: "My Cases", to: "/cases", icon: Folder },
+          { title: "Command Center", to: "/dashboard", icon: LayoutDashboard },
+          { title: "Investigation Records & FIRs", to: "/documents", icon: FileText },
+          { title: "Case Exhibits & Custody", to: "/evidence", icon: PackageCheck },
+          { title: "Assigned Cases", to: "/cases", icon: Folder },
+          { title: "Unified Search", to: "/search", icon: Search },
+          { title: "NyayaSetu Assistant", to: "/ai-assistant", icon: Sparkles },
+          { title: "Investigation Activity Log", to: "/activity-log", icon: ScrollText },
         ],
       },
       {
-        label: "Investigation & Documents",
-        items: [{ title: "Investigation Records & FIRs", to: "/documents", icon: FileText }],
-      },
-      {
-        label: "Evidence & Custody",
-        items: [{ title: "Case Exhibits", to: "/evidence", icon: PackageCheck }],
-      },
-      {
-        label: "Police Assets",
-        items: [{ title: "Tactical Assets & Fleet", to: "/assets", icon: ShieldAlert }],
-      },
-      {
-        label: "Security & Audit",
-        items: [{ title: "Investigation Activity Log", to: "/activity-log", icon: ScrollText }],
+        label: "Tactical Equipment",
+        items: [{ title: "Assigned Gear & Vehicles", to: "/assets", icon: ShieldAlert }],
       },
     ];
   }
@@ -206,29 +187,20 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
   if (role === "forensic_officer") {
     return [
       {
-        label: "Overview",
+        label: "Forensic Records & Custody",
         items: [
-          { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-          { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
-          { title: "Global Search", to: "/search", icon: Search },
-          { title: "Cases", to: "/cases", icon: Folder },
+          { title: "Command Center", to: "/dashboard", icon: LayoutDashboard },
+          { title: "FSL Reports & BSA §63", to: "/documents", icon: FileText },
+          { title: "Evidence Under Exam", to: "/evidence", icon: PackageCheck },
+          { title: "Assigned Cases", to: "/cases", icon: Folder },
+          { title: "Unified Search", to: "/search", icon: Search },
+          { title: "NyayaSetu Assistant", to: "/ai-assistant", icon: Sparkles },
+          { title: "Forensic Chain Audit", to: "/activity-log", icon: ScrollText },
         ],
-      },
-      {
-        label: "Forensic Records",
-        items: [{ title: "FSL Reports & BSA §63", to: "/documents", icon: FileText }],
-      },
-      {
-        label: "Exhibits & Examination",
-        items: [{ title: "Evidence Under Exam", to: "/evidence", icon: PackageCheck }],
       },
       {
         label: "Lab Equipment",
         items: [{ title: "Calibration & Maintenance", to: "/assets", icon: ShieldAlert }],
-      },
-      {
-        label: "Security & Audit",
-        items: [{ title: "Forensic Chain Audit", to: "/activity-log", icon: ScrollText }],
       },
     ];
   }
@@ -236,29 +208,20 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
   if (role === "evidence_custodian") {
     return [
       {
-        label: "Overview",
+        label: "Malkhana Vault & Custody",
         items: [
-          { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-          { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
-          { title: "Global Search", to: "/search", icon: Search },
+          { title: "Command Center", to: "/dashboard", icon: LayoutDashboard },
+          { title: "Evidence Inventory & Vault", to: "/evidence", icon: PackageCheck },
+          { title: "Custody Receipts & Orders", to: "/documents", icon: FileText },
           { title: "Cases", to: "/cases", icon: Folder },
+          { title: "Unified Search", to: "/search", icon: Search },
+          { title: "NyayaSetu Assistant", to: "/ai-assistant", icon: Sparkles },
+          { title: "Custody Transfer Ledger", to: "/activity-log", icon: ScrollText },
         ],
-      },
-      {
-        label: "Malkhana Vault",
-        items: [{ title: "Evidence Inventory & Vault", to: "/evidence", icon: PackageCheck }],
-      },
-      {
-        label: "Custody Records",
-        items: [{ title: "Custody Receipts & Orders", to: "/documents", icon: FileText }],
       },
       {
         label: "Police Assets",
         items: [{ title: "Asset Registry & Transfers", to: "/assets", icon: ShieldAlert }],
-      },
-      {
-        label: "Security & Audit",
-        items: [{ title: "Custody Transfer Ledger", to: "/activity-log", icon: ScrollText }],
       },
     ];
   }
@@ -266,12 +229,15 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
   if (role === "legal_officer") {
     return [
       {
-        label: "Overview",
+        label: "Legal Vault & Filings",
         items: [
-          { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-          { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
-          { title: "Global Search", to: "/search", icon: Search },
+          { title: "Command Center", to: "/dashboard", icon: LayoutDashboard },
+          { title: "Charge Sheets & Filings", to: "/documents", icon: FileText },
+          { title: "Trial Exhibits", to: "/evidence", icon: PackageCheck },
           { title: "Assigned Cases", to: "/cases", icon: Folder },
+          { title: "Unified Search", to: "/search", icon: Search },
+          { title: "NyayaSetu Assistant", to: "/ai-assistant", icon: Sparkles },
+          { title: "Case Filing Audit", to: "/activity-log", icon: ScrollText },
         ],
       },
       {
@@ -281,44 +247,27 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
           { title: "Trial Calendar", to: "/calendar", icon: CalendarDays },
         ],
       },
-      {
-        label: "Legal Vault",
-        items: [{ title: "Charge Sheets & Filings", to: "/documents", icon: FileText }],
-      },
-      {
-        label: "Evidence",
-        items: [{ title: "Trial Exhibits", to: "/evidence", icon: PackageCheck }],
-      },
-      {
-        label: "Security & Audit",
-        items: [{ title: "Case Filing Audit", to: "/activity-log", icon: ScrollText }],
-      },
     ];
   }
 
   if (role === "document_officer") {
     return [
       {
-        label: "Overview",
+        label: "Secure Document Vault",
         items: [
-          { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-          { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
-          { title: "Global Search", to: "/search", icon: Search },
+          { title: "Command Center", to: "/dashboard", icon: LayoutDashboard },
+          { title: "Digital Document Vault", to: "/documents", icon: FileText },
+          { title: "Evidence Records", to: "/evidence", icon: PackageCheck },
           { title: "Cases", to: "/cases", icon: Folder },
+          { title: "Unified Search", to: "/search", icon: Search },
+          { title: "NyayaSetu Assistant", to: "/ai-assistant", icon: Sparkles },
+          { title: "Document Access Audit", to: "/activity-log", icon: ScrollText },
         ],
       },
       {
-        label: "Secure Vault",
-        items: [{ title: "Digital Document Vault", to: "/documents", icon: FileText }],
-      },
-      {
-        label: "Intelligence",
-        items: [{ title: "Vault & Integrity Reports", to: "/reports", icon: FileBarChart }],
-      },
-      {
-        label: "Security & Audit",
+        label: "Intelligence & Compliance",
         items: [
-          { title: "Document Access Audit", to: "/activity-log", icon: ScrollText },
+          { title: "Vault & Integrity Reports", to: "/reports", icon: FileBarChart },
           { title: "Governance & Policies", to: "/governance", icon: ShieldCheck },
         ],
       },
@@ -328,25 +277,20 @@ export function getNavSectionsForRole(rawRole: AppRole | string | null | undefin
   // Default: Police Officer
   return [
     {
-      label: "Overview",
+      label: "Core Investigation",
       items: [
-        { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-        { title: "AI Judicial Copilot", to: "/ai-assistant", icon: Sparkles },
-        { title: "Global Search", to: "/search", icon: Search },
+        { title: "Command Center", to: "/dashboard", icon: LayoutDashboard },
+        { title: "Investigation Documents", to: "/documents", icon: FileText },
+        { title: "Seized Exhibits", to: "/evidence", icon: PackageCheck },
         { title: "Assigned Cases", to: "/cases", icon: Folder },
+        { title: "Unified Search", to: "/search", icon: Search },
+        { title: "NyayaSetu Assistant", to: "/ai-assistant", icon: Sparkles },
+        { title: "Station Activity Log", to: "/activity-log", icon: ScrollText },
       ],
     },
     {
       label: "Police Assets",
       items: [{ title: "Assigned Equipment", to: "/assets", icon: ShieldAlert }],
-    },
-    {
-      label: "Evidence",
-      items: [{ title: "Seized Exhibits", to: "/evidence", icon: PackageCheck }],
-    },
-    {
-      label: "Security & Audit",
-      items: [{ title: "Station Activity Log", to: "/activity-log", icon: ScrollText }],
     },
   ];
 }

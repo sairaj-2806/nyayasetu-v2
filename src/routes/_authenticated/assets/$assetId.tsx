@@ -371,6 +371,9 @@ function AssetDetailPage() {
     },
   });
 
+  const pendingTransfersQueryInstance = useQuery(pendingEvidenceTransfersQuery(assetId));
+  const pendingTransfers = pendingTransfersQueryInstance.data ?? [];
+
   function openActionModal(action: LifecycleActionDefinition) {
     setSelectedAction(action);
     setReason("");
@@ -445,8 +448,6 @@ function AssetDetailPage() {
   }
 
   const allowedActions = getAllowedActions(asset.status, staffRole);
-  const pendingTransfersQueryInstance = useQuery(pendingEvidenceTransfersQuery(asset.id));
-  const pendingTransfers = pendingTransfersQueryInstance.data ?? [];
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 sm:py-10">
@@ -1007,16 +1008,8 @@ function AssetDetailPage() {
                         {new Date(doc.created_at).toLocaleDateString("en-IN")}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs gap-1"
-                          asChild
-                        >
-                          <Link
-                            to="/documents/$documentId"
-                            params={{ documentId: doc.id }}
-                          >
+                        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" asChild>
+                          <Link to="/documents/$documentId" params={{ documentId: doc.id }}>
                             <FileCheck className="size-3.5 text-emerald-600" />
                             View & Verify
                           </Link>

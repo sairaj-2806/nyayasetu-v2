@@ -33,7 +33,7 @@ for (const line of envContent.split("\n")) {
 function createSupabaseFetch(supabaseKey) {
   return (input, init) => {
     const headers = new Headers(
-      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined
+      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
     );
     if (init?.headers) {
       new Headers(init.headers).forEach((value, key) => headers.set(key, value));
@@ -46,9 +46,13 @@ function createSupabaseFetch(supabaseKey) {
   };
 }
 
-const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-  global: { fetch: createSupabaseFetch(process.env.SUPABASE_SERVICE_ROLE_KEY) },
-});
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    global: { fetch: createSupabaseFetch(process.env.SUPABASE_SERVICE_ROLE_KEY) },
+  },
+);
 
 let passedTests = 0;
 let totalTests = 0;
@@ -125,7 +129,7 @@ async function runCustodyVerification() {
   assert(
     verificationHash1.length === 64 && /^[0-9a-f]{64}$/.test(verificationHash1),
     "Verification hash generated via authentic SHA-256 (64 hex characters, zero Math.random)",
-    verificationHash1
+    verificationHash1,
   );
 
   // Write dispatch to Supabase audit_logs
@@ -156,20 +160,24 @@ async function runCustodyVerification() {
   assert(!dispatchAuditErr, "Authoritative dispatch audit event written to Supabase audit_logs");
 
   // Attempt write to asset_transfers if table exists
-  await supabaseAdmin.from("asset_transfers").insert({
-    id: transferId1,
-    asset_id: testAssetId,
-    transfer_number: transferNum1,
-    from_location: "Kashmere Gate Police Malkhana",
-    to_location: "Central Forensic Science Laboratory (CFSL)",
-    from_custodian_name: "Sub-Inspector Vikram Singh",
-    to_custodian_name: "Senior Scientific Officer Dr. Mehta",
-    dispatched_at: now,
-    status: "IN_TRANSIT",
-    reason: "Ballistic comparison against suspect firearm",
-    transit_seal_number: transitSeal1,
-    signature_verification: verificationHash1,
-  }).then(() => {}).catch(() => {});
+  await supabaseAdmin
+    .from("asset_transfers")
+    .insert({
+      id: transferId1,
+      asset_id: testAssetId,
+      transfer_number: transferNum1,
+      from_location: "Kashmere Gate Police Malkhana",
+      to_location: "Central Forensic Science Laboratory (CFSL)",
+      from_custodian_name: "Sub-Inspector Vikram Singh",
+      to_custodian_name: "Senior Scientific Officer Dr. Mehta",
+      dispatched_at: now,
+      status: "IN_TRANSIT",
+      reason: "Ballistic comparison against suspect firearm",
+      transit_seal_number: transitSeal1,
+      signature_verification: verificationHash1,
+    })
+    .then(() => {})
+    .catch(() => {});
 
   // -------------------------------------------------------------
   // TEST 2: Receipt Acknowledgement & Chain Custody Verification
@@ -219,11 +227,12 @@ async function runCustodyVerification() {
     })
     .eq("id", testAssetId);
 
-  const assetUpdateSuccessOrPending = !assetUpdateErr || assetUpdateErr.message.includes("schema cache");
+  const assetUpdateSuccessOrPending =
+    !assetUpdateErr || assetUpdateErr.message.includes("schema cache");
   assert(
     assetUpdateSuccessOrPending,
     "Asset custody location and custodian updated in database (or handled via schema cache resilient fallback)",
-    assetUpdateErr?.message
+    assetUpdateErr?.message,
   );
 
   // -------------------------------------------------------------
@@ -238,7 +247,9 @@ async function runCustodyVerification() {
   // Validation function matching server rule:
   const validateRejectionReason = (reason) => {
     if (!reason || reason.trim().length < 10) {
-      throw new Error("A statutory rejection reason of at least 10 characters is mandatory under BSA 2023 §63.");
+      throw new Error(
+        "A statutory rejection reason of at least 10 characters is mandatory under BSA 2023 §63.",
+      );
     }
     return true;
   };
@@ -257,7 +268,10 @@ async function runCustodyVerification() {
   } catch (err) {
     console.error("DEBUG validReason error:", err);
   }
-  assert(validReasonPassed, "Rejection passes validation with substantive statutory reason (> 10 chars)");
+  assert(
+    validReasonPassed,
+    "Rejection passes validation with substantive statutory reason (> 10 chars)",
+  );
 
   const rejectTimestamp = new Date().toISOString();
   const { error: rejectAuditErr } = await supabaseAdmin.from("audit_logs").insert({
@@ -286,7 +300,9 @@ async function runCustodyVerification() {
   let duplicateReceiptPrevented = false;
   const simulateReceiptOnTransfer = (transferStatus) => {
     if (transferStatus !== "PENDING" && transferStatus !== "IN_TRANSIT") {
-      throw new Error(`Cannot acknowledge receipt: Transfer is already in status '${transferStatus}'.`);
+      throw new Error(
+        `Cannot acknowledge receipt: Transfer is already in status '${transferStatus}'.`,
+      );
     }
   };
 
@@ -295,7 +311,10 @@ async function runCustodyVerification() {
   } catch (err) {
     duplicateReceiptPrevented = err.message.includes("already in status");
   }
-  assert(duplicateReceiptPrevented, "System strictly forbids re-receiving already completed transfers");
+  assert(
+    duplicateReceiptPrevented,
+    "System strictly forbids re-receiving already completed transfers",
+  );
 
   // -------------------------------------------------------------
   // TEST 5: Unauthorized Receipt Prevention
@@ -312,7 +331,10 @@ async function runCustodyVerification() {
 
   const testUserRoles = ["litigant", "public_citizen"];
   const isAuthorizedToReceive = testUserRoles.some((r) => AUTHORIZED_RECEIVING_ROLES.has(r));
-  assert(!isAuthorizedToReceive, "Public/Litigant roles strictly forbidden from receiving evidence");
+  assert(
+    !isAuthorizedToReceive,
+    "Public/Litigant roles strictly forbidden from receiving evidence",
+  );
 
   // -------------------------------------------------------------
   // TEST 6: Unauthorized Dispatch Prevention
@@ -329,7 +351,10 @@ async function runCustodyVerification() {
 
   const judgeRoles = ["judge"]; // In NyayaSetu judicial chambers, judges do not physically dispatch malkhana evidence
   const isJudgeAllowedToDispatch = judgeRoles.some((r) => AUTHORIZED_RELEASE_ROLES.has(r));
-  assert(!isJudgeAllowedToDispatch, "Non-custodian judicial bench roles cannot dispatch malkhana evidence directly");
+  assert(
+    !isJudgeAllowedToDispatch,
+    "Non-custodian judicial bench roles cannot dispatch malkhana evidence directly",
+  );
 
   // -------------------------------------------------------------
   // TEST 7: Stale Transfer Modification Prevention
@@ -341,7 +366,10 @@ async function runCustodyVerification() {
   } catch (err) {
     staleModificationPrevented = err.message.includes("already in status");
   }
-  assert(staleModificationPrevented, "Rejected transfers cannot be transitioned to completed or modified");
+  assert(
+    staleModificationPrevented,
+    "Rejected transfers cannot be transitioned to completed or modified",
+  );
 
   // -------------------------------------------------------------
   // TEST 8: Server-Authoritative Persistence Check (Zero localStorage)
@@ -353,7 +381,11 @@ async function runCustodyVerification() {
     .ilike("entity_affected", `%${testAssetId}%`)
     .order("timestamp", { ascending: true });
 
-  assert(!queryErr && retrievedLogs && retrievedLogs.length >= 2, "Custody history retrieved authoritatively from Supabase DB", `Count: ${retrievedLogs?.length}`);
+  assert(
+    !queryErr && retrievedLogs && retrievedLogs.length >= 2,
+    "Custody history retrieved authoritatively from Supabase DB",
+    `Count: ${retrievedLogs?.length}`,
+  );
 
   // Check that all retrieved audit actions have valid action codes
   const actions = retrievedLogs.map((l) => {
@@ -363,8 +395,14 @@ async function runCustodyVerification() {
       return "";
     }
   });
-  assert(actions.includes("EVIDENCE_DISPATCHED"), "Authoritative EVIDENCE_DISPATCHED record confirmed in DB");
-  assert(actions.includes("EVIDENCE_RECEIVED"), "Authoritative EVIDENCE_RECEIVED record confirmed in DB");
+  assert(
+    actions.includes("EVIDENCE_DISPATCHED"),
+    "Authoritative EVIDENCE_DISPATCHED record confirmed in DB",
+  );
+  assert(
+    actions.includes("EVIDENCE_RECEIVED"),
+    "Authoritative EVIDENCE_RECEIVED record confirmed in DB",
+  );
 
   // -------------------------------------------------------------
   // TEST 9: Concurrency Control & Active Pending Transfer Conflict
@@ -374,10 +412,12 @@ async function runCustodyVerification() {
   let secondDispatchBlocked = false;
   const checkActiveTransferConflict = (existingActiveTransfers, assetId) => {
     const active = existingActiveTransfers.find(
-      (t) => t.asset_id === assetId && (t.status === "PENDING" || t.status === "IN_TRANSIT")
+      (t) => t.asset_id === assetId && (t.status === "PENDING" || t.status === "IN_TRANSIT"),
     );
     if (active) {
-      throw new Error(`Concurrent Transfer Conflict: Asset ${assetId} already has an active transfer in transit (${active.transfer_number}).`);
+      throw new Error(
+        `Concurrent Transfer Conflict: Asset ${assetId} already has an active transfer in transit (${active.transfer_number}).`,
+      );
     }
   };
 
@@ -390,12 +430,15 @@ async function runCustodyVerification() {
           transfer_number: transferNum1,
         },
       ],
-      testAssetId
+      testAssetId,
     );
   } catch (err) {
     secondDispatchBlocked = err.message.includes("already has an active transfer");
   }
-  assert(secondDispatchBlocked, "Second concurrent transfer for the same evidence asset is strictly blocked");
+  assert(
+    secondDispatchBlocked,
+    "Second concurrent transfer for the same evidence asset is strictly blocked",
+  );
 
   // Clean up test asset
   console.log("\nCleaning up test evidence records...");

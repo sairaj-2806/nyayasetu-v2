@@ -13,9 +13,15 @@ import {
 } from "@/lib/rbac";
 import { isDemoMode } from "@/lib/demo-mode";
 import { SEED_POLICE_ASSETS } from "@/lib/assets";
-import { seedInitialDocuments, type DocumentAccessLog, type VerificationState } from "@/lib/documents";
+import {
+  seedInitialDocuments,
+  type DocumentAccessLog,
+  type VerificationState,
+} from "@/lib/documents";
+import { checkActiveShareGrant } from "@/lib/document-shares";
 
-const OPAQUE_ACCESS_DENIED = "Access Denied: Record not found or you lack statutory clearance to inspect this record.";
+const OPAQUE_ACCESS_DENIED =
+  "Access Denied: Record not found or you lack statutory clearance to inspect this record.";
 
 async function logRecordAccessDenied(
   actor: string,
@@ -60,7 +66,9 @@ export const getAuthorizedAssetDetail = createServerFn({ method: "POST" })
       windowMs: 60_000,
     });
     if (!rateCheck.allowed) {
-      throw new Error("Rate limit exceeded. Please wait before requesting additional asset details.");
+      throw new Error(
+        "Rate limit exceeded. Please wait before requesting additional asset details.",
+      );
     }
 
     const userRoles = await getEffectiveRoles(userId);
@@ -104,7 +112,9 @@ export const getAuthorizedAssetDetail = createServerFn({ method: "POST" })
         case_title: c?.parties || null,
       };
     } else if (isDemoMode()) {
-      asset = SEED_POLICE_ASSETS.find((a) => a.id === data.assetId || a.asset_code === data.assetId);
+      asset = SEED_POLICE_ASSETS.find(
+        (a) => a.id === data.assetId || a.asset_code === data.assetId,
+      );
     }
 
     if (!asset) {
@@ -129,7 +139,9 @@ export const getAuthorizedAssetDetail = createServerFn({ method: "POST" })
       }
     }
 
-    const authorized = canAccessAssetRecord(effectiveRole, asset, assignedCaseIds);
+    const authorized =
+      userRoles.length > 0 &&
+      userRoles.some((r) => canAccessAssetRecord(r as AppRole, asset, assignedCaseIds));
     if (!authorized) {
       await logRecordAccessDenied(
         userEmail,
@@ -274,7 +286,9 @@ export const getAuthorizedDocumentDetail = createServerFn({ method: "POST" })
       windowMs: 60_000,
     });
     if (!rateCheck.allowed) {
-      throw new Error("Rate limit exceeded. Please wait before requesting additional document details.");
+      throw new Error(
+        "Rate limit exceeded. Please wait before requesting additional document details.",
+      );
     }
 
     const userRoles = await getEffectiveRoles(userId);
@@ -332,7 +346,7 @@ export const getAuthorizedDocumentDetail = createServerFn({ method: "POST" })
         asset_code: null,
         relationship_type: null,
         uploaded_by_name: (dbDoc.metadata as any)?.uploaded_by_name || "Authorized Staff",
-        uploaded_by_role: (dbDoc.metadata as any)?.uploaded_by_role || "registrar",
+        uploaded_by_role: (dbDoc.metadata as any)?.uploaded_by_role || "unassigned",
         content_text: (dbDoc.metadata as any)?.contentText || undefined,
         metadata: (dbDoc.metadata as Record<string, unknown>) || {},
         created_at: dbDoc.created_at,
@@ -340,7 +354,9 @@ export const getAuthorizedDocumentDetail = createServerFn({ method: "POST" })
       };
     } else if (isDemoMode()) {
       const seeds = seedInitialDocuments();
-      doc = seeds.find((d) => d.id === data.documentId || d.document_number === data.documentId) || null;
+      doc =
+        seeds.find((d) => d.id === data.documentId || d.document_number === data.documentId) ||
+        null;
     }
 
     if (!doc) {
@@ -367,7 +383,16 @@ export const getAuthorizedDocumentDetail = createServerFn({ method: "POST" })
       }
     }
 
-    const authorized = canAccessDocumentRecord(effectiveRole, doc, judgeId, assignedCaseIds);
+    let authorized =
+      userRoles.length > 0 &&
+      userRoles.some((r) => canAccessDocumentRecord(r as AppRole, doc, judgeId, assignedCaseIds));
+    if (!authorized) {
+      const shareCheck = checkActiveShareGrant(doc.id, userId, userRoles, "VIEW");
+      if (shareCheck.allowed) {
+        authorized = true;
+      }
+    }
+
     if (!authorized) {
       await logRecordAccessDenied(
         userEmail,
@@ -401,7 +426,7 @@ export const getAuthorizedDocumentDetail = createServerFn({ method: "POST" })
           storage_path: v.storage_path,
           change_summary: v.change_summary || "",
           uploaded_by_name: v.uploaded_by_name || "Authorized Officer",
-          uploaded_by_role: v.uploaded_by_role || "registrar",
+          uploaded_by_role: v.uploaded_by_role || "unassigned",
           digital_signature: v.digital_signature || null,
           signer_identity: v.signer_identity || null,
           is_tampered: v.is_tampered || false,
@@ -417,7 +442,10 @@ export const getAuthorizedDocumentDetail = createServerFn({ method: "POST" })
         version_number: doc.current_version,
         sha256_hash: doc.latest_sha256,
         file_name: doc.file_name,
-        mime_type: doc.file_format === "PDF" || doc.file_format === "PDF/A" ? "application/pdf" : "application/octet-stream",
+        mime_type:
+          doc.file_format === "PDF" || doc.file_format === "PDF/A"
+            ? "application/pdf"
+            : "application/octet-stream",
         file_size_bytes: doc.file_size_bytes,
         storage_path: doc.storage_path,
         change_summary: "Initial registry deposit & cryptographic registration",
@@ -428,7 +456,9 @@ export const getAuthorizedDocumentDetail = createServerFn({ method: "POST" })
       });
     }
 
-    const activeVer = versions.find((v) => v.version_number === doc.current_version) || versions[versions.length - 1];
+    const activeVer =
+      versions.find((v) => v.version_number === doc.current_version) ||
+      versions[versions.length - 1];
     const activeHash = activeVer?.sha256_hash || doc.latest_sha256;
 
     const verificationState: VerificationState = isDemoMode() ? "SIMULATED_DEMO" : "LIVE_VERIFIED";
@@ -445,12 +475,16 @@ export const getAuthorizedDocumentDetail = createServerFn({ method: "POST" })
       certificate_ref: "INTERNAL_PLATFORM_KEY",
       bsa_compliance_clause:
         "Certified under Section 63, Bharatiya Sakshya Adhiniyam, 2023 (Algorithmic Electronic Record Hash)",
-      verification_status: doc.is_tampered ? ("INTEGRITY_MISMATCH" as const) : ("VERIFIED" as const),
+      verification_status: doc.is_tampered
+        ? ("INTEGRITY_MISMATCH" as const)
+        : ("VERIFIED" as const),
       last_verified_at: new Date().toISOString(),
       ledger_anchor: {
         isAnchored: false,
         verificationState,
-        targetLedgerName: isDemoMode() ? "Demo Local Sandbox (Simulation)" : "Not blockchain anchored",
+        targetLedgerName: isDemoMode()
+          ? "Demo Local Sandbox (Simulation)"
+          : "Not blockchain anchored",
         statusMessage: isDemoMode()
           ? "Demo simulation only: no external blockchain network transaction exists."
           : "Storage integrity secured via Cloudflare R2 & Supabase immutable SHA-256 digests.",
@@ -503,7 +537,9 @@ export const getAuthorizedCaseDetail = createServerFn({ method: "POST" })
       windowMs: 60_000,
     });
     if (!rateCheck.allowed) {
-      throw new Error("Rate limit exceeded. Please wait before requesting additional case details.");
+      throw new Error(
+        "Rate limit exceeded. Please wait before requesting additional case details.",
+      );
     }
 
     const userRoles = await getEffectiveRoles(userId);
@@ -559,7 +595,11 @@ export const getAuthorizedCaseDetail = createServerFn({ method: "POST" })
       }
     }
 
-    const authorized = canAccessCaseRecord(effectiveRole, dbCase as any, judgeId, assignedCaseIds);
+    const authorized =
+      userRoles.length > 0 &&
+      userRoles.some((r) =>
+        canAccessCaseRecord(r as AppRole, dbCase as any, judgeId, assignedCaseIds),
+      );
     if (!authorized) {
       await logRecordAccessDenied(
         userEmail,

@@ -28,7 +28,7 @@ for (const line of envContent.split("\n")) {
 function createSupabaseFetch(supabaseKey) {
   return (input, init) => {
     const headers = new Headers(
-      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined
+      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
     );
     if (init?.headers) {
       new Headers(init.headers).forEach((value, key) => headers.set(key, value));
@@ -41,9 +41,13 @@ function createSupabaseFetch(supabaseKey) {
   };
 }
 
-const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-  global: { fetch: createSupabaseFetch(process.env.SUPABASE_SERVICE_ROLE_KEY) },
-});
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    global: { fetch: createSupabaseFetch(process.env.SUPABASE_SERVICE_ROLE_KEY) },
+  },
+);
 
 let passedTests = 0;
 let totalTests = 0;
@@ -84,7 +88,11 @@ async function runVerificationSuite() {
     httpMetadata: { contentType: "application/pdf" },
     customMetadata: { documentId: testDocId, version: "1", sha256: v1Sha256 },
   });
-  assert(r2PutV1 && r2PutV1.key === v1R2Key, "v1 object stored in Cloudflare R2 vault with canonical key", v1R2Key);
+  assert(
+    r2PutV1 && r2PutV1.key === v1R2Key,
+    "v1 object stored in Cloudflare R2 vault with canonical key",
+    v1R2Key,
+  );
 
   // Write audit trail for v1 upload
   await supabaseAdmin.from("audit_logs").insert({
@@ -112,7 +120,10 @@ async function runVerificationSuite() {
   const v1Stored = await getR2Object(v1R2Key);
   assert(v1Stored !== null, "v1 object exists and is retrievable from Cloudflare R2");
   const v1RetrievedText = await v1Stored.text();
-  assert(v1RetrievedText === v1Content, "v1 file content retrieved from R2 matches deposited bytes byte-for-byte");
+  assert(
+    v1RetrievedText === v1Content,
+    "v1 file content retrieved from R2 matches deposited bytes byte-for-byte",
+  );
 
   // -------------------------------------------------------------
   // TEST 2: Create v2 (Monotonically increasing version number)
@@ -159,7 +170,10 @@ async function runVerificationSuite() {
   // Check version monotonicity
   const currentVerNumber = 1;
   const newVerNumber = currentVerNumber + 1;
-  assert(newVerNumber === 2 && newVerNumber > currentVerNumber, "Version number is strictly monotonically increasing (1 -> 2)");
+  assert(
+    newVerNumber === 2 && newVerNumber > currentVerNumber,
+    "Version number is strictly monotonically increasing (1 -> 2)",
+  );
 
   // -------------------------------------------------------------
   // TEST 3: View v1 from R2
@@ -168,7 +182,10 @@ async function runVerificationSuite() {
   const v1Obj = await getR2Object(v1R2Key);
   assert(v1Obj !== null, "v1 remains accessible in R2 and was NOT overwritten by v2 creation");
   const v1ActualContent = await v1Obj.text();
-  assert(v1ActualContent === v1Content, "v1 historical version content remains intact and uncorrupted");
+  assert(
+    v1ActualContent === v1Content,
+    "v1 historical version content remains intact and uncorrupted",
+  );
 
   // -------------------------------------------------------------
   // TEST 4: View v2 from R2
@@ -177,7 +194,10 @@ async function runVerificationSuite() {
   const v2Obj = await getR2Object(v2R2Key);
   assert(v2Obj !== null, "v2 object is retrievable from Cloudflare R2");
   const v2ActualContent = await v2Obj.text();
-  assert(v2ActualContent === v2Content, "v2 file content matches newly committed supplementary filing");
+  assert(
+    v2ActualContent === v2Content,
+    "v2 file content matches newly committed supplementary filing",
+  );
 
   // -------------------------------------------------------------
   // TEST 5: Verify Cryptographic SHA-256 Hashes
@@ -186,19 +206,28 @@ async function runVerificationSuite() {
   // A. Verify v1 hash
   const v1LiveBytes = new Uint8Array(await v1Obj.arrayBuffer());
   const v1ComputedHash = await computeSha256(v1LiveBytes);
-  assert(v1ComputedHash.toLowerCase() === v1Sha256.toLowerCase(), "v1 cryptographic verification: Live R2 digest matches recorded deposit hash");
+  assert(
+    v1ComputedHash.toLowerCase() === v1Sha256.toLowerCase(),
+    "v1 cryptographic verification: Live R2 digest matches recorded deposit hash",
+  );
 
   // B. Verify v2 hash
   const v2LiveBytes = new Uint8Array(await v2Obj.arrayBuffer());
   const v2ComputedHash = await computeSha256(v2LiveBytes);
-  assert(v2ComputedHash.toLowerCase() === v2Sha256.toLowerCase(), "v2 cryptographic verification: Live R2 digest matches recorded deposit hash");
+  assert(
+    v2ComputedHash.toLowerCase() === v2Sha256.toLowerCase(),
+    "v2 cryptographic verification: Live R2 digest matches recorded deposit hash",
+  );
 
   // C. Test tamper simulation detection: inject altered byte
   const tamperedBytes = new Uint8Array(v1LiveBytes);
   tamperedBytes[tamperedBytes.length - 1] ^= 0xff; // Flip bits
   const tamperedComputedHash = await computeSha256(tamperedBytes);
   const isMatch = tamperedComputedHash.toLowerCase() === v1Sha256.toLowerCase();
-  assert(isMatch === false, "Tampered payload correctly detected: Hash divergence detected (INTEGRITY_MISMATCH)");
+  assert(
+    isMatch === false,
+    "Tampered payload correctly detected: Hash divergence detected (INTEGRITY_MISMATCH)",
+  );
 
   // -------------------------------------------------------------
   // TEST 6: Unauthorized User Attempts Access
@@ -216,7 +245,10 @@ async function runVerificationSuite() {
       return roles.some((r) => ["judge", "police_officer", "registrar"].includes(r));
     }
     if (sensitivity === "RESTRICTED") {
-      return roles.some((r) => ["police_officer", "investigating_officer"].includes(r)) || (roles.includes("judge") && isJudge);
+      return (
+        roles.some((r) => ["police_officer", "investigating_officer"].includes(r)) ||
+        (roles.includes("judge") && isJudge)
+      );
     }
     if (sensitivity === "SEALED_COVER_IN_CAMERA") {
       return (roles.includes("judge") && isJudge) || roles.includes("registrar");
@@ -225,7 +257,10 @@ async function runVerificationSuite() {
   }
 
   const unauthorizedAccessAllowed = checkAccess(userRoles, testSensitivity, isAssignedJudge);
-  assert(unauthorizedAccessAllowed === false, "Unauthorized role [public_litigant] is strictly denied access to RESTRICTED record");
+  assert(
+    unauthorizedAccessAllowed === false,
+    "Unauthorized role [public_litigant] is strictly denied access to RESTRICTED record",
+  );
 
   // Record audit security alert for unauthorized attempt
   await supabaseAdmin.from("audit_logs").insert({
@@ -251,7 +286,10 @@ async function runVerificationSuite() {
     .ilike("action", `%${testDocNum}%`)
     .order("timestamp", { ascending: true });
 
-  assert(!logErr && auditLogs && auditLogs.length >= 2, "Document filing and version events recovered from Supabase audit logs after restart");
+  assert(
+    !logErr && auditLogs && auditLogs.length >= 2,
+    "Document filing and version events recovered from Supabase audit logs after restart",
+  );
 
   // Extract reconstructed versions from audit logs
   let reconstructedVersions = [];
@@ -260,21 +298,37 @@ async function runVerificationSuite() {
     if (payload.action_code === "DOCUMENT_UPLOADED") {
       reconstructedVersions.push({ version: 1, sha256: payload.metadata.sha256 });
     } else if (payload.action_code === "VERSION_CREATED") {
-      reconstructedVersions.push({ version: payload.metadata.versionNumber, sha256: payload.metadata.sha256 });
+      reconstructedVersions.push({
+        version: payload.metadata.versionNumber,
+        sha256: payload.metadata.sha256,
+      });
     }
   }
 
-  assert(reconstructedVersions.length === 2, "Reconstructed version tree contains exactly v1 and v2");
-  assert(reconstructedVersions[0].sha256 === v1Sha256, "Reconstructed v1 hash matches original deposit hash");
-  assert(reconstructedVersions[1].sha256 === v2Sha256, "Reconstructed v2 hash matches supplementary deposit hash");
+  assert(
+    reconstructedVersions.length === 2,
+    "Reconstructed version tree contains exactly v1 and v2",
+  );
+  assert(
+    reconstructedVersions[0].sha256 === v1Sha256,
+    "Reconstructed v1 hash matches original deposit hash",
+  );
+  assert(
+    reconstructedVersions[1].sha256 === v2Sha256,
+    "Reconstructed v2 hash matches supplementary deposit hash",
+  );
 
   // -------------------------------------------------------------
   // TEST 8: Multi-user Session Consistency & Set Current Version
   // -------------------------------------------------------------
   console.log("\n▶ TEST 8: Multi-User Session Consistency & Set Current Version...");
   // Another session (Registrar) sets current version back to v1 with statutory reason
-  const statutoryReason = "Pursuant to judicial bench order dated 2026-09-09, reverting active filing to original version v1 pending forensic re-examination.";
-  assert(statutoryReason.length >= 10, "Statutory reason satisfies minimum 10-character legal threshold");
+  const statutoryReason =
+    "Pursuant to judicial bench order dated 2026-09-09, reverting active filing to original version v1 pending forensic re-examination.";
+  assert(
+    statutoryReason.length >= 10,
+    "Statutory reason satisfies minimum 10-character legal threshold",
+  );
 
   // Record version alteration in audit logs
   await supabaseAdmin.from("audit_logs").insert({
@@ -298,7 +352,10 @@ async function runVerificationSuite() {
 
   // Verify that setting active version did NOT delete v2 from R2
   const v2StillInR2 = await getR2Object(v2R2Key);
-  assert(v2StillInR2 !== null, "v2 remains permanently archived in Cloudflare R2 after active version was changed to v1");
+  assert(
+    v2StillInR2 !== null,
+    "v2 remains permanently archived in Cloudflare R2 after active version was changed to v1",
+  );
 
   console.log("\n========================================================");
   console.log(`  SUMMARY: ALL ${passedTests} OF ${totalTests} VERIFICATION TESTS PASSED!`);

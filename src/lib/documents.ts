@@ -342,7 +342,9 @@ export const secureDocumentsQuery = (
           category: r.category as DocumentCategory,
           fir_number: r.fir_number,
           police_station: r.police_station,
-          sensitivity_tier: (r.sensitivity_tier === "RESTRICTED" ? "CONFIDENTIAL" : r.sensitivity_tier) as DocumentSensitivityTier,
+          sensitivity_tier: (r.sensitivity_tier === "RESTRICTED"
+            ? "CONFIDENTIAL"
+            : r.sensitivity_tier) as DocumentSensitivityTier,
           current_version: r.current_version || 1,
           file_name: r.file_name,
           file_format: r.file_format,
@@ -413,7 +415,9 @@ export const secureDocumentsQuery = (
  * Fetches authoritative document version history from Supabase public.document_versions & Cloudflare R2.
  * Invokes the authenticated server function `getDocumentVersions`.
  */
-export async function fetchDocumentVersions(doc: SecureDocument | { id: string }): Promise<DocumentVersionRecord[]> {
+export async function fetchDocumentVersions(
+  doc: SecureDocument | { id: string },
+): Promise<DocumentVersionRecord[]> {
   const docId = typeof doc === "string" ? doc : doc.id;
   try {
     const vers = await getDocumentVersionsServerFn({ data: { documentId: docId } });
@@ -429,7 +433,7 @@ export async function fetchDocumentVersions(doc: SecureDocument | { id: string }
         storage_path: v.storage_path,
         sha256_hash: v.sha256_hash,
         uploaded_by_name: v.uploaded_by_name || "Authorized Staff",
-        uploaded_by_role: v.uploaded_by_role || "registrar",
+        uploaded_by_role: v.uploaded_by_role || "unassigned",
         change_summary: v.change_summary || "Official legal filing version",
         digital_signature: v.digital_signature || undefined, // Strictly no fake signature
         signer_identity: v.signer_identity || undefined,
@@ -502,7 +506,11 @@ export const secureDocumentDetailQuery = (documentId: string) => ({
       const { data: dbDoc, error } = await supabase
         .from("case_documents")
         .select("*, cases (case_number, parties)")
-        .or(isUuid ? `id.eq.${documentId},document_number.eq.${documentId}` : `document_number.eq.${documentId}`)
+        .or(
+          isUuid
+            ? `id.eq.${documentId},document_number.eq.${documentId}`
+            : `document_number.eq.${documentId}`,
+        )
         .maybeSingle();
 
       if (!error && dbDoc) {
@@ -513,7 +521,9 @@ export const secureDocumentDetailQuery = (documentId: string) => ({
           category: dbDoc.category as DocumentCategory,
           fir_number: dbDoc.fir_number,
           police_station: dbDoc.police_station,
-          sensitivity_tier: (dbDoc.sensitivity_tier === "RESTRICTED" ? "CONFIDENTIAL" : dbDoc.sensitivity_tier) as DocumentSensitivityTier,
+          sensitivity_tier: (dbDoc.sensitivity_tier === "RESTRICTED"
+            ? "CONFIDENTIAL"
+            : dbDoc.sensitivity_tier) as DocumentSensitivityTier,
           current_version: dbDoc.current_version || 1,
           file_name: dbDoc.file_name,
           file_format: dbDoc.file_format,
@@ -562,9 +572,7 @@ export const secureDocumentDetailQuery = (documentId: string) => ({
     const ledgerAnchor: LedgerAnchorMetadata = {
       isAnchored: false,
       verificationState: isDemo ? "SIMULATED_DEMO" : "LIVE_VERIFIED",
-      targetLedgerName: isDemo
-        ? "Demo Local Sandbox (Simulation)"
-        : "Not blockchain anchored",
+      targetLedgerName: isDemo ? "Demo Local Sandbox (Simulation)" : "Not blockchain anchored",
       statusMessage: isDemo
         ? "Demo simulation only: no external blockchain network transaction exists."
         : "Storage integrity secured via Cloudflare R2 & Supabase immutable SHA-256 digests. External consortium blockchain anchoring is not configured.",
@@ -725,8 +733,12 @@ export async function uploadSecureDocument(payload: {
   // Attempt database persistence (Supabase public.case_documents)
   try {
     let dbSensitivity = "PUBLIC";
-    if (payload.sensitivityTier === "SEALED_COVER_IN_CAMERA") dbSensitivity = "SEALED_COVER_IN_CAMERA";
-    else if (payload.sensitivityTier === "CONFIDENTIAL" || payload.sensitivityTier === "RESTRICTED_INVESTIGATION") {
+    if (payload.sensitivityTier === "SEALED_COVER_IN_CAMERA")
+      dbSensitivity = "SEALED_COVER_IN_CAMERA";
+    else if (
+      payload.sensitivityTier === "CONFIDENTIAL" ||
+      payload.sensitivityTier === "RESTRICTED_INVESTIGATION"
+    ) {
       dbSensitivity = "RESTRICTED";
     }
 
@@ -942,7 +954,8 @@ export async function verifyDocumentVersionIntegrity(payload: {
     bsaSection63Clause: res.bsaSection63Clause,
     ledgerAnchor: {
       isAnchored: res.ledgerAnchor.isAnchored,
-      verificationState: res.ledgerAnchor.verificationState || (isDemo ? "SIMULATED_DEMO" : "LIVE_VERIFIED"),
+      verificationState:
+        res.ledgerAnchor.verificationState || (isDemo ? "SIMULATED_DEMO" : "LIVE_VERIFIED"),
       targetLedgerName: res.ledgerAnchor.targetLedgerName,
       statusMessage: res.ledgerAnchor.statusMessage,
       merkleLeafHash: res.ledgerAnchor.merkleLeafHash,
@@ -1034,7 +1047,13 @@ export async function downloadDocumentFile(payload: {
   versionNumber?: number | undefined;
   userRole: string;
   userName: string;
-}): Promise<{ fileName: string; content: string; sha256: string; base64?: string; contentType?: string }> {
+}): Promise<{
+  fileName: string;
+  content: string;
+  sha256: string;
+  base64?: string;
+  contentType?: string;
+}> {
   await assertPermission(
     payload.userRole,
     "DOCUMENT_DOWNLOAD",

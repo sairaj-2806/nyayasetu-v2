@@ -13,9 +13,12 @@ for (const l of env.split("\n")) {
 
 function createSupabaseFetch(key) {
   return (input, init) => {
-    const headers = new Headers(typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined);
+    const headers = new Headers(
+      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
+    );
     if (init?.headers) new Headers(init.headers).forEach((v, k) => headers.set(k, v));
-    if (key.startsWith("sb_") && headers.get("Authorization") === `Bearer ${key}`) headers.delete("Authorization");
+    if (key.startsWith("sb_") && headers.get("Authorization") === `Bearer ${key}`)
+      headers.delete("Authorization");
     headers.set("apikey", key);
     return fetch(input, { ...init, headers });
   };

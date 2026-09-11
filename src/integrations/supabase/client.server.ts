@@ -35,7 +35,9 @@ const DEFAULT_ANON_KEY = "sb_publishable_FZvKCCOsCUtbS9qP7v2XAw_xblsYT8d";
 const DEFAULT_SERVICE_ROLE_KEY =
   typeof atob !== "undefined"
     ? atob("c2Jfc2VjcmV0X0FKZFhGSmNDdVBwRXRtcHp1RDR2M3dfUlUxX3ZxcGQ=")
-    : Buffer.from("c2Jfc2VjcmV0X0FKZFhGSmNDdVBwRXRtcHp1RDR2M3dfUlUxX3ZxcGQ=", "base64").toString("utf-8");
+    : Buffer.from("c2Jfc2VjcmV0X0FKZFhGSmNDdVBwRXRtcHp1RDR2M3dfUlUxX3ZxcGQ=", "base64").toString(
+        "utf-8",
+      );
 
 function createSupabaseAdminClient() {
   const SUPABASE_URL =

@@ -44,7 +44,12 @@ export class ForbiddenException extends Error {
  */
 export function requireAuthenticatedUser(context: { userId?: string | null | undefined }): string {
   const userId = context?.userId;
-  if (!userId || typeof userId !== "string" || userId.trim() === "" || userId === "authenticated-user") {
+  if (
+    !userId ||
+    typeof userId !== "string" ||
+    userId.trim() === "" ||
+    userId === "authenticated-user"
+  ) {
     // If it's a mock or unauthenticated string in non-demo mode, fail closed
     if (!userId || userId.trim() === "") {
       throw new UnauthorizedException(
@@ -223,7 +228,9 @@ export async function requireCaseAccess(
   }
 
   if (action === "CASE_DELETE" && !roles.includes("admin")) {
-    throw new ForbiddenException("Statutory Restriction: Only Court Administrators can expunge or archive court cases.");
+    throw new ForbiddenException(
+      "Statutory Restriction: Only Court Administrators can expunge or archive court cases.",
+    );
   }
 
   if (roles.includes("judge")) {
@@ -248,12 +255,20 @@ export async function requireCaseAccess(
     }
   }
 
-  if (roles.includes("investigating_officer") || roles.includes("police_officer") || roles.includes("legal_officer")) {
-    const role = roles.find((r) => ["investigating_officer", "police_officer", "legal_officer"].includes(r))!;
+  if (
+    roles.includes("investigating_officer") ||
+    roles.includes("police_officer") ||
+    roles.includes("legal_officer")
+  ) {
+    const role = roles.find((r) =>
+      ["investigating_officer", "police_officer", "legal_officer"].includes(r),
+    )!;
     return { userRole: role, fullName };
   }
 
-  throw new ForbiddenException(`Access Denied: You do not have judicial jurisdiction or police assignment for Case ID ${caseId}.`);
+  throw new ForbiddenException(
+    `Access Denied: You do not have judicial jurisdiction or police assignment for Case ID ${caseId}.`,
+  );
 }
 
 /**
@@ -307,10 +322,19 @@ export async function requireDocumentAccess(
   }
 
   if (tier === "RESTRICTED_INVESTIGATION") {
-    const allowed = ["admin", "registrar", "judge", "investigating_officer", "forensic_officer", "evidence_custodian"];
+    const allowed = [
+      "admin",
+      "registrar",
+      "judge",
+      "investigating_officer",
+      "forensic_officer",
+      "evidence_custodian",
+    ];
     const role = roles.find((r) => allowed.includes(r));
     if (!role) {
-      throw new ForbiddenException("Access Denied: Investigation diaries and witness memos require IO, FSL, or Bench clearance.");
+      throw new ForbiddenException(
+        "Access Denied: Investigation diaries and witness memos require IO, FSL, or Bench clearance.",
+      );
     }
     return { userRole: role, fullName };
   }
@@ -337,7 +361,9 @@ export async function requireDocumentAccess(
 
   if (roles.length === 0) {
     if (tier !== "PUBLIC") {
-      throw new ForbiddenException("Access Denied: Unassigned accounts lack clearance for non-public records.");
+      throw new ForbiddenException(
+        "Access Denied: Unassigned accounts lack clearance for non-public records.",
+      );
     }
     return { userRole: "unassigned", fullName };
   }
@@ -359,7 +385,9 @@ export async function requireAssetAccess(
   const { roles, fullName } = await getAuthenticatedUserContext(userId);
 
   if (roles.length === 0) {
-    throw new ForbiddenException(`Access Denied: Unassigned accounts lack clearance to inspect police equipment or evidence (${assetId}).`);
+    throw new ForbiddenException(
+      `Access Denied: Unassigned accounts lack clearance to inspect police equipment or evidence (${assetId}).`,
+    );
   }
 
   if (roles.includes("admin") || roles.includes("registrar")) {
@@ -376,7 +404,9 @@ export async function requireAssetAccess(
   if (roles.includes("judge")) {
     // Judges can only inspect evidence linked to cases
     if (!asset?.case_id) {
-      throw new ForbiddenException("Access Denied: Judicial officers are restricted to evidence exhibits linked to active court cases.");
+      throw new ForbiddenException(
+        "Access Denied: Judicial officers are restricted to evidence exhibits linked to active court cases.",
+      );
     }
 
     const { data: judgeRecord } = await supabaseAdmin
@@ -394,16 +424,27 @@ export async function requireAssetAccess(
         .maybeSingle();
 
       if (!schedule) {
-        throw new ForbiddenException("Access Denied: You are not the presiding judge for the case associated with this evidence exhibit.");
+        throw new ForbiddenException(
+          "Access Denied: You are not the presiding judge for the case associated with this evidence exhibit.",
+        );
       }
     }
     return { userRole: "judge", fullName };
   }
 
-  const allowedRoles = ["police_officer", "investigating_officer", "forensic_officer", "evidence_custodian", "legal_officer", "document_officer"];
+  const allowedRoles = [
+    "police_officer",
+    "investigating_officer",
+    "forensic_officer",
+    "evidence_custodian",
+    "legal_officer",
+    "document_officer",
+  ];
   const matched = roles.find((r) => allowedRoles.includes(r));
   if (!matched) {
-    throw new ForbiddenException(`Access Denied: Your assigned roles ([${roles.join(", ")}]) lack clearance for this asset.`);
+    throw new ForbiddenException(
+      `Access Denied: Your assigned roles ([${roles.join(", ")}]) lack clearance for this asset.`,
+    );
   }
 
   return { userRole: matched, fullName };
@@ -412,6 +453,9 @@ export async function requireAssetAccess(
 /**
  * Asserts that the authenticated user possesses Registrar or Admin authority.
  */
-export async function requireRegistrarAuthority(userId: string, actionName: string): Promise<AppRole> {
+export async function requireRegistrarAuthority(
+  userId: string,
+  actionName: string,
+): Promise<AppRole> {
   return await requireRole(userId, ["admin", "registrar"], actionName);
 }

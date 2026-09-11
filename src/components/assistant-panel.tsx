@@ -30,11 +30,13 @@ type Turn =
 /**
  * Global helper to open the AI Judicial Copilot sheet from anywhere (e.g. TopBar, navigation, cards).
  */
-export function openAiCopilot() {
+export function openAiAssistant() {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("nyayasetu:open-copilot"));
   }
 }
+
+export const openAiCopilot = openAiAssistant;
 
 /**
  * Registry Assistant — a decision-support lookup panel. Every answer is the
@@ -73,37 +75,32 @@ export function AssistantPanel() {
     }
   }, [turns, busy]);
 
-  async function ask(question: string) {
-    const q = question.trim();
-    if (!q || busy) return;
+  async function ask(q: string) {
+    if (!q.trim() || busy) return;
+    const userTurn: Turn = { role: "user", id: `u-${Date.now()}`, text: q.trim() };
+    setTurns((prev) => [...prev, userTurn]);
     setValue("");
-    setTurns((prev) => [...prev, { role: "user", id: `u-${Date.now()}`, text: q }]);
     setBusy(true);
+
     try {
       const answer = await askFn({
         data: {
-          question: q,
+          question: q.trim(),
           userRole: staff?.role,
           userId: staff?.id,
         },
       });
       setTurns((prev) => [...prev, { role: "assistant", id: `a-${Date.now()}`, answer }]);
-    } catch (error) {
-      setTurns((prev) => [
-        ...prev,
-        {
-          role: "error",
-          id: `e-${Date.now()}`,
-          text: error instanceof Error ? error.message : "The registry lookup failed.",
-        },
-      ]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Lookup failed. Please try again.";
+      setTurns((prev) => [...prev, { role: "error", id: `e-${Date.now()}`, text: message }]);
     } finally {
       setBusy(false);
-      inputRef.current?.focus();
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   }
 
-  function openRow(row: AssistantRow) {
+  function handleOpenEntity(row: AssistantRow) {
     if (!row.target) return;
     setOpen(false);
     const t = row.target;
@@ -116,7 +113,7 @@ export function AssistantPanel() {
       navigate({ to: t.route, params: { assetId: t.assetId } });
     else if (t.route === "/documents/$documentId")
       navigate({ to: t.route, params: { documentId: t.documentId } });
-    else navigate({ to: t.route });
+    else navigate({ to: t.route as any });
   }
 
   return (
@@ -124,7 +121,7 @@ export function AssistantPanel() {
       <SheetTrigger asChild>
         <button
           type="button"
-          aria-label="Open AI Registry Copilot"
+          aria-label="Open NyayaSetu Assistant"
           className={cn(
             "fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-3 sm:bottom-6 sm:right-6 z-40",
             "group flex items-center gap-2 rounded-full px-3.5 py-2.5 sm:px-4.5 sm:py-3.5",
@@ -143,7 +140,7 @@ export function AssistantPanel() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
           </div>
-          <span className="tracking-wide">AI Copilot</span>
+          <span className="tracking-wide">NyayaSetu Assistant</span>
         </button>
       </SheetTrigger>
       <SheetContent
@@ -153,11 +150,11 @@ export function AssistantPanel() {
         <SheetHeader className="px-5 py-4 pr-12 border-b bg-card/60 shrink-0">
           <SheetTitle className="flex items-center gap-2 text-base font-semibold">
             <FileSearch className="size-4.5 text-primary" />
-            AI Judicial Copilot
+            NyayaSetu Assistant
           </SheetTitle>
           <SheetDescription className="text-xs text-muted-foreground leading-normal">
-            Ask questions about court cases, schedules, police assets, evidence custody, or secure
-            DMS documents.
+            AI-assisted authorized investigation information, document intelligence, evidence
+            custody, and case records.
           </SheetDescription>
         </SheetHeader>
 
@@ -212,7 +209,7 @@ export function AssistantPanel() {
                       <li key={row.id}>
                         <button
                           type="button"
-                          onClick={() => openRow(row)}
+                          onClick={() => handleOpenEntity(row)}
                           disabled={!row.target}
                           className={cn(
                             "flex w-full items-start justify-between gap-3 px-3.5 py-2.5 text-left transition-colors",

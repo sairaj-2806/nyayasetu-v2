@@ -29,17 +29,24 @@ export const Route = createFileRoute("/")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "NyayaSetu — Unified Legal & Judicial Workspace Portal" },
+      {
+        title:
+          "NyayaSetu — Secure Digital Document Management System for Legal & Investigation Documents",
+      },
       {
         name: "description",
         content:
-          "Secure Digital Document Management System, Police Asset Lifecycle, and Smart Court Scheduling platform for Indian Judicial and Law Enforcement workspaces.",
+          "Secure Digital Document Management System for Legal and Investigation Documents (SIH26190). Centralized vault, BSA §63 cryptographic integrity, fail-closed RBAC, evidence chain of custody, and authorized collaboration.",
       },
-      { property: "og:title", content: "NyayaSetu — Choose Your Workspace" },
+      {
+        property: "og:title",
+        content:
+          "NyayaSetu — Secure Digital Document Management System for Legal & Investigation Documents",
+      },
       {
         property: "og:description",
         content:
-          "Unified digital justice portal for Police, Forensics, Investigation, Judiciary, Prosecution, and Litigants.",
+          "MHA / NCRB SIH26190: Zero-trust digital document vault, forensic evidence chain of custody, and multi-agency legal collaboration.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -289,17 +296,17 @@ function PortalPage() {
         <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[1fr_0.85fr] lg:items-center">
           <div>
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-semibold mb-3">
-              <Sparkles className="size-3.5" />
-              <span>Unified National Justice & Investigation Infrastructure</span>
+              <ShieldCheck className="size-3.5" />
+              <span>Smart India Hackathon 2026 · Problem Statement SIH26190</span>
             </div>
             <h1 className="text-3xl leading-tight font-extrabold text-foreground sm:text-5xl tracking-tight">
-              One Secure Platform for Police, Forensics & the Judiciary.
+              Secure Digital Document Management System for Legal & Investigation Documents
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-              NyayaSetu seamlessly bridges criminal investigation with judicial proceedings. Under
-              one unified Supabase authentication engine, every case connects digital police
-              diaries, forensic examination reports, malkhana chain-of-custody ledgers, and
-              AI-assisted court scheduling.
+              NyayaSetu secures the complete lifecycle of sensitive legal filings, case diaries,
+              forensic reports, and investigation records. Built for Indian district courts, police
+              departments, and forensic laboratories with BSA §63 cryptographic integrity,
+              zero-trust access control, and verifiable chain of custody.
             </p>
           </div>
           <div className="registry-interactive border border-border bg-background p-5 rounded-xl shadow-xs">
@@ -311,9 +318,21 @@ function PortalPage() {
           </div>
           <div className="grid gap-3 border-l-0 border-border text-sm sm:grid-cols-3 lg:col-span-2 lg:grid-cols-3">
             {[
-              ["01", "Secure Document Vault", "SHA-256 verified legal filings, FIRs & charge sheets"],
-              ["02", "Malkhana Custody & Assets", "Tamper-evident chain of custody & equipment state machine"],
-              ["03", "Smart Court Scheduling", "Deterministic listing, conflict avoidance & cause lists"],
+              [
+                "01",
+                "Secure Document Vault",
+                "SHA-256 verified legal filings, FIRs & charge sheets",
+              ],
+              [
+                "02",
+                "Malkhana Custody & Assets",
+                "Tamper-evident chain of custody & equipment state machine",
+              ],
+              [
+                "03",
+                "Smart Court Scheduling",
+                "Deterministic listing, conflict avoidance & cause lists",
+              ],
             ].map(([number, label, desc], index) => (
               <div
                 key={number}

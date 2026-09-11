@@ -10,26 +10,26 @@ NyayaSetu is a **deterministic, constraint-solving, AI-assisted court scheduling
 
 ### Verified Functionality Status
 
-| Feature | Status | Reality & Capabilities |
-|---|---|---|
-| Case Registration & Management | ✅ Fully Functional | Full CRUD, statutory category flags (POCSO, Senior Citizen, 5yr+ Property), adjournment tracking |
-| Priority Scoring Engine | ✅ Fully Functional | Deterministic 0–100 score with 8 weighted factors (GoI FTSC/POCSO mandates) |
-| Multi-Constraint Scheduling Engine | ✅ Fully Functional | 6 hard constraints (disqualifying) + 4 soft preferences (ranking), deterministic solver |
-| AI Explainability Decision Receipt | ✅ Fully Functional | Styled audit ticket showing every constraint checked (green ✓) and scored preference |
-| Conflict Detection Engine | ✅ Fully Functional | 8 distinct conflict types, real-time system-wide scanner |
-| Cause List Batch Optimizer | ✅ Fully Functional | 3-stage procedural board generation (Morning mentions, Contested trials, Afternoon orders) |
-| What-If Simulation Digital Twin | ✅ Fully Functional | In-memory sandbox modeling judge absence or courtroom closure with 1-click reallocation |
-| Custom Judicial Directive Listing | ✅ Fully Functional | Judge/Registrar custom scheduling with live pre-flight checks and audit compliance notes |
-| Judge's Self-Scheduling Portal | ✅ Fully Functional | Bench View (`/bench`) with Direct Bench Listing tab for judges to self-schedule cases |
-| Dual-Engine Full-Page Hindi Translation | ✅ Fully Functional | 500+ legal dictionary DOM TreeWalker + seamless background dynamic translator |
-| Real-Time Impact Counter Banner | ✅ Fully Functional | Live count-up animation for conflicts prevented, Tier 1 prioritized, and recommendations |
-| Backlog Simulator | ✅ Fully Functional | Deterministic comparison between FIFO vs Priority-based disposal horizons |
-| Calendar View & Branded PDF Export | ✅ Fully Functional | Monthly/weekly/day views with NyayaSetu court-formatted PDF generation |
-| AI Registry Copilot (NLP Q&A) | ✅ Fully Functional | Resilient dual-tier LLM engine (Gemini 3.5 Flash → Groq LLaMA 3.3) with Indian legal knowledge |
-| Governance & Compliance Dashboard | ✅ Fully Functional | AI acceptance rates, human override tracking, and Supreme Court AI regulation alignment |
-| 1-Click SIH Demo Triggers | ✅ Fully Functional | Instant pre-seeded scenario loaders on Smart Scheduling and What-If pages |
-| Activity Log / Immutable Audit Trail | ✅ Fully Functional | All registrar/judge actions logged with timestamp, user ID, and entity reference |
-| Role-Based Access Control (RBAC) | ✅ Fully Functional | Admin, Registrar, and Judge roles with Supabase PostgreSQL Row Level Security (RLS) |
+| Feature                                 | Status              | Reality & Capabilities                                                                           |
+| --------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------ |
+| Case Registration & Management          | ✅ Fully Functional | Full CRUD, statutory category flags (POCSO, Senior Citizen, 5yr+ Property), adjournment tracking |
+| Priority Scoring Engine                 | ✅ Fully Functional | Deterministic 0–100 score with 8 weighted factors (GoI FTSC/POCSO mandates)                      |
+| Multi-Constraint Scheduling Engine      | ✅ Fully Functional | 6 hard constraints (disqualifying) + 4 soft preferences (ranking), deterministic solver          |
+| AI Explainability Decision Receipt      | ✅ Fully Functional | Styled audit ticket showing every constraint checked (green ✓) and scored preference             |
+| Conflict Detection Engine               | ✅ Fully Functional | 8 distinct conflict types, real-time system-wide scanner                                         |
+| Cause List Batch Optimizer              | ✅ Fully Functional | 3-stage procedural board generation (Morning mentions, Contested trials, Afternoon orders)       |
+| What-If Simulation Digital Twin         | ✅ Fully Functional | In-memory sandbox modeling judge absence or courtroom closure with 1-click reallocation          |
+| Custom Judicial Directive Listing       | ✅ Fully Functional | Judge/Registrar custom scheduling with live pre-flight checks and audit compliance notes         |
+| Judge's Self-Scheduling Portal          | ✅ Fully Functional | Bench View (`/bench`) with Direct Bench Listing tab for judges to self-schedule cases            |
+| Dual-Engine Full-Page Hindi Translation | ✅ Fully Functional | 500+ legal dictionary DOM TreeWalker + seamless background dynamic translator                    |
+| Real-Time Impact Counter Banner         | ✅ Fully Functional | Live count-up animation for conflicts prevented, Tier 1 prioritized, and recommendations         |
+| Backlog Simulator                       | ✅ Fully Functional | Deterministic comparison between FIFO vs Priority-based disposal horizons                        |
+| Calendar View & Branded PDF Export      | ✅ Fully Functional | Monthly/weekly/day views with NyayaSetu court-formatted PDF generation                           |
+| AI Registry Copilot (NLP Q&A)           | ✅ Fully Functional | Resilient dual-tier LLM engine (Gemini 3.5 Flash → Groq LLaMA 3.3) with Indian legal knowledge   |
+| Governance & Compliance Dashboard       | ✅ Fully Functional | AI acceptance rates, human override tracking, and Supreme Court AI regulation alignment          |
+| 1-Click SIH Demo Triggers               | ✅ Fully Functional | Instant pre-seeded scenario loaders on Smart Scheduling and What-If pages                        |
+| Activity Log / Immutable Audit Trail    | ✅ Fully Functional | All registrar/judge actions logged with timestamp, user ID, and entity reference                 |
+| Role-Based Access Control (RBAC)        | ✅ Fully Functional | Admin, Registrar, and Judge roles with Supabase PostgreSQL Row Level Security (RLS)              |
 
 ---
 
@@ -38,6 +38,7 @@ NyayaSetu is a **deterministic, constraint-solving, AI-assisted court scheduling
 ### The Real Crisis
 
 **India has 50+ million pending court cases.** The critical bottleneck is **catastrophic scheduling inefficiency and avoidable adjournments**:
+
 - **50,000+ hearing adjournments daily** across India are caused by administrative clashes, judge absence, or double-bookings.
 - Court registrars spend **2 to 3 hours every morning** manually preparing handwritten or Excel-based cause lists.
 - A sudden judge absence at 10:00 AM causes all listed hearings to collapse en masse, wasting the time and money of traveling litigants and lawyers.
@@ -61,53 +62,58 @@ Language barrier in district courts       →   Dual-Engine Full-Page Hindi Tran
 ## 3. HERO & DIFFERENTIATING FEATURES
 
 ### 🔥 1. Multi-Constraint Scheduling Engine + Decision Receipt
+
 - **How it works**: Evaluates every permutation of Judge × Courtroom × Slot against 6 hard constraints (Judge availability, Courtroom availability, No double-booking, Slot unoccupied, Duration fit, Holiday check) and ranks valid options using soft preferences (Specialisation match, Workload balance, Priority tier, Courtroom utilisation).
 - **The Receipt**: Pinned above candidates as an audit ticket showing green checkmarks for all constraints and score breakdown.
 - **Why judges love it**: Eliminates the "black box" criticism — pure explainable mathematics.
 
 ### 🔥 2. Zero-Risk What-If Simulation Sandbox
+
 - **How it works**: Deep-clones the active registry in memory. Registrars can simulate judge emergency leave or courtroom maintenance, trace all affected hearings, inspect proposed alternate slots, and commit changes to the live database with a single click.
 - **SIH Impact**: Demonstrates resilience and proactive crisis handling before litigants leave home.
 
 ### 🔥 3. Custom Judicial Directive & Judge Self-Scheduling
+
 - **How it works**: Recognizes Indian judicial protocol where a Judge may direct an urgent mention or part-heard matter. Registrars and Judges can manually schedule any slot with real-time pre-flight conflict warnings and mandatory audit compliance notes.
 - **Bench View Integration**: Judges have a dedicated "Direct Bench Listing" portal to pull cases to their own bench.
 
 ### 🔥 4. 8-Factor Statutory Priority Scoring Engine
+
 - **Factors**: Category Urgency, Days Pending, Adjournment Count, FTSC/POCSO Mandate, Senior Citizen Litigant, 5yr+ Property Dispute, Approaching Limitation Deadline, Admin Boost.
 - **National Alignment**: Explicitly enforces Fast Track Special Court (FTSC) and POCSO central guidelines.
 
 ### 🔥 5. 3-Tier Multi-Court Architecture
+
 - **Scale**: Ready to scale from a single District Court (Tier 1) to State High Court Coordination (Tier 2) to National NJDG Integration (Tier 3) with an actionable 4-phase deployment roadmap.
 
 ---
 
 ## 4. COMPETITIVE LANDSCAPE & POSITIONING
 
-| Dimension | eCourts / NJDG (Govt of India) | Commercial Legal Tech (e.g. CaseWare/Tyler) | NyayaSetu |
-|---|---|---|---|
-| **Core Function** | Static case tracking & status repository | Law firm docketing & document management | **Intelligent multi-constraint court scheduling** |
-| **Constraint Solver** | ❌ None (Manual entry) | ❌ Basic calendar only | ✅ **Deterministic multi-factor solver** |
-| **Explainable AI** | ❌ None | ❌ None | ✅ **Transparent Decision Receipts** |
-| **Disruption Sandbox** | ❌ None | ❌ None | ✅ **What-If Simulation Digital Twin** |
-| **Judge Directives** | ❌ Manual paperwork | ⚠️ Unchecked manual edits | ✅ **Pre-flight validated Judicial Overrides** |
-| **Indian Legal Context** | ✅ Native to India | ❌ Western court models | ✅ **Native POCSO, FTSC, Taluka court rules** |
+| Dimension                | eCourts / NJDG (Govt of India)           | Commercial Legal Tech (e.g. CaseWare/Tyler) | NyayaSetu                                         |
+| ------------------------ | ---------------------------------------- | ------------------------------------------- | ------------------------------------------------- |
+| **Core Function**        | Static case tracking & status repository | Law firm docketing & document management    | **Intelligent multi-constraint court scheduling** |
+| **Constraint Solver**    | ❌ None (Manual entry)                   | ❌ Basic calendar only                      | ✅ **Deterministic multi-factor solver**          |
+| **Explainable AI**       | ❌ None                                  | ❌ None                                     | ✅ **Transparent Decision Receipts**              |
+| **Disruption Sandbox**   | ❌ None                                  | ❌ None                                     | ✅ **What-If Simulation Digital Twin**            |
+| **Judge Directives**     | ❌ Manual paperwork                      | ⚠️ Unchecked manual edits                   | ✅ **Pre-flight validated Judicial Overrides**    |
+| **Indian Legal Context** | ✅ Native to India                       | ❌ Western court models                     | ✅ **Native POCSO, FTSC, Taluka court rules**     |
 
-> **Strategic Positioning**: *NyayaSetu does not replace eCourts; it is the intelligent scheduling brain that eCourts currently lacks.*
+> **Strategic Positioning**: _NyayaSetu does not replace eCourts; it is the intelligent scheduling brain that eCourts currently lacks._
 
 ---
 
 ## 5. SMART INDIA HACKATHON (SIH) EVALUATION CRITERIA
 
-| Evaluation Parameter | Score (out of 10) | Evaluation Justification |
-|---|---|---|
-| **Problem Relevance & Impact** | **9.8 / 10** | 50M pending cases is India's most urgent judicial crisis; directly targets hearing adjournments |
-| **Technical Architecture & Code** | **9.5 / 10** | Pure TypeScript, TanStack Start/Router, Supabase RLS, Nitro engine, zero build errors |
-| **Innovation & Novelty** | **9.2 / 10** | Constraint solver + explainability receipts + What-If digital twin + dual-engine Hindi i18n |
-| **Explainability & Trust** | **9.8 / 10** | 100% deterministic rules for scheduling with full reasoning receipts; LLM used only as copilot |
-| **User Experience & Design** | **9.4 / 10** | High-density judicial design system, dark/light themes, live animated impact stats |
-| **Government Feasibility & Scale** | **9.0 / 10** | Detailed 3-tier NJDG integration roadmap; RBAC and audit compliance built-in |
-| **Demo Readiness & Presentation** | **9.8 / 10** | 1-Click demo triggers on every complex page; impossible to fail during live judge Q&A |
+| Evaluation Parameter               | Score (out of 10) | Evaluation Justification                                                                        |
+| ---------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------- |
+| **Problem Relevance & Impact**     | **9.8 / 10**      | 50M pending cases is India's most urgent judicial crisis; directly targets hearing adjournments |
+| **Technical Architecture & Code**  | **9.5 / 10**      | Pure TypeScript, TanStack Start/Router, Supabase RLS, Nitro engine, zero build errors           |
+| **Innovation & Novelty**           | **9.2 / 10**      | Constraint solver + explainability receipts + What-If digital twin + dual-engine Hindi i18n     |
+| **Explainability & Trust**         | **9.8 / 10**      | 100% deterministic rules for scheduling with full reasoning receipts; LLM used only as copilot  |
+| **User Experience & Design**       | **9.4 / 10**      | High-density judicial design system, dark/light themes, live animated impact stats              |
+| **Government Feasibility & Scale** | **9.0 / 10**      | Detailed 3-tier NJDG integration roadmap; RBAC and audit compliance built-in                    |
+| **Demo Readiness & Presentation**  | **9.8 / 10**      | 1-Click demo triggers on every complex page; impossible to fail during live judge Q&A           |
 
 ### **Overall Project Rating: 9.5 / 10 (Gold Medal Potential)**
 
@@ -148,12 +154,14 @@ Language barrier in district courts       →   Dual-Engine Full-Page Hindi Tran
 ## 7. SAFE CLAIMS VS. WHAT TO AVOID
 
 ### ✅ Safe & Impactful to Claim:
-- *"Our scheduling engine is 100% deterministic — it is a mathematical constraint satisfaction solver, not an unpredictable black-box AI."*
-- *"We enforce GoI statutory mandates: POCSO, Senior Citizens, and Limitation Act deadlines receive automatic priority weighting."*
-- *"Zero double-bookings are mathematically possible once a listing passes our hard-constraint checks."*
-- *"Every judicial override is validated in real time and recorded in an immutable audit trail aligned with Supreme Court AI draft regulations."*
+
+- _"Our scheduling engine is 100% deterministic — it is a mathematical constraint satisfaction solver, not an unpredictable black-box AI."_
+- _"We enforce GoI statutory mandates: POCSO, Senior Citizens, and Limitation Act deadlines receive automatic priority weighting."_
+- _"Zero double-bookings are mathematically possible once a listing passes our hard-constraint checks."_
+- _"Every judicial override is validated in real time and recorded in an immutable audit trail aligned with Supreme Court AI draft regulations."_
 
 ### ❌ What NOT to Claim:
+
 - ~~"Our AI predicts judicial verdicts or case outcomes"~~ (Courts reject outcome-predicting AI).
 - ~~"The scheduling engine is a deep neural network"~~ (Emphasize that scheduling is deterministic constraint programming).
 - ~~"Already deployed live in 24,000 courts"~~ (State clearly: "Built as a production-ready pilot for district and taluka registries").

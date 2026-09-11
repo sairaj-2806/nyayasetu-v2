@@ -27,6 +27,7 @@ export type AppRole =
   | "police_officer"
   | "legal_officer"
   | "document_officer"
+  | "auditor"
   | "unassigned";
 
 export const APP_ROLES: Record<string, AppRole> = {
@@ -39,6 +40,7 @@ export const APP_ROLES: Record<string, AppRole> = {
   POLICE_OFFICER: "police_officer",
   LEGAL_OFFICER: "legal_officer",
   DOCUMENT_OFFICER: "document_officer",
+  AUDITOR: "auditor",
   UNASSIGNED: "unassigned",
 } as const;
 
@@ -52,6 +54,7 @@ export const ALL_ROLES: AppRole[] = [
   "police_officer",
   "legal_officer",
   "document_officer",
+  "auditor",
 ];
 
 // ============================================================================
@@ -239,6 +242,12 @@ export const ROLE_PERMISSIONS: Record<AppRole, ReadonlySet<Permission>> = {
   ]),
 
   /**
+   * Auditor: Compliance, inspection and audit trail oversight.
+   * Read-only inspection of documents, evidence, and audit ledgers.
+   */
+  auditor: new Set<Permission>(["DOCUMENT_VIEW", "ASSET_VIEW", "EVIDENCE_VIEW", "AUDIT_VIEW"]),
+
+  /**
    * Unassigned Account: Pending verification.
    * STRICTLY ZERO PRIVILEGED PERMISSIONS.
    */
@@ -272,10 +281,10 @@ export function normalizeRole(rawRole: string | null | undefined): AppRole {
     clean === "document_officer" ||
     clean === "records" ||
     clean === "records_officer" ||
-    clean === "document" ||
     clean === "vault"
   )
     return "document_officer";
+  if (clean === "auditor" || clean === "audit") return "auditor";
   if (clean === "police_officer" || clean === "officer" || clean === "constable")
     return "police_officer";
   return "unassigned";
@@ -335,9 +344,17 @@ export const ROLE_METADATA: Record<
   },
   document_officer: {
     label: "Document & Records Vault Officer",
-    description: "Secure Document Vault management, cryptographic verification, and version control.",
+    description:
+      "Secure Document Vault management, cryptographic verification, and version control.",
     badgeColor: "bg-sky-500/15 text-sky-700 border-sky-500/30 dark:text-sky-400",
     defaultWorkspace: "documents",
+  },
+  auditor: {
+    label: "Compliance & Security Auditor",
+    description:
+      "Independent compliance audit, ledger scrutiny, and tamper detection verification.",
+    badgeColor: "bg-teal-500/15 text-teal-700 border-teal-500/30 dark:text-teal-400",
+    defaultWorkspace: "court",
   },
   unassigned: {
     label: "Unassigned Account",
@@ -519,21 +536,27 @@ export function canAccessDocumentRecord(
       if (doc.case_id && assignedCaseIds && assignedCaseIds.length > 0) {
         return assignedCaseIds.includes(doc.case_id);
       }
-      return true;
+      return Boolean(currentJudgeId);
     }
     // All non-judge roles (including registrars and police) are strictly forbidden
     return false;
   }
 
   // Restricted Investigation files (Case diaries, witness statements)
-  if (tier === "RESTRICTED_INVESTIGATION") {
+  if (tier === "RESTRICTED" || tier === "RESTRICTED_INVESTIGATION") {
     if (normRole === "police_officer") return false;
+    if (normRole === "judge") {
+      if (doc.case_id && assignedCaseIds && assignedCaseIds.length > 0) {
+        return assignedCaseIds.includes(doc.case_id);
+      }
+      return true;
+    }
     return (
       normRole === "investigating_officer" ||
       normRole === "forensic_officer" ||
       normRole === "registrar" ||
-      normRole === "judge" ||
-      normRole === "evidence_custodian"
+      normRole === "evidence_custodian" ||
+      normRole === "auditor"
     );
   }
 

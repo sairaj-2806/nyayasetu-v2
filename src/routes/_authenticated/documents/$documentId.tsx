@@ -35,6 +35,9 @@ import {
   Upload,
   User,
   UserCheck,
+  UserPlus,
+  Share2,
+  Ban,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -107,6 +110,17 @@ import {
   type DigitalSignatureRecord,
   type SignatureStatus,
 } from "@/lib/digital-signature";
+import {
+  createDocumentShare,
+  revokeDocumentShare,
+  getDocumentShares,
+} from "@/lib/document-shares.functions";
+import {
+  AUTHORIZED_RECIPIENT_ROLES,
+  SHARE_PERMISSIONS,
+  type DocumentShareRecord,
+  type SharePermission,
+} from "@/lib/document-shares";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/documents/$documentId")({
@@ -718,7 +732,10 @@ function DocumentDetailPage() {
     },
     onSuccess: (res) => {
       if (res?.success) {
-        toast.success(res.message || `Active document version successfully changed to v${targetSetActiveVersion}.`);
+        toast.success(
+          res.message ||
+            `Active document version successfully changed to v${targetSetActiveVersion}.`,
+        );
         setIsSetActiveOpen(false);
         setSetActiveReason("");
         setTargetSetActiveVersion(null);
@@ -846,6 +863,88 @@ function DocumentDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["secure-documents"] });
     },
     onError: (err: Error) => toast.error(err.message),
+  });
+
+  // Controlled Collaboration State & Mutations (Phase 12)
+  const createShareFn = useServerFn(createDocumentShare);
+  const revokeShareFn = useServerFn(revokeDocumentShare);
+  const getSharesFn = useServerFn(getDocumentShares);
+
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [shareRecipientRole, setShareRecipientRole] = useState("investigating_officer");
+  const [shareRecipientName, setShareRecipientName] = useState("");
+  const [shareCaseScope, setShareCaseScope] = useState("");
+  const [sharePermissions, setSharePermissions] = useState<SharePermission[]>(["VIEW", "DOWNLOAD"]);
+  const [shareExpiresHours, setShareExpiresHours] = useState("168");
+  const [shareReason, setShareReason] = useState("");
+
+  const [isRevokeConfirmOpen, setIsRevokeConfirmOpen] = useState(false);
+  const [targetRevokeShare, setTargetRevokeShare] = useState<DocumentShareRecord | null>(null);
+  const [revokeReason, setRevokeReason] = useState("");
+
+  const sharesQuery = useQuery({
+    queryKey: ["document-shares", documentId],
+    queryFn: async () => {
+      const res = await getSharesFn({ data: { documentId } });
+      return res.shares || [];
+    },
+  });
+  const documentShares = sharesQuery.data || [];
+
+  const createShareMutation = useMutation({
+    mutationFn: async () => {
+      const doc = detailQuery.data?.document;
+      if (!doc) return;
+      if (!shareReason.trim() || shareReason.trim().length < 5) {
+        throw new Error("Statutory justification (minimum 5 characters) is required.");
+      }
+      const expDate = new Date(Date.now() + Number(shareExpiresHours) * 3600 * 1000).toISOString();
+      return createShareFn({
+        data: {
+          documentId: doc.id,
+          recipientType: "ROLE",
+          recipientRole: shareRecipientRole,
+          recipientName:
+            shareRecipientName.trim() ||
+            `${shareRecipientRole.replace(/_/g, " ").toUpperCase()} Pool`,
+          caseScope: shareCaseScope.trim() || doc.case_number || undefined,
+          permissions: sharePermissions,
+          expiresAt: expDate,
+          reason: shareReason.trim(),
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Controlled collaboration access grant recorded with immutable audit trail.");
+      setIsShareDialogOpen(false);
+      setShareRecipientName("");
+      setShareReason("");
+      queryClient.invalidateQueries({ queryKey: ["document-shares", documentId] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to grant collaboration access."),
+  });
+
+  const revokeShareMutation = useMutation({
+    mutationFn: async () => {
+      if (!targetRevokeShare) return;
+      return revokeShareFn({
+        data: {
+          shareId: targetRevokeShare.id,
+          documentId: targetRevokeShare.document_id,
+          reason: revokeReason.trim() || "Immediate statutory revocation by authorized officer",
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success(
+        "Collaboration access grant revoked immediately. Fail-closed boundary enforced.",
+      );
+      setIsRevokeConfirmOpen(false);
+      setTargetRevokeShare(null);
+      setRevokeReason("");
+      queryClient.invalidateQueries({ queryKey: ["document-shares", documentId] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to revoke share grant."),
   });
 
   const runVerification = async (targetVer?: number) => {
@@ -1231,6 +1330,16 @@ function DocumentDetailPage() {
               Compare / View Version History
             </Button>
 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsShareDialogOpen(true)}
+              className="gap-1.5 text-xs text-indigo-700 dark:text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/10"
+            >
+              <Share2 className="size-3.5" />
+              Controlled Sharing ({documentShares.filter((s) => !s.is_revoked).length})
+            </Button>
+
             {permissions.canDownloadDocuments && (
               <Button
                 variant="outline"
@@ -1324,9 +1433,9 @@ function DocumentDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8 space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto p-1 bg-muted/60">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-6 h-auto p-1 bg-muted/60">
           <TabsTrigger value="preview" className="text-xs py-2">
-            Document Preview {isViewingHistorical ? `(v${activeVersion.version_number})` : ""}
+            Preview {isViewingHistorical ? `(v${activeVersion.version_number})` : ""}
           </TabsTrigger>
           <TabsTrigger value="particulars" className="text-xs py-2">
             Particulars & Metadata
@@ -1336,6 +1445,9 @@ function DocumentDetailPage() {
           </TabsTrigger>
           <TabsTrigger value="integrity" className="text-xs py-2">
             Integrity & §63 BSA
+          </TabsTrigger>
+          <TabsTrigger value="collaboration" className="text-xs py-2">
+            Collaboration ({documentShares.filter((s) => !s.is_revoked).length})
           </TabsTrigger>
           <TabsTrigger value="access" className="text-xs py-2">
             Access Logs ({accessLogs.length})
@@ -1501,7 +1613,9 @@ function DocumentDetailPage() {
                       <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px]">
                         AUTHENTIC R2 STREAM ACTIVE
                       </Badge>
-                      <span className="font-mono text-muted-foreground">{activeVersion.file_name}</span>
+                      <span className="font-mono text-muted-foreground">
+                        {activeVersion.file_name}
+                      </span>
                     </div>
                     <Button
                       variant="ghost"
@@ -1550,8 +1664,8 @@ function DocumentDetailPage() {
                     {activeVersion.file_name}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground max-w-md mx-auto">
-                    Stored in private Cloudflare R2 vault (
-                    {activeVersion.storage_path}). Authenticate session to stream or download.
+                    Stored in private Cloudflare R2 vault ({activeVersion.storage_path}).
+                    Authenticate session to stream or download.
                   </p>
                   <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                     <Button
@@ -2013,7 +2127,9 @@ function DocumentDetailPage() {
                   integrityResult ||
                   ({
                     status: doc.is_tampered ? "INTEGRITY_MISMATCH" : "VERIFIED",
-                    verificationState: ((doc as any).verification_state as "LIVE_VERIFIED" | "SIMULATED_DEMO") || "LIVE_VERIFIED",
+                    verificationState:
+                      ((doc as any).verification_state as "LIVE_VERIFIED" | "SIMULATED_DEMO") ||
+                      "LIVE_VERIFIED",
                     documentId: doc.id,
                     documentNumber: doc.document_number,
                     versionNumber: selectedVersionNumber || doc.current_version,
@@ -2054,6 +2170,173 @@ function DocumentDetailPage() {
                   isHistorical={isViewingHistorical}
                 />
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 6. CONTROLLED COLLABORATION TAB (Phase 12) */}
+        <TabsContent value="collaboration" className="space-y-6">
+          <Card className="shadow-xs border-border/80">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Share2 className="size-4 text-primary" />
+                  Controlled Document Collaboration & Sharing
+                  <Badge variant="secondary" className="text-xs ml-1 font-mono">
+                    {documentShares.filter((s) => !s.is_revoked).length} Active Grants
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  Statutory time-bounded sharing across Investigating Officers, Forensic Examiners,
+                  Prosecutors, and Judicial Officers with instant revocation.
+                </CardDescription>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setIsShareDialogOpen(true)}
+                className="gap-1.5 text-xs self-start"
+              >
+                <UserPlus className="size-3.5" />
+                Grant Collaboration Access
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {documentShares.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground border border-dashed rounded-lg m-4">
+                  <Share2 className="mx-auto size-8 text-muted-foreground/50" />
+                  <p className="mt-2 text-sm font-medium text-foreground">
+                    No External Collaboration Grants Issued
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                    This document is currently restricted to native role and case clearance. You can
+                    grant time-bounded permissions to IOs, FSL officers, or prosecutors.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsShareDialogOpen(true)}
+                    className="mt-4 gap-1.5 text-xs"
+                  >
+                    <UserPlus className="size-3.5" />
+                    Grant First Collaboration Share
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead>Recipient / Officer</TableHead>
+                        <TableHead>Authorized Role</TableHead>
+                        <TableHead>Permissions</TableHead>
+                        <TableHead>Case Scope</TableHead>
+                        <TableHead>Expiration</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {documentShares.map((s) => {
+                        const isExpired = new Date(s.expires_at) < new Date();
+                        const isRevoked = s.is_revoked;
+                        const isActive = !isRevoked && !isExpired;
+
+                        return (
+                          <TableRow key={s.id} className="hover:bg-muted/30">
+                            <TableCell className="text-xs font-semibold text-foreground">
+                              {s.recipient_name}
+                              <div className="text-[10px] text-muted-foreground font-normal">
+                                Granted by {s.granted_by_name} ({s.granted_by_role})
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[10px] uppercase font-mono">
+                                {s.recipient_role.replace(/_/g, " ")}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {s.permissions.map((p) => (
+                                  <Badge
+                                    key={p}
+                                    variant="secondary"
+                                    className="text-[9px] px-1.5 py-0 font-semibold"
+                                  >
+                                    {p}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {s.case_scope ? (
+                                <span className="font-mono text-primary font-medium">
+                                  {s.case_scope}
+                                </span>
+                              ) : (
+                                "Record Only"
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs font-mono">
+                              <span
+                                className={
+                                  isExpired ? "text-amber-600 font-semibold" : "text-foreground"
+                                }
+                              >
+                                {new Date(s.expires_at).toLocaleString("en-IN", {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {isRevoked ? (
+                                <Badge variant="destructive" className="text-[10px]">
+                                  REVOKED
+                                </Badge>
+                              ) : isExpired ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] text-amber-700 border-amber-500/30"
+                                >
+                                  EXPIRED
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px]">
+                                  ACTIVE
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {isActive && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs text-destructive hover:bg-destructive/10 gap-1 font-medium"
+                                  onClick={() => {
+                                    setTargetRevokeShare(s);
+                                    setRevokeReason("");
+                                    setIsRevokeConfirmOpen(true);
+                                  }}
+                                >
+                                  <Ban className="size-3" />
+                                  Revoke Access
+                                </Button>
+                              )}
+                              {isRevoked && (
+                                <span className="text-[10px] text-muted-foreground italic">
+                                  Revoked: {s.revocation_reason || "Access cancelled"}
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -2868,14 +3151,19 @@ function DocumentDetailPage() {
             </DialogTitle>
             <DialogDescription className="text-xs leading-relaxed">
               Designate version v{targetSetActiveVersion} as the current active version for document{" "}
-              <span className="font-mono font-semibold">{detailQuery.data?.document?.document_number}</span>.
-              A statutory legal justification (minimum 10 characters) is legally mandatory and permanently recorded in the audit trail.
+              <span className="font-mono font-semibold">
+                {detailQuery.data?.document?.document_number}
+              </span>
+              . A statutory legal justification (minimum 10 characters) is legally mandatory and
+              permanently recorded in the audit trail.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="set-active-reason" className="text-xs">Statutory Judicial / Administrative Reason</Label>
+              <Label htmlFor="set-active-reason" className="text-xs">
+                Statutory Judicial / Administrative Reason
+              </Label>
               <Textarea
                 id="set-active-reason"
                 placeholder="e.g. In accordance with judicial bench order dated 2026-09-09, reverting active filing to original version v1."
@@ -2904,6 +3192,200 @@ function DocumentDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ========================================================================= */}
+      {/* DIALOG 7: CONTROLLED SHARE GRANT MODAL (Phase 12) */}
+      {/* ========================================================================= */}
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent className="sm:max-w-md max-h-[88vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="size-5 text-indigo-600" />
+              Grant Controlled Document Collaboration Access
+            </DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed">
+              Authorize time-bounded, role-scoped access to{" "}
+              {detailQuery.data?.document?.document_number}. Every grant creates an immutable audit
+              record and can be revoked instantly.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            <div className="space-y-1.5">
+              <Label htmlFor="share-role" className="text-xs font-semibold">
+                Recipient Role *
+              </Label>
+              <Select value={shareRecipientRole} onValueChange={setShareRecipientRole}>
+                <SelectTrigger id="share-role" className="text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {AUTHORIZED_RECIPIENT_ROLES.map((r) => (
+                    <SelectItem key={r.role} value={r.role}>
+                      {r.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="share-name" className="text-xs font-semibold">
+                Recipient Official Name / Department *
+              </Label>
+              <Input
+                id="share-name"
+                placeholder="e.g. Inspector Ramesh Kumar (Cyber Cell) or FSL Ballistics Div"
+                value={shareRecipientName}
+                onChange={(e) => setShareRecipientName(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="share-scope" className="text-xs font-semibold">
+                Case Scope Restriction
+              </Label>
+              <Input
+                id="share-scope"
+                placeholder="e.g. CR/2024/00491 or leave blank for document-only"
+                value={shareCaseScope}
+                onChange={(e) => setShareCaseScope(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">Permissions Granted *</Label>
+              <div className="space-y-1.5 rounded-lg border p-3 bg-muted/20">
+                {SHARE_PERMISSIONS.map((p) => {
+                  const isChecked = sharePermissions.includes(p.permission);
+                  return (
+                    <label
+                      key={p.permission}
+                      className="flex items-start gap-2.5 cursor-pointer py-1"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSharePermissions([...sharePermissions, p.permission]);
+                          } else {
+                            if (sharePermissions.length > 1) {
+                              setSharePermissions(
+                                sharePermissions.filter((item) => item !== p.permission),
+                              );
+                            }
+                          }
+                        }}
+                        className="mt-0.5 size-3.5 rounded border-border"
+                      />
+                      <div>
+                        <span className="font-semibold text-foreground text-xs">{p.label}</span>
+                        <p className="text-[11px] text-muted-foreground">{p.description}</p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="share-duration" className="text-xs font-semibold">
+                Access Duration & Expiration *
+              </Label>
+              <Select value={shareExpiresHours} onValueChange={setShareExpiresHours}>
+                <SelectTrigger id="share-duration" className="text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="24">24 Hours (Emergency / Immediate Examination)</SelectItem>
+                  <SelectItem value="72">72 Hours (Standard 3-Day Remand Window)</SelectItem>
+                  <SelectItem value="168">7 Days (Standard Investigation Collaboration)</SelectItem>
+                  <SelectItem value="336">14 Days (Extended FSL Lab Analysis)</SelectItem>
+                  <SelectItem value="720">30 Days (Court Trial Period)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="share-reason" className="text-xs font-semibold">
+                Statutory Justification & Legal Reason *
+              </Label>
+              <Textarea
+                id="share-reason"
+                placeholder="e.g. Authorized disclosure to lead prosecutor for framing charges under Section 193 BNSS, 2023."
+                value={shareReason}
+                onChange={(e) => setShareReason(e.target.value)}
+                rows={2}
+                className="text-xs"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setIsShareDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={createShareMutation.isPending || shareReason.trim().length < 5}
+              onClick={() => createShareMutation.mutate()}
+              className="gap-1.5"
+            >
+              {createShareMutation.isPending ? "Recording Grant..." : "Issue Collaboration Grant"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* DIALOG 8: REVOKE SHARE CONFIRMATION ALERT DIALOG (Phase 12) */}
+      {/* ========================================================================= */}
+      <AlertDialog open={isRevokeConfirmOpen} onOpenChange={setIsRevokeConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Ban className="size-5" />
+              Revoke Collaboration Access Immediately?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs leading-relaxed space-y-2">
+              <p>
+                This action will instantly terminate collaboration access for{" "}
+                <strong>{targetRevokeShare?.recipient_name}</strong> (
+                {targetRevokeShare?.recipient_role}). Future view or download requests will fail
+                closed.
+              </p>
+              <div className="mt-2 space-y-1 text-left">
+                <Label
+                  htmlFor="revoke-reason-input"
+                  className="text-xs text-foreground font-semibold"
+                >
+                  Reason for Immediate Revocation *
+                </Label>
+                <Input
+                  id="revoke-reason-input"
+                  placeholder="e.g. Investigation phase completed / Transferred to other division"
+                  value={revokeReason}
+                  onChange={(e) => setRevokeReason(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={revokeShareMutation.isPending}
+              onClick={() => revokeShareMutation.mutate()}
+            >
+              {revokeShareMutation.isPending ? "Revoking..." : "Revoke Access Immediately"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

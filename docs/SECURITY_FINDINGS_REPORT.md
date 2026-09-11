@@ -3,15 +3,16 @@
 **Date**: September 8, 2026  
 **Auditor**: Antigravity Security Analysis Agent  
 **Scope**: Full application stack with specific focus on Secure DMS, Police Asset Management, Evidence Custody, Unified Audit Trail, and What-If Digital Twin Simulation modules.  
-**Classification**: CONFIDENTIAL / RESTRICTED — JUDICIAL REPOSITORY SECURITY ASSESSMENT  
+**Classification**: CONFIDENTIAL / RESTRICTED — JUDICIAL REPOSITORY SECURITY ASSESSMENT
 
 ---
 
 ## Executive Summary
 
-A comprehensive, defense-in-depth security audit was conducted across 30+ technical security vectors within the NyayaSetu platform following the introduction of the Secure DMS, Police Asset, and Evidence Custody modules. 
+A comprehensive, defense-in-depth security audit was conducted across 30+ technical security vectors within the NyayaSetu platform following the introduction of the Secure DMS, Police Asset, and Evidence Custody modules.
 
 The architecture demonstrates strong foundational security engineering in many areas:
+
 - Server-side secrets (`SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`) are properly segregated from Vite client bundles.
 - PostgreSQL RLS enforces strict immutable protections (`NO UPDATE`, `NO DELETE`) on `audit_logs` and `document_versions`.
 - Cryptographic SHA-256 integrity verification, Merkle leaf computation, and digital signature status binding comply with Bharatiya Sakshya Adhiniyam (BSA, 2023) Section 63 standards.
@@ -23,26 +24,27 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 
 ## Audit Findings Matrix by Severity
 
-| ID | Category | Severity | Vulnerability Description | Status |
-|:---|:---|:---:|:---|:---:|
-| **SEC-01** | Server Functions / Broken Access Control | **CRITICAL** | Caller Role Spoofing & IDOR in `searchGlobalRegistry` server function via `supabaseAdmin` bypass | Confirmed |
-| **SEC-02** | Document Access / Data Exposure | **HIGH** | Unauthorized Document Download via `downloadDocumentFile` bypassing sensitivity clearance | Confirmed |
-| **SEC-03** | AI Security / Authorization Leakage | **HIGH** | AI Assistant Authorization Leakage & Global Cross-Tenant Snapshot Cache in `askRegistryAssistant` | Confirmed |
-| **SEC-04** | Evidence Custody / Authorization | **HIGH** | Missing Permission Assertion in `dispatchEvidenceTransfer` and `acknowledgeEvidenceReceipt` | Confirmed |
-| **SEC-05** | IDOR / Record-Level Access | **HIGH** | Client-Side IDOR on `/assets/$assetId` and Document Detail Memory Leakage via URL alteration | Confirmed |
-| **SEC-06** | Denial of Service / Rate Limiting | **HIGH** | Shared Global Rate Limiter Buckets causing platform-wide DoS in Assistant and Public Lookup | Confirmed |
-| **SEC-07** | File Upload / Storage Security | **MEDIUM** | Unsanitized File Names in Document Vault Storage Paths (Path Traversal Risk) | Confirmed |
-| **SEC-08** | File Upload / Validation | **MEDIUM** | Missing Maximum File Size and MIME Type Validation in `uploadSecureDocument` | Confirmed |
-| **SEC-09** | AI Prompt Injection | **MEDIUM** | Unsanitized Parameter Interpolation into AI Scheduling Explanation Prompt | Confirmed |
-| **SEC-10** | Database RLS / State Machine | **MEDIUM** | Supabase RLS Policy allows non-admin users to update Asset Status to `RETIRED` or `LOST` | Confirmed |
-| **SEC-11** | Privilege Escalation / Fail-Open | **LOW** | Fallback to `"registrar"` role for unassigned users in `useCurrentStaff` and route guards | Confirmed |
-| **SEC-12** | Information Disclosure / API | **LOW** | Unauthenticated `getBacklogSimulationCases` server function exposes active case priority data | Confirmed |
+| ID         | Category                                 |   Severity   | Vulnerability Description                                                                         |  Status   |
+| :--------- | :--------------------------------------- | :----------: | :------------------------------------------------------------------------------------------------ | :-------: |
+| **SEC-01** | Server Functions / Broken Access Control | **CRITICAL** | Caller Role Spoofing & IDOR in `searchGlobalRegistry` server function via `supabaseAdmin` bypass  | Confirmed |
+| **SEC-02** | Document Access / Data Exposure          |   **HIGH**   | Unauthorized Document Download via `downloadDocumentFile` bypassing sensitivity clearance         | Confirmed |
+| **SEC-03** | AI Security / Authorization Leakage      |   **HIGH**   | AI Assistant Authorization Leakage & Global Cross-Tenant Snapshot Cache in `askRegistryAssistant` | Confirmed |
+| **SEC-04** | Evidence Custody / Authorization         |   **HIGH**   | Missing Permission Assertion in `dispatchEvidenceTransfer` and `acknowledgeEvidenceReceipt`       | Confirmed |
+| **SEC-05** | IDOR / Record-Level Access               |   **HIGH**   | Client-Side IDOR on `/assets/$assetId` and Document Detail Memory Leakage via URL alteration      | Confirmed |
+| **SEC-06** | Denial of Service / Rate Limiting        |   **HIGH**   | Shared Global Rate Limiter Buckets causing platform-wide DoS in Assistant and Public Lookup       | Confirmed |
+| **SEC-07** | File Upload / Storage Security           |  **MEDIUM**  | Unsanitized File Names in Document Vault Storage Paths (Path Traversal Risk)                      | Confirmed |
+| **SEC-08** | File Upload / Validation                 |  **MEDIUM**  | Missing Maximum File Size and MIME Type Validation in `uploadSecureDocument`                      | Confirmed |
+| **SEC-09** | AI Prompt Injection                      |  **MEDIUM**  | Unsanitized Parameter Interpolation into AI Scheduling Explanation Prompt                         | Confirmed |
+| **SEC-10** | Database RLS / State Machine             |  **MEDIUM**  | Supabase RLS Policy allows non-admin users to update Asset Status to `RETIRED` or `LOST`          | Confirmed |
+| **SEC-11** | Privilege Escalation / Fail-Open         |   **LOW**    | Fallback to `"registrar"` role for unassigned users in `useCurrentStaff` and route guards         | Confirmed |
+| **SEC-12** | Information Disclosure / API             |   **LOW**    | Unauthenticated `getBacklogSimulationCases` server function exposes active case priority data     | Confirmed |
 
 ---
 
 ## Detailed Vulnerability Analysis
 
 ### [SEC-01] CRITICAL: Caller Role Spoofing & IDOR in `searchGlobalRegistry`
+
 - **Impacted File**: `src/lib/global-search.functions.ts` (lines 32–45)
 - **Vulnerability Vector**: API / Server Functions & Authorization Bypass
 - **Description**:  
@@ -60,6 +62,7 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 ---
 
 ### [SEC-02] HIGH: Unauthorized Document Download via `downloadDocumentFile`
+
 - **Impacted File**: `src/lib/documents.ts` (lines 1610–1642)
 - **Vulnerability Vector**: Document Access & Unauthorized Downloads
 - **Description**:  
@@ -72,9 +75,10 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 ---
 
 ### [SEC-03] HIGH: AI Assistant Authorization Leakage & Shared Cross-Tenant Cache
+
 - **Impacted File**: `src/lib/assistant.functions.ts` (lines 62–64)
 - **Vulnerability Vector**: AI Authorization Leakage & Cross-Session Memory Contamination
-- **Description**:  
+- **Description**:
   1. **Global Cache Contamination**: `cachedSnapshot` is stored as a global module variable on the server. When a Judge queries the assistant, `cachedSnapshot` caches all `SEALED_COVER_IN_CAMERA` documents for 60 seconds. Subsequent queries by any clerk, police officer, or litigant receive this cached Judge snapshot because the cache check only checks timestamp expiration, not caller authorization.
   2. **Prompt Data Leakage**: Lines 354–366 hardcode full evidence chain-of-custody details (e.g. `EV-1045`, High-Security Locker #12, CFSL cyber extraction logs) directly into the LLM system prompt. Any user querying the AI can extract sensitive evidence locker numbers and custodian identities.
 - **Recommended Remediation**:
@@ -85,6 +89,7 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 ---
 
 ### [SEC-04] HIGH: Missing Permission Verification in Evidence Custody Handover
+
 - **Impacted File**: `src/lib/evidence-custody.ts` (lines 114–197)
 - **Vulnerability Vector**: Evidence Custody & Transfer Authorization
 - **Description**:  
@@ -100,11 +105,12 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 ---
 
 ### [SEC-05] HIGH: Client-Side IDOR on `/assets/$assetId` and Document Detail Cache
-- **Impacted Files**:  
-  - `src/routes/_authenticated/assets/$assetId.tsx` (lines 173–180)  
+
+- **Impacted Files**:
+  - `src/routes/_authenticated/assets/$assetId.tsx` (lines 173–180)
   - `src/routes/_authenticated/documents/$documentId.tsx` (lines 868–876)
 - **Vulnerability Vector**: IDOR Risks (URL ID Tampering)
-- **Description**:  
+- **Description**:
   - In `/assets/$assetId`, when a user changes the URL ID to another asset (e.g., `/assets/ast_ev_01`), the page loads `policeAssetDetailQuery(assetId)` and displays all weapon serials, armory locations, and custody logs. It never calls `canAccessAssetRecord(staffRole, asset, assignedCaseIds)`. As a result, Judges (who are restricted solely to trial exhibits for cases on their bench) can inspect any police armory asset or unlinked criminal evidence.
   - In `/documents/$documentId`, `detailQuery.data` fetches the document content into React Query cache before `canAccessDocumentRecord` evaluates authorization in JSX. Even if JSX renders an "Access Denied" overlay, the sensitive content is present in the client's browser memory / query cache.
 - **Recommended Remediation**:
@@ -114,8 +120,9 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 ---
 
 ### [SEC-06] HIGH: Shared Global Rate Limiter Buckets (Denial of Service)
-- **Impacted Files**:  
-  - `src/lib/assistant.functions.ts` (line 68)  
+
+- **Impacted Files**:
+  - `src/lib/assistant.functions.ts` (line 68)
   - `src/lib/case-status.functions.ts` (line 40)
 - **Vulnerability Vector**: Rate Limiting & Denial of Service
 - **Description**:  
@@ -139,12 +146,13 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 ---
 
 ### [SEC-07] MEDIUM: Unsanitized File Names in Vault Paths (Path Traversal Risk)
+
 - **Impacted File**: `src/lib/documents.ts` (lines 1045)
 - **Vulnerability Vector**: Path Traversal & Storage Security
 - **Description**:  
   In `uploadSecureDocument` and `createNewDocumentVersion`, `storage_path` is constructed via string interpolation:
   ```ts
-  storage_path: `secure/documents/${docNumber}_${payload.fileName}`
+  storage_path: `secure/documents/${docNumber}_${payload.fileName}`;
   ```
   If `payload.fileName` contains path traversal characters (`../../`, `..\\`, null bytes, or URL-encoded slashes), it can escape the intended `secure/documents/` folder.
 - **Recommended Remediation**:
@@ -153,6 +161,7 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 ---
 
 ### [SEC-08] MEDIUM: Missing Maximum File Size and MIME Type Validation
+
 - **Impacted File**: `src/lib/documents.ts` (lines 982–1007)
 - **Vulnerability Vector**: File Upload Validation & File Size Limits
 - **Description**:  
@@ -163,6 +172,7 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 ---
 
 ### [SEC-09] MEDIUM: Unsanitized AI Scheduling Explanation Prompt
+
 - **Impacted File**: `src/lib/explain-candidate.functions.ts` (lines 121–139)
 - **Vulnerability Vector**: AI Prompt Injection & Rate Limiting
 - **Description**:  
@@ -174,6 +184,7 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 ---
 
 ### [SEC-10] MEDIUM: Supabase RLS Allows Non-Admin to Retire or Mark Assets Lost
+
 - **Impacted File**: `supabase/migrations/20260908150000_harden_rbac_dms_assets_evidence.sql` (lines 252–264)
 - **Vulnerability Vector**: PostgreSQL Row Level Security (RLS)
 - **Description**:  
@@ -185,9 +196,10 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 ---
 
 ### [SEC-11] LOW: Fallback to `"registrar"` for Unassigned Users in `useCurrentStaff`
-- **Impacted Files**:  
-  - `src/hooks/use-current-staff.ts` (line 43)  
-  - `src/routes/_authenticated/activity-log.tsx` (line 247)  
+
+- **Impacted Files**:
+  - `src/hooks/use-current-staff.ts` (line 43)
+  - `src/routes/_authenticated/activity-log.tsx` (line 247)
   - `src/routes/_authenticated/assets/$assetId.tsx` (line 177)
 - **Vulnerability Vector**: Privilege Escalation & Least Privilege (Fail-Closed)
 - **Description**:  
@@ -199,6 +211,7 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 ---
 
 ### [SEC-12] LOW: Unauthenticated `getBacklogSimulationCases` Server Function
+
 - **Impacted File**: `src/lib/backlog.functions.ts` (lines 9–30)
 - **Vulnerability Vector**: Sensitive Data Exposure / Public Server Functions
 - **Description**:  
@@ -210,22 +223,23 @@ However, **6 Critical and High Severity Vulnerabilities** and **6 Medium Severit
 
 ## Technical Domain Audits & Validated Controls
 
-| Domain | Status | Verified Technical Controls |
-|:---|:---:|:---|
-| **Authentication** | **PASS** | Supabase Auth handles email/password and JWT validation. Passwords are never stored in plaintext. |
+| Domain                         |  Status  | Verified Technical Controls                                                                                                                                               |
+| :----------------------------- | :------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Authentication**             | **PASS** | Supabase Auth handles email/password and JWT validation. Passwords are never stored in plaintext.                                                                         |
 | **Document Version Integrity** | **PASS** | Immutable version tree (v1, v2, v3); SHA-256 digests computed dynamically; Section 63 BSA compliance verified; tamper simulation correctly triggers `INTEGRITY_MISMATCH`. |
-| **Digital Signature Metadata** | **PASS** | Signatures strictly bind to `(documentId, versionNumber)` and content hash. Cleared disclaimers state platform keystore is preparation for CCA Class 3 DSC tokens. |
-| **Audit Trail Manipulation** | **PASS** | PostgreSQL migration `20260908160000_extend_audit_logs.sql` contains explicit `NO UPDATE` and `NO DELETE` RLS policies. |
-| **Environment & Secrets** | **PASS** | `SUPABASE_SERVICE_ROLE_KEY` is not prefixed with `VITE_` and is referenced only in `client.server.ts`. No server keys leak into client JS. |
-| **SQL Injection** | **PASS** | All database calls use Supabase query builders with parameterized inputs. No raw SQL concatenation. |
-| **XSS Prevention** | **PASS** | Standard React JSX escaping applies across all UI components. No use of `dangerouslySetInnerHTML`. |
-| **Public Routes** | **PASS** | Public `/case-status` correctly redacts sensitive party names, contact info, and internal priority weights. |
+| **Digital Signature Metadata** | **PASS** | Signatures strictly bind to `(documentId, versionNumber)` and content hash. Cleared disclaimers state platform keystore is preparation for CCA Class 3 DSC tokens.        |
+| **Audit Trail Manipulation**   | **PASS** | PostgreSQL migration `20260908160000_extend_audit_logs.sql` contains explicit `NO UPDATE` and `NO DELETE` RLS policies.                                                   |
+| **Environment & Secrets**      | **PASS** | `SUPABASE_SERVICE_ROLE_KEY` is not prefixed with `VITE_` and is referenced only in `client.server.ts`. No server keys leak into client JS.                                |
+| **SQL Injection**              | **PASS** | All database calls use Supabase query builders with parameterized inputs. No raw SQL concatenation.                                                                       |
+| **XSS Prevention**             | **PASS** | Standard React JSX escaping applies across all UI components. No use of `dangerouslySetInnerHTML`.                                                                        |
+| **Public Routes**              | **PASS** | Public `/case-status` correctly redacts sensitive party names, contact info, and internal priority weights.                                                               |
 
 ---
 
 ## Action Plan for Remediation
 
 Upon approval from the user, the remediation will be executed sequentially:
+
 1. **Remediate Server Function Spoofing & Auth**:
    - Add `requireSupabaseAuth` to `searchGlobalRegistry` and derive `userRole`/`userId` from server context.
    - Key rate limiters by client IP / user ID instead of static global strings.

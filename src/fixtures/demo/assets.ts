@@ -9,7 +9,12 @@
  * or used as silent fallbacks when database queries fail or return empty sets.
  */
 
-import type { PoliceAsset, AssetTransferRecord, AssetMaintenanceRecord, CustodyTimelineEvent } from "@/lib/assets";
+import type {
+  PoliceAsset,
+  AssetTransferRecord,
+  AssetMaintenanceRecord,
+  CustodyTimelineEvent,
+} from "@/lib/assets";
 
 export const SEED_POLICE_ASSETS: PoliceAsset[] = [
   {

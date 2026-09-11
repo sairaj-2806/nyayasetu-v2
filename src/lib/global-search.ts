@@ -146,13 +146,13 @@ export async function executeUnifiedSearch(params: {
   const judgeAssignedCaseIds = new Set<string>();
   if (isJudge && params.userId) {
     try {
-      const { data: judgeRecord } = await withTimeout(
+      const { data: judgeRecord } = (await withTimeout(
         dbClient.from("judges").select("id").eq("user_id", params.userId).maybeSingle(),
-      ) as any;
+      )) as any;
       if (judgeRecord?.id) {
-        const { data: scheds } = await withTimeout(
+        const { data: scheds } = (await withTimeout(
           dbClient.from("schedules").select("case_id").eq("judge_id", judgeRecord.id),
-        ) as any;
+        )) as any;
         if (scheds) {
           for (const s of scheds) {
             if (s.case_id) judgeAssignedCaseIds.add(s.case_id);
@@ -272,7 +272,6 @@ export async function executeUnifiedSearch(params: {
     }
     return true;
   });
-
 
   // 5. Gather Document Versions
   const documentVersions: Array<{ doc: SecureDocument; ver: DocumentVersionRecord }> = [];
@@ -738,7 +737,6 @@ export async function executeUnifiedSearch(params: {
     (!filters.entityType || filters.entityType === "all" || filters.entityType === "audit_event")
   ) {
     for (const aud of auditEntries) {
-
       const audTokens = [
         aud.action,
         aud.entityAffected,

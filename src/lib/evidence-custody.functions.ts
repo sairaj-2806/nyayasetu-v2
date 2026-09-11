@@ -123,7 +123,9 @@ async function syncCustodyFromSupabaseAuditLogs(): Promise<void> {
     const { data: logs } = await supabaseAdmin
       .from("audit_logs")
       .select("*")
-      .or("action.ilike.%EVIDENCE_DISPATCHED%,action.ilike.%EVIDENCE_RECEIVED%,action.ilike.%EVIDENCE_TRANSFER_REJECTED%")
+      .or(
+        "action.ilike.%EVIDENCE_DISPATCHED%,action.ilike.%EVIDENCE_RECEIVED%,action.ilike.%EVIDENCE_TRANSFER_REJECTED%",
+      )
       .order("timestamp", { ascending: true })
       .limit(200);
 
@@ -183,7 +185,6 @@ async function syncCustodyFromSupabaseAuditLogs(): Promise<void> {
           existingAsset.updated_at = log.timestamp;
           _serverAssetRegistry.set(payload.entity_id, existingAsset);
           _serverAssetRegistry.set(meta.assetCode, existingAsset);
-
         } else if (actionCode === "EVIDENCE_RECEIVED") {
           const trf = _serverTransferRegistry.get(meta.transferId);
           if (trf) {
@@ -204,7 +205,6 @@ async function syncCustodyFromSupabaseAuditLogs(): Promise<void> {
             asset.updated_at = log.timestamp;
             _serverAssetRegistry.set(payload.entity_id, asset);
           }
-
         } else if (actionCode === "EVIDENCE_TRANSFER_REJECTED") {
           const trf = _serverTransferRegistry.get(meta.transferId);
           if (trf) {
@@ -241,7 +241,11 @@ async function resolvePoliceAsset(assetIdentifier: string): Promise<ServerPolice
     const { data: dbAsset, error } = await supabaseAdmin
       .from("police_assets")
       .select("*")
-      .or(isUuid ? `id.eq.${assetIdentifier},asset_code.eq.${assetIdentifier}` : `asset_code.eq.${assetIdentifier}`)
+      .or(
+        isUuid
+          ? `id.eq.${assetIdentifier},asset_code.eq.${assetIdentifier}`
+          : `asset_code.eq.${assetIdentifier}`,
+      )
       .maybeSingle();
 
     if (!error && dbAsset) {
@@ -310,7 +314,9 @@ export const dispatchEvidenceTransfer = createServerFn({ method: "POST" })
       throw new Error("Tamper-evident transit seal number is required.");
     }
     if (!input?.transferReason || input.transferReason.trim().length < 5) {
-      throw new Error("Transfer reason must be at least 5 characters explaining evidentiary purpose.");
+      throw new Error(
+        "Transfer reason must be at least 5 characters explaining evidentiary purpose.",
+      );
     }
     return input;
   })
@@ -329,7 +335,9 @@ export const dispatchEvidenceTransfer = createServerFn({ method: "POST" })
       windowMs: 60_000,
     });
     if (!custodyRate.allowed) {
-      throw new Error("Rate limit exceeded: Too many evidence dispatch attempts. Please wait a minute.");
+      throw new Error(
+        "Rate limit exceeded: Too many evidence dispatch attempts. Please wait a minute.",
+      );
     }
 
     // 1. Authenticate user & resolve actual role from backend database
@@ -363,7 +371,6 @@ export const dispatchEvidenceTransfer = createServerFn({ method: "POST" })
     const releasingOfficerName = profileData?.full_name || "Authorized Police Officer";
     const releasingOfficerRole = userRoles[0] || "unassigned";
 
-
     // 2. Resolve target asset & verify current custodian/location
     const asset = await resolvePoliceAsset(data.assetId);
     if (!asset) {
@@ -379,7 +386,8 @@ export const dispatchEvidenceTransfer = createServerFn({ method: "POST" })
 
     // 3. Concurrency Check: Ensure no active PENDING or IN_TRANSIT transfer exists for this asset
     const activeTransfers = Array.from(_serverTransferRegistry.values()).filter(
-      (t) => (t.asset_id === asset.id || t.asset_code === asset.asset_code) && t.status === "PENDING",
+      (t) =>
+        (t.asset_id === asset.id || t.asset_code === asset.asset_code) && t.status === "PENDING",
     );
 
     if (activeTransfers.length > 0 || asset.evidence_status === "TRANSFERRED") {
@@ -481,17 +489,21 @@ export const dispatchEvidenceTransfer = createServerFn({ method: "POST" })
           recorded_by: userId.match(/^[0-9a-fA-F-]{36}$/) ? userId : null,
         });
 
-        await (supabaseAdmin.from("police_assets") as any).update({
-          evidence_status: "TRANSFERRED",
-          status: "TRANSFERRED",
-          tamper_seal_number: data.transitSealNumber.trim(),
-          updated_at: now,
-        }).eq("id", asset.id);
+        await (supabaseAdmin.from("police_assets") as any)
+          .update({
+            evidence_status: "TRANSFERRED",
+            status: "TRANSFERRED",
+            tamper_seal_number: data.transitSealNumber.trim(),
+            updated_at: now,
+          })
+          .eq("id", asset.id);
       }
     } catch (dbErr: any) {
       if (!dbErr?.message?.includes("schema cache")) {
         console.error("[dispatchEvidenceTransfer] Database write failed:", dbErr);
-        throw new Error(`Database Error: Failed to commit custody dispatch (${dbErr?.message || "Internal database failure"}).`);
+        throw new Error(
+          `Database Error: Failed to commit custody dispatch (${dbErr?.message || "Internal database failure"}).`,
+        );
       }
     }
 
@@ -589,7 +601,9 @@ export const acknowledgeEvidenceReceipt = createServerFn({ method: "POST" })
       windowMs: 60_000,
     });
     if (!custodyRate.allowed) {
-      throw new Error("Rate limit exceeded: Too many evidence receipt attempts. Please wait a minute.");
+      throw new Error(
+        "Rate limit exceeded: Too many evidence receipt attempts. Please wait a minute.",
+      );
     }
 
     // 1. Authenticate user & resolve actual role from backend
@@ -611,7 +625,6 @@ export const acknowledgeEvidenceReceipt = createServerFn({ method: "POST" })
     const receivingOfficerName = profileData?.full_name || "Authorized Custodian";
     const receivingOfficerRole = userRoles[0] || "unassigned";
 
-
     // 2. Resolve transfer record from Supabase or server registry
     let transfer: ServerEvidenceTransfer | null = null;
     const isUuid = Boolean(data.transferId.match(/^[0-9a-fA-F-]{36}$/));
@@ -620,7 +633,11 @@ export const acknowledgeEvidenceReceipt = createServerFn({ method: "POST" })
       const { data: dbTrf, error } = await supabaseAdmin
         .from("asset_transfers")
         .select("*")
-        .or(isUuid ? `id.eq.${data.transferId},transfer_number.eq.${data.transferId}` : `transfer_number.eq.${data.transferId}`)
+        .or(
+          isUuid
+            ? `id.eq.${data.transferId},transfer_number.eq.${data.transferId}`
+            : `transfer_number.eq.${data.transferId}`,
+        )
         .maybeSingle();
 
       if (!error && dbTrf) {
@@ -780,7 +797,9 @@ export const acknowledgeEvidenceReceipt = createServerFn({ method: "POST" })
     } catch (dbErr: any) {
       if (!dbErr?.message?.includes("schema cache")) {
         console.error("[acknowledgeEvidenceReceipt] Database update failed:", dbErr);
-        throw new Error(`Database Error: Failed to complete custody receipt (${dbErr?.message || "Internal database failure"}).`);
+        throw new Error(
+          `Database Error: Failed to complete custody receipt (${dbErr?.message || "Internal database failure"}).`,
+        );
       }
     }
 
@@ -902,7 +921,9 @@ export const rejectEvidenceTransfer = createServerFn({ method: "POST" })
       windowMs: 60_000,
     });
     if (!custodyRate.allowed) {
-      throw new Error("Rate limit exceeded: Too many evidence rejection attempts. Please wait a minute.");
+      throw new Error(
+        "Rate limit exceeded: Too many evidence rejection attempts. Please wait a minute.",
+      );
     }
 
     // 1. Authenticate user & resolve actual role from backend
@@ -924,7 +945,6 @@ export const rejectEvidenceTransfer = createServerFn({ method: "POST" })
     const rejectingOfficerName = profileData?.full_name || "Authorized Custodian";
     const rejectingOfficerRole = userRoles[0] || "unassigned";
 
-
     // 2. Resolve transfer record
     let transfer = _serverTransferRegistry.get(data.transferId) || null;
     if (!transfer) {
@@ -938,7 +958,11 @@ export const rejectEvidenceTransfer = createServerFn({ method: "POST" })
         const { data: dbTrf } = await supabaseAdmin
           .from("asset_transfers")
           .select("*")
-          .or(isUuid ? `id.eq.${data.transferId},transfer_number.eq.${data.transferId}` : `transfer_number.eq.${data.transferId}`)
+          .or(
+            isUuid
+              ? `id.eq.${data.transferId},transfer_number.eq.${data.transferId}`
+              : `transfer_number.eq.${data.transferId}`,
+          )
           .maybeSingle();
         if (dbTrf) {
           transfer = {
@@ -1039,7 +1063,9 @@ export const rejectEvidenceTransfer = createServerFn({ method: "POST" })
     } catch (dbErr: any) {
       if (!dbErr?.message?.includes("schema cache")) {
         console.error("[rejectEvidenceTransfer] Database write failed:", dbErr);
-        throw new Error(`Database Error: Failed to commit transfer rejection (${dbErr?.message || "Internal failure"}).`);
+        throw new Error(
+          `Database Error: Failed to commit transfer rejection (${dbErr?.message || "Internal failure"}).`,
+        );
       }
     }
 
@@ -1158,7 +1184,9 @@ export const getPendingEvidenceTransfers = createServerFn({ method: "POST" })
     if (data?.assetId) {
       return all.filter((t) => t.asset_id === data.assetId || t.asset_code === data.assetId);
     }
-    return all.sort((a, b) => new Date(b.dispatched_at).getTime() - new Date(a.dispatched_at).getTime());
+    return all.sort(
+      (a, b) => new Date(b.dispatched_at).getTime() - new Date(a.dispatched_at).getTime(),
+    );
   });
 
 // ============================================================================
@@ -1212,5 +1240,7 @@ export const getEvidenceCustodyTimeline = createServerFn({ method: "POST" })
 
     await syncCustodyFromSupabaseAuditLogs();
     const list = _serverCustodyRegistry.get(data.assetId) || [];
-    return list.sort((a, b) => new Date(a.transfer_timestamp).getTime() - new Date(b.transfer_timestamp).getTime());
+    return list.sort(
+      (a, b) => new Date(a.transfer_timestamp).getTime() - new Date(b.transfer_timestamp).getTime(),
+    );
   });

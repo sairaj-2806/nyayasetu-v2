@@ -99,7 +99,8 @@ function generateRuleBasedExplanation(data: z.infer<typeof Input>): string {
   ].join("\n");
 }
 
-const ADVISORY_NOTICE = "\n\n[Advisory: This explanation is an automated algorithmic aid. All judicial scheduling decisions remain subject to the independent discretion of the Presiding Judge and Registrar.]";
+const ADVISORY_NOTICE =
+  "\n\n[Advisory: This explanation is an automated algorithmic aid. All judicial scheduling decisions remain subject to the independent discretion of the Presiding Judge and Registrar.]";
 
 export const explainSchedulingRecommendation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

@@ -2239,12 +2239,15 @@ function RegisterCasePage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground pb-0.5">
                 <span>Attached Filings ({documents.length})</span>
-                <span className="text-[11px] font-normal">All attachments have preview verification</span>
+                <span className="text-[11px] font-normal">
+                  All attachments have preview verification
+                </span>
               </div>
 
               {documents.length === 0 ? (
                 <p className="py-6 text-center text-xs text-muted-foreground">
-                  No documents attached yet. Click above to attach pleadings, petitions, or affidavits.
+                  No documents attached yet. Click above to attach pleadings, petitions, or
+                  affidavits.
                 </p>
               ) : (
                 documents.map((doc) => (

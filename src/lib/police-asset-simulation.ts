@@ -213,7 +213,8 @@ export function runPoliceAssetSimulation(params: {
 
   // Read live data passed from caller, with fallback to demo seeds only in demo mode
   const assets: PoliceAsset[] = params.liveAssets || (isDemoMode() ? SEED_POLICE_ASSETS : []);
-  const docs: SecureDocument[] = params.liveDocuments || (isDemoMode() ? seedInitialDocuments() : []);
+  const docs: SecureDocument[] =
+    params.liveDocuments || (isDemoMode() ? seedInitialDocuments() : []);
   const cases: CaseRow[] = params.liveCases || [];
   const transfers: PendingEvidenceTransfer[] =
     params.liveTransfers || getPendingEvidenceTransfers();

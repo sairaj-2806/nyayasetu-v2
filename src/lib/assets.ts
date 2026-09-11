@@ -332,7 +332,9 @@ export function policeAssetDetailQuery(assetId: string) {
       try {
         const isUuid = Boolean(asset.id.match(/^[0-9a-fA-F-]{36}$/));
         if (isUuid) {
-          const { data: dbTransfers, error: trfErr } = await (supabase.from("asset_transfers") as any)
+          const { data: dbTransfers, error: trfErr } = await (
+            supabase.from("asset_transfers") as any
+          )
             .select("*")
             .eq("asset_id", asset.id)
             .order("dispatched_at", { ascending: false });
@@ -476,7 +478,9 @@ export function policeAssetDetailQuery(assetId: string) {
       try {
         const isUuid = Boolean(asset.id.match(/^[0-9a-fA-F-]{36}$/));
         if (isUuid) {
-          const { data: dbEvents, error: evErr } = await (supabase.from("evidence_chain_of_custody") as any)
+          const { data: dbEvents, error: evErr } = await (
+            supabase.from("evidence_chain_of_custody") as any
+          )
             .select("*")
             .eq("asset_id", asset.id)
             .order("transfer_timestamp", { ascending: true });

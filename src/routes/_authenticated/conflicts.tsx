@@ -215,14 +215,24 @@ function Page() {
                       </p>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         {c.caseId ? (
-                          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1.5"
+                            asChild
+                          >
                             <Link to="/cases/$caseId" params={{ caseId: c.caseId }}>
                               <FileText className="size-3.5" />
                               View Case
                             </Link>
                           </Button>
                         ) : c.caseNumber && c.caseNumber !== "—" ? (
-                          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1.5"
+                            asChild
+                          >
                             <Link to="/cases" search={{ search: c.caseNumber }}>
                               <FileText className="size-3.5" />
                               View Case
