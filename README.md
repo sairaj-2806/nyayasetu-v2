@@ -240,9 +240,9 @@ npm run electron:build
 
 ## 📚 Official SIH26190 Documentation
 
-- **[SIH26190 Final Product Audit](docs/SIH26190_FINAL_PRODUCT_AUDIT.md):** Complete architectural audit, security model, and lifecycle analysis.
-- **[SIH26190 Requirement Mapping Matrix](docs/SIH26190_REQUIREMENT_MAPPING.md):** Detailed compliance matrix mapping every official PS requirement to the codebase.
-- **[Security Remediation Report](docs/SECURITY_REMEDIATION_REPORT.md):** Technical analysis of SEC-01 through SEC-12 zero-trust hardening.
+- **[SIH26190 Final Verification Report](docs/SIH26190_FINAL_VERIFICATION_REPORT.md):** Comprehensive 35-criteria release gate verification, zero-trust security matrices, and live test evidence.
+- **[SIH26190 5-Minute Demo Checklist](docs/SIH26190_DEMO_CHECKLIST.md):** Exact step-by-step unassisted live presentation script with visual checkpoints and expected results.
+- **[AI Transparency & Architecture Report](docs/AI_TRANSPARENCY_REPORT.md):** Grounded RAG retrieval boundary, prompt injection defenses, and legal evidence citation standards.
 
 ---
 
