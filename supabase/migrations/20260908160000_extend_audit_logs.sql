@@ -20,11 +20,7 @@ CREATE POLICY "Authorized roles can read audit logs"
   FOR SELECT
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM public.staff_profiles sp
-      WHERE sp.user_id = auth.uid()
-        AND sp.role IN ('admin', 'registrar', 'investigating_officer', 'forensic_officer', 'evidence_custodian')
-    )
+    public.has_any_staff_role(auth.uid(), ARRAY['admin', 'registrar', 'investigating_officer', 'forensic_officer', 'evidence_custodian'])
   );
 
 -- Insert policy: Authenticated staff can write audit log entries

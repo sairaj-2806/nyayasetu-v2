@@ -151,21 +151,13 @@ CREATE POLICY "Hardened view documents by sensitivity tier" ON public.case_docum
     )
     OR (
       -- Restricted Investigation files: IO, FSL, Registrar, Evidence Custodian, or presiding Judge
-      sensitivity_tier = 'RESTRICTED_INVESTIGATION'::public.document_sensitivity_tier
+      sensitivity_tier = 'RESTRICTED'::public.document_sensitivity_tier
       AND (
         public.has_any_staff_role(auth.uid(), ARRAY['investigating_officer', 'forensic_officer', 'registrar', 'evidence_custodian'])
         OR (public.is_bench_user() AND EXISTS (
           SELECT 1 FROM public.schedules s
           WHERE s.case_id = case_documents.case_id AND s.judge_id = public.current_judge_id()
         ))
-      )
-    )
-    OR (
-      -- Confidential & Public files: accessible to all authenticated staff & bench (excluding general patrol for confidential)
-      sensitivity_tier = 'CONFIDENTIAL'::public.document_sensitivity_tier
-      AND (
-        public.has_any_staff_role(auth.uid(), ARRAY['registrar', 'investigating_officer', 'forensic_officer', 'evidence_custodian'])
-        OR public.is_bench_user()
       )
     )
     OR (

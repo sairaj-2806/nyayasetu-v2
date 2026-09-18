@@ -81,6 +81,13 @@ async function runCustodyVerification() {
   const testAssetCode = `EVD-TEST-${Date.now().toString().slice(-6)}`;
   const now = new Date().toISOString();
 
+  // Fetch category for test asset
+  const { data: catRow } = await supabaseAdmin
+    .from("asset_categories")
+    .select("id")
+    .limit(1)
+    .single();
+
   // Seed a test asset into public.police_assets
   console.log("Preparing test evidence asset in database...");
   const { data: assetInsert, error: assetErr } = await supabaseAdmin
@@ -89,11 +96,12 @@ async function runCustodyVerification() {
       id: testAssetId,
       asset_code: testAssetCode,
       name: "Ballistic Recovery — 9mm Shell Casing #402",
+      category_id: catRow?.id,
       current_custodian_name: "Sub-Inspector Vikram Singh",
       current_location: "Kashmere Gate Police Malkhana",
       department_station: "Delhi Central Police Division",
-      evidence_status: "SECURED_IN_MALKHANA",
-      status: "ACTIVE",
+      evidence_status: "STORED",
+      status: "REGISTERED",
       tamper_seal_number: "SEAL-IND-99418",
     })
     .select()
@@ -221,7 +229,7 @@ async function runCustodyVerification() {
     .update({
       current_location: "Central Forensic Science Laboratory (CFSL)",
       current_custodian_name: "Senior Scientific Officer Dr. Mehta",
-      evidence_status: "IN_FORENSIC_EXAMINATION",
+      evidence_status: "FORENSIC_EXAMINATION",
       tamper_seal_number: transitSeal1,
       updated_at: receiptNow,
     })

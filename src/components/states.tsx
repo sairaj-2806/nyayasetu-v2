@@ -60,7 +60,7 @@ export function ErrorState({
       ? error.message
       : typeof error === "string"
         ? error
-        : "The registry did not respond.";
+        : (error as any)?.message || "The registry did not respond.";
   return (
     <Card className="mt-6 border-destructive/40 shadow-panel">
       <CardContent className="py-12 text-center">
