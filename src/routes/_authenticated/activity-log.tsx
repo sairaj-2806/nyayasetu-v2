@@ -649,32 +649,38 @@ function Page() {
             )}
           </div>
         </CardHeader>
-        <CardContent className="grid gap-3 pt-0 pb-4 px-4 sm:px-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+        <CardContent className="grid gap-3 pt-0 pb-4 px-4 sm:px-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           {/* Free Search */}
-          <div className="lg:col-span-2">
-            <Label htmlFor="auditSearch" className="text-[11px] font-medium text-muted-foreground">
+          <div className="min-w-0">
+            <Label
+              htmlFor="auditSearch"
+              className="block text-[11px] font-medium text-muted-foreground truncate"
+            >
               Search text / hash / seal
             </Label>
             <Input
               id="auditSearch"
               aria-label="Search audit log by action, title, hash, or officer"
-              className="mt-1 h-9 text-xs"
-              placeholder="Search action, title, hash, officer..."
+              className="mt-1 h-9 text-xs w-full"
+              placeholder="Search action, hash..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
           {/* User Filter */}
-          <div>
-            <Label htmlFor="auditUser" className="text-[11px] font-medium text-muted-foreground">
+          <div className="min-w-0">
+            <Label
+              htmlFor="auditUser"
+              className="block text-[11px] font-medium text-muted-foreground truncate"
+            >
               Actor / User
             </Label>
             <Select value={selectedUser} onValueChange={setSelectedUser}>
               <SelectTrigger
                 id="auditUser"
                 aria-label="Filter audit log by actor or user"
-                className="mt-1 h-9 text-xs"
+                className="mt-1 h-9 text-xs w-full"
               >
                 <SelectValue placeholder="All users" />
               </SelectTrigger>
@@ -692,15 +698,18 @@ function Page() {
           </div>
 
           {/* Action Code Filter */}
-          <div>
-            <Label htmlFor="auditAction" className="text-[11px] font-medium text-muted-foreground">
+          <div className="min-w-0">
+            <Label
+              htmlFor="auditAction"
+              className="block text-[11px] font-medium text-muted-foreground truncate"
+            >
               Action Code
             </Label>
             <Select value={selectedActionCode} onValueChange={setSelectedActionCode}>
               <SelectTrigger
                 id="auditAction"
                 aria-label="Filter audit log by action code"
-                className="mt-1 h-9 text-xs"
+                className="mt-1 h-9 text-xs w-full"
               >
                 <SelectValue placeholder="All actions" />
               </SelectTrigger>
@@ -718,54 +727,57 @@ function Page() {
           </div>
 
           {/* Case ID Filter */}
-          <div>
-            <Label htmlFor="auditCaseId" className="text-[11px] font-medium text-muted-foreground">
+          <div className="min-w-0">
+            <Label
+              htmlFor="auditCaseId"
+              className="block text-[11px] font-medium text-muted-foreground truncate"
+            >
               Case ID / Number
             </Label>
             <Input
               id="auditCaseId"
               aria-label="Filter audit log by case ID or number"
-              className="mt-1 h-9 text-xs font-mono"
+              className="mt-1 h-9 text-xs font-mono w-full"
               placeholder="e.g. BNS/2026/0014"
               value={selectedCaseId}
               onChange={(e) => setSelectedCaseId(e.target.value)}
             />
           </div>
 
-          {/* Date Range: From / To */}
-          <div className="flex items-center gap-1.5">
-            <div className="flex-1">
-              <Label
-                htmlFor="auditFromDate"
-                className="text-[11px] font-medium text-muted-foreground"
-              >
-                From
-              </Label>
-              <Input
-                id="auditFromDate"
-                aria-label="Audit filter start date"
-                className="mt-1 h-9 text-xs"
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-              />
-            </div>
-            <div className="flex-1">
-              <Label
-                htmlFor="auditToDate"
-                className="text-[11px] font-medium text-muted-foreground"
-              >
-                To
-              </Label>
-              <Input
-                id="auditToDate"
-                aria-label="Audit filter end date"
-                className="mt-1 h-9 text-xs"
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-              />
-            </div>
+          {/* From Date */}
+          <div className="min-w-0">
+            <Label
+              htmlFor="auditFromDate"
+              className="block text-[11px] font-medium text-muted-foreground truncate"
+            >
+              From
+            </Label>
+            <Input
+              id="auditFromDate"
+              aria-label="Audit filter start date"
+              className="mt-1 h-9 text-xs w-full"
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+            />
+          </div>
+
+          {/* To Date */}
+          <div className="min-w-0">
+            <Label
+              htmlFor="auditToDate"
+              className="block text-[11px] font-medium text-muted-foreground truncate"
+            >
+              To
+            </Label>
+            <Input
+              id="auditToDate"
+              aria-label="Audit filter end date"
+              className="mt-1 h-9 text-xs w-full"
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+            />
           </div>
         </CardContent>
       </Card>
